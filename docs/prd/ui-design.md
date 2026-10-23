@@ -41,10 +41,10 @@ Quick add replaces Library of Gathering's ManaBox import as the main way cards c
 The deck view answers "can I build this today, and from where?" without a single click.
 
 - **Header:** deck name, the Legend's domain icons, a state pill and the actions Assemble, Take apart, Update from deck list and Export (DECK-10, CHG-1, EXP-1). Take apart appears only when something is in the deck box.
-- **Legend and champion:** the Legend and the Chosen Champion sit first, as two card images side by side, where Library of Gathering showed the commander.
+- **Legend and champion:** the Legend and the Chosen Champion sit first, as two card images side by side, where Library of Gathering showed the commander. The rune counts sit beside them in the same panel.
 - **Main deck:** grouped by card type in columns (units, spells, gear), with signature cards marked. Group by also offers Where it is, Domain and Tag; Sort by offers name and energy.
-- **Battlefields:** a row of three landscape tiles under the main deck.
-- **Runes:** one line of counts per domain, such as "6 Fury Rune · 6 Chaos Rune", with plus and minus buttons. Runes have no status, since they are always available (D-15).
+- **Battlefields:** a row of three small landscape tiles under the Legend panel, above the main deck.
+- **Runes:** one line of counts per domain, such as "6 Fury Rune · 6 Chaos Rune", with plus and minus buttons, in the Legend panel. Runes have no status, since they are always available (D-15).
 - **Sideboard:** its own panel with its card count, shown only when the deck has a sideboard, with statuses like the main deck.
 - **Maybe board:** its own panel at the bottom, titled Maybe board with the note "Not counted, picked or checked with the deck.", and left out when empty (D-22).
 - **Row actions:** right-clicking a card opens Change printing…, Move to sideboard, Move to maybe board or Move to main deck (DECK-16), Edit tags… and Add to buy list. Legend, champion and battlefield cards have no move.
@@ -79,5 +79,5 @@ Unchanged, with two words replaced: Basic land becomes Rune in Slot status (a gr
 
 ## Open questions
 
-- [ ] Should battlefields show as landscape tiles in a row of three, as above? Default: yes.
+- [x] Should battlefields show as landscape tiles in a row of three, as above? Yes, smaller and above the main deck (Jeff, on the canvas, 2026-10-23).
 - [x] Should the design canvas be redrawn for Riftbound before the screens change, as Library of Gathering did for UI changes? Yes: the [Rift Library UI canvas](ui-canvas.md) has a board each for the deck view, add cards, deck list import, new deck and Decks home, and each is approved before its screen issue starts (#6).

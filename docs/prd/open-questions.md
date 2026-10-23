@@ -37,4 +37,3 @@ These need work or a file rather than an answer now.
 | Which finishes each printing comes in | Riftcodex has no finish field; checking TCGplayer's price entries against Jeff's real cards | Concepts and Data Model: Card data |
 | The sideboard size the checks warn on | Riot's current tournament rules; sources found so far say 8 or 10 | DECK-6 |
 | Riftcodex's paging, rate limits and how often it updates | Calling the API from Jeff's computer, since this cloud environment can't reach it | Technical design: Card data |
-| The UI design canvas | Jeff's approval of each board on the [Rift Library UI canvas](ui-canvas.md) | UI canvas, UI Design |
