@@ -9,10 +9,6 @@ import { decksRoutes } from './routes/decks';
 import { exportsRoutes } from './routes/exports';
 import { historyRoutes } from './routes/history';
 import { locationsRoutes } from './routes/locations';
-import { manaboxRoutes } from './routes/manabox';
-import { manaboxUpdateRoutes } from './routes/manabox-update';
-import { moxfieldRoutes } from './routes/moxfield';
-import { moxfieldUpdateRoutes } from './routes/moxfield-update';
 import { pickListRoutes } from './routes/pick-list';
 import { pullsRoutes } from './routes/pulls';
 import { putAwayRoutes } from './routes/put-away';
@@ -32,10 +28,6 @@ export const app = new Hono()
   .route('/api', stacksRoutes)
   .route('/api', undoRoutes)
   .route('/api', historyRoutes)
-  .route('/api', manaboxRoutes)
-  .route('/api', manaboxUpdateRoutes)
-  .route('/api', moxfieldRoutes)
-  .route('/api', moxfieldUpdateRoutes)
   .route('/api', decksRoutes)
   .route('/api', deckChecksRoutes)
   .route('/api', buyListRoutes)

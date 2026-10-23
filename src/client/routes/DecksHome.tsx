@@ -1,31 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  ChevronDown,
-  ClipboardPaste,
-  Hammer,
-  LayoutGrid,
-  Library,
-  MapPinPlus,
-  Plus,
-  Table2,
-  Upload,
-} from 'lucide-react';
+import { Hammer, LayoutGrid, Library, MapPinPlus, Plus, Table2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { SlotStatus } from '../../shared/api/common';
 import type { DeckCounts, DeckSummary } from '../../shared/api/decks';
 import { api } from '../api';
-import { ManaBoxImportDialog } from '../components/ManaBoxImportDialog';
 import { Panel } from '../components/Panel';
 import { deckStateLook, StatePill } from '../components/StatePill';
 import { slotStatusLook } from '../components/StatusBadge';
 import { Button } from '../components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu';
 import { cn } from '../lib/utils';
 
 type View = 'tiles' | 'table';
@@ -139,29 +122,12 @@ function ViewSwitch({ view, onChange }: { view: View; onChange: (view: View) => 
 
 function NewDeckMenu() {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button>
-          <Plus aria-hidden="true" />
-          New deck
-          <ChevronDown aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <Link to="/import/moxfield">
-            <ClipboardPaste aria-hidden="true" />
-            Import from Moxfield
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/decks/new">
-            <Hammer aria-hidden="true" />
-            Build in the app
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button asChild>
+      <Link to="/decks/new">
+        <Plus aria-hidden="true" />
+        New deck
+      </Link>
+    </Button>
   );
 }
 
@@ -362,7 +328,6 @@ function useHasLocations() {
 }
 
 function NoDecks() {
-  const [manaBoxOpen, setManaBoxOpen] = useState(false);
   const hasLocations = useHasLocations().data === true;
   return (
     <Panel className="flex flex-col items-center gap-4 px-6 py-12 text-center">
@@ -373,16 +338,16 @@ function NoDecks() {
         </h2>
         <p className="max-w-[600px] text-[15px] text-muted-foreground">
           {hasLocations
-            ? 'Paste a deck list from Moxfield, or add more locations and cards first.'
-            : 'Create a location for each box and binder, or import your ManaBox collection.'}
+            ? 'Build a deck in the app, or add more locations and cards first.'
+            : 'Create a location for each box and binder, then add your cards to them.'}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2.5">
         {hasLocations && (
           <Button asChild>
-            <Link to="/import/moxfield">
-              <ClipboardPaste aria-hidden="true" />
-              Paste a Moxfield list
+            <Link to="/decks/new">
+              <Hammer aria-hidden="true" />
+              Build a deck
             </Link>
           </Button>
         )}
@@ -392,12 +357,7 @@ function NoDecks() {
             Create a location
           </Link>
         </Button>
-        <Button variant="outline" onClick={() => setManaBoxOpen(true)}>
-          <Upload aria-hidden="true" />
-          Import ManaBox CSV
-        </Button>
       </div>
-      <ManaBoxImportDialog open={manaBoxOpen} onOpenChange={setManaBoxOpen} />
     </Panel>
   );
 }

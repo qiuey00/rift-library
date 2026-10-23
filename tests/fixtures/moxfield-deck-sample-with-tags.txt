@@ -1,5 +1,0 @@
-1 Adeline, Resplendent Cathar (J25) 57 #token-maker
-1 Ashaya, Soul of the Wild (ZNR) 179 #combo
-1 Avacyn's Pilgrim (PLST) MIC-132 #ramp
-1 Beast Whisperer (FDC) 189 #draw
-1 Beast Within (FDC) 190

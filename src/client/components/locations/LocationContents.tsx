@@ -30,7 +30,7 @@ export function LocationContents({
   location: LocationNode;
   /** Where the tree lists it, named in the breadcrumb. */
   section: TreeSection | 'inbox';
-  /** Opens Export to Moxfield; offered for binders, boxes and trays only. */
+  /** Opens Export list; offered for binders, boxes and trays only. */
   onExport: () => void;
 }) {
   const switchId = useId();
@@ -107,7 +107,7 @@ export function LocationContents({
           {location.forTrade && (
             <p className="mt-1 max-w-prose text-sm">
               Marked for trade. These cards are still yours and stay here; decks use them only when
-              no other copy is free. Export to Moxfield to share the list.
+              no other copy is free. Use Export list to share it.
             </p>
           )}
         </div>
@@ -126,7 +126,7 @@ export function LocationContents({
           {tradeable && (
             <Button variant="outline" onClick={onExport}>
               <Upload aria-hidden="true" />
-              Export to Moxfield
+              Export list
             </Button>
           )}
           <Button onClick={() => setAdding(true)}>
@@ -173,7 +173,7 @@ export function LocationContents({
           open
           onOpenChange={(open) => !open && setBuying(null)}
           oracleId={buying.card.oracleId}
-          scryfallId={buying.printing.scryfallId}
+          printingId={buying.printing.printingId}
         />
       )}
       <AddCardDialog open={adding} onOpenChange={setAdding} defaultLocationId={location.id} />

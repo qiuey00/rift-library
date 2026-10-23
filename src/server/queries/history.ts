@@ -44,7 +44,7 @@ type MovementRecord = {
   colorIdentity: string;
   canBeCommander: number;
   isBasicLand: number;
-  scryfallId: string;
+  printingId: string;
   setCode: string;
   setName: string;
   collectorNumber: string;
@@ -63,13 +63,13 @@ const columns = sql`
   c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
   c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
   c.is_basic_land AS isBasicLand,
-  p.scryfall_id AS scryfallId, p.set_code AS setCode, p.set_name AS setName,
+  p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
   p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
   p.image_small AS imageSmall, p.image_normal AS imageNormal`;
 
 const from = sql`
   FROM movements AS m
-  JOIN printings AS p ON p.scryfall_id = m.scryfall_id
+  JOIN printings AS p ON p.printing_id = m.printing_id
   JOIN cards AS c ON c.oracle_id = p.oracle_id`;
 
 /** Every location, deleted ones too, so old movements still name where copies were. */
@@ -156,7 +156,7 @@ function filterSql(filters: Filters, places: Places): SQL {
   const conditions: SQL[] = [];
   if (filters.card !== undefined) {
     conditions.push(
-      sql`m.scryfall_id IN (SELECT scryfall_id FROM printings WHERE oracle_id = ${filters.card})`,
+      sql`m.printing_id IN (SELECT printing_id FROM printings WHERE oracle_id = ${filters.card})`,
     );
   }
   if (filters.location !== undefined) {
@@ -200,7 +200,6 @@ type BatchInfo = {
   id: number;
   kind: BatchKind;
   deckId: number | null;
-  importId: number | null;
   createdAt: string;
   cards: number;
   movements: number;
@@ -224,7 +223,7 @@ class Summaries {
     if (missing.length === 0) return;
     const rows = this.db.all<BatchInfo>(sql`
       SELECT
-        b.id, b.kind, b.deck_id AS deckId, b.import_id AS importId, b.created_at AS createdAt,
+        b.id, b.kind, b.deck_id AS deckId, b.created_at AS createdAt,
         coalesce(sum(m.quantity), 0) AS cards, count(m.id) AS movements,
         count(m.undone_at) AS undone
       FROM movement_batches AS b
@@ -243,7 +242,7 @@ class Summaries {
     return id === null ? null : (this.decks.get(id) ?? null);
   }
 
-  /** Such as "Imported manabox-sample.csv · 389 cards into To sort". */
+  /** Such as "Pick list · Hearthhull · 12 cards". */
   summary(batch: BatchInfo, depth = 0): string {
     const known = this.texts.get(batch.id);
     if (known !== undefined) return known;
@@ -258,7 +257,7 @@ class Summaries {
     const list = (name: string) => [name, deckName, cards].filter(Boolean).join(' · ');
     switch (batch.kind) {
       case 'import':
-        return this.importSummary(batch);
+        return `Imported ${cards}`;
       case 'pick_list':
         return list('Pick list');
       case 'put_away':
@@ -272,26 +271,6 @@ class Summaries {
       case 'add':
         return `Added ${cards}`;
     }
-  }
-
-  private importSummary(batch: BatchInfo): string {
-    const imported =
-      batch.importId === null
-        ? undefined
-        : this.db.get<{ kind: string; fileName: string | null; targetLocationId: number | null }>(
-            sql`SELECT kind, file_name AS fileName, target_location_id AS targetLocationId
-                FROM imports WHERE id = ${batch.importId}`,
-          );
-    const target =
-      imported?.targetLocationId == null
-        ? undefined
-        : this.places.refs.get(imported.targetLocationId)?.name;
-    const file = imported?.fileName ? ` ${imported.fileName}` : '';
-    const cards = cardCount(batch.cards);
-    if (imported?.kind === 'manabox_update' || imported?.kind === 'moxfield_update') {
-      return `Updated${target ? ` ${target}` : ''} from${file || ' an import'} · ${cards}`;
-    }
-    return `Imported${file} · ${cards}${target ? ` into ${target}` : ''}`;
   }
 
   /**
@@ -309,7 +288,7 @@ class Summaries {
       SELECT t.batch_id AS batchId, t.quantity, t.reason, t.to_location_id AS toLocationId, c.name
       FROM movements AS u
       JOIN movements AS t ON t.id = u.undoes_movement_id
-      JOIN printings AS p ON p.scryfall_id = t.scryfall_id
+      JOIN printings AS p ON p.printing_id = t.printing_id
       JOIN cards AS c ON c.oracle_id = p.oracle_id
       WHERE u.batch_id = ${batch.id}
       ORDER BY t.id`);
@@ -370,7 +349,7 @@ function toMovementRow(record: MovementRecord, places: Places, summaries: Summar
     createdAt: record.createdAt,
     card,
     printing: {
-      scryfallId: record.scryfallId,
+      printingId: record.printingId,
       oracleId: record.oracleId,
       setCode: record.setCode,
       setName: record.setName,

@@ -17,7 +17,7 @@ type Sent = { returns: ReturnRequest[]; deletes: number };
 
 async function mockPutAway(page: Page): Promise<Sent> {
   const sent: Sent = { returns: [], deletes: 0 };
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

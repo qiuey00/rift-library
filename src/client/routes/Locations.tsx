@@ -7,6 +7,7 @@ import type { DeckList } from '../../shared/api/decks';
 import type { LocationNode } from '../../shared/api/locations';
 import type { CollectionValue } from '../../shared/api/stacks';
 import { api } from '../api';
+import { DeckListExportDialog } from '../components/DeckListExportDialog';
 import { useLocationTree } from '../components/LocationPicker';
 import { LocationContents } from '../components/locations/LocationContents';
 import {
@@ -21,7 +22,6 @@ import {
   LocationTreePanel,
 } from '../components/locations/LocationTreePanel';
 import { descendantIds, failure, groupTree, sectionOf } from '../components/locations/tree';
-import { MoxfieldExportDialog } from '../components/MoxfieldExportDialog';
 import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
 import { formatCents } from '../lib/money';
@@ -152,7 +152,7 @@ export function Locations() {
         onOpenChange={close}
       />
       {dialog?.kind === 'export' && (
-        <MoxfieldExportDialog
+        <DeckListExportDialog
           open
           onOpenChange={close}
           source={{

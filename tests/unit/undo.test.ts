@@ -37,7 +37,7 @@ function location(name: string, type: typeof locations.$inferInsert.type) {
   return db.insert(locations).values({ name, type }).returning({ id: locations.id }).get().id;
 }
 
-function card(scryfallId: string, name: string, oracleId = `oracle-${scryfallId}`) {
+function card(printingId: string, name: string, oracleId = `oracle-${printingId}`) {
   db.insert(cards)
     .values({
       oracleId,
@@ -50,7 +50,7 @@ function card(scryfallId: string, name: string, oracleId = `oracle-${scryfallId}
     .run();
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode: 'cmm',
       setName: 'Commander Masters',
@@ -67,7 +67,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 1,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -156,7 +156,7 @@ describe('undoMovement', () => {
   it('removes an added copy', () => {
     const batchId = createBatch(db, 'add');
     const { movementId } = addCopies(db, {
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 2,
       locationId: binder,
       finish: 'foil',
@@ -228,7 +228,7 @@ describe('undoMovement', () => {
       slotId: slot,
       pickedBefore: null,
     });
-    db.update(deckSlots).set({ pickedScryfallId: SIGNET }).where(eq(deckSlots.id, slot)).run();
+    db.update(deckSlots).set({ pickedPrintingId: SIGNET }).where(eq(deckSlots.id, slot)).run();
     expect(where()).toEqual([[deckBox, 1, box]]);
 
     expect(undoMovement(db, movementId).message).toBe(
@@ -236,7 +236,7 @@ describe('undoMovement', () => {
     );
     expect(where()).toEqual([[box, 1, null]]);
     const slotRow = db.select().from(deckSlots).where(eq(deckSlots.id, slot)).get();
-    expect(slotRow?.pickedScryfallId).toBeNull();
+    expect(slotRow?.pickedPrintingId).toBeNull();
     expect(allMovements()[1]).toMatchObject({ slotId: slot, deckId: deck, reason: 'undo' });
   });
 
@@ -248,14 +248,14 @@ describe('undoMovement', () => {
         oracleId: `oracle-${SIGNET}`,
         board: 'main',
         quantity: 1,
-        pickedScryfallId: SIGNET,
+        pickedPrintingId: SIGNET,
       })
       .returning({ id: deckSlots.id })
       .get().id;
     // A borrowed copy in another deck box keeps its came-from; moving it back must keep it.
     const otherBox = location('Atraxa deck box', 'deck_box');
     const source = stack({
-      scryfallId: SIGNET_FOIL_ART,
+      printingId: SIGNET_FOIL_ART,
       locationId: otherBox,
       cameFromLocationId: binder,
     });
@@ -266,12 +266,12 @@ describe('undoMovement', () => {
       pickedBefore: SIGNET,
     });
     db.update(deckSlots)
-      .set({ pickedScryfallId: SIGNET_FOIL_ART })
+      .set({ pickedPrintingId: SIGNET_FOIL_ART })
       .where(eq(deckSlots.id, slot))
       .run();
     undoMovement(db, movementId);
     expect(where()).toEqual([[otherBox, 1, binder]]);
-    expect(db.select().from(deckSlots).get()?.pickedScryfallId).toBe(SIGNET);
+    expect(db.select().from(deckSlots).get()?.pickedPrintingId).toBe(SIGNET);
   });
 
   it('refuses when the copies moved since, and changes nothing', () => {
@@ -325,7 +325,7 @@ describe('undoBatch', () => {
     const batchId = createBatch(db, 'pick_list', { deckId: deck });
     const first = moveCopies(db, stack(), 1, box, { reason: 'moved', batchId });
     moveCopies(db, first.destStackId, 1, deckBox, { reason: 'assembled', batchId, deckId: deck });
-    moveCopies(db, stack({ scryfallId: SOL_RING }), 1, deckBox, {
+    moveCopies(db, stack({ printingId: SOL_RING }), 1, deckBox, {
       reason: 'assembled',
       batchId,
       deckId: deck,
@@ -345,7 +345,7 @@ describe('undoBatch', () => {
   it('skips movements already undone', () => {
     const batchId = createBatch(db, 'move');
     const a = moveCopies(db, stack(), 1, box, { reason: 'moved', batchId });
-    moveCopies(db, stack({ scryfallId: SOL_RING }), 1, box, { reason: 'moved', batchId });
+    moveCopies(db, stack({ printingId: SOL_RING }), 1, box, { reason: 'moved', batchId });
     undoMovement(db, a.movementId);
     expect(undoBatch(db, batchId).message).toBe('Undid: moved Sol Ring to Long box');
     expect(allMovements().filter((m) => m.reason === 'undo')).toHaveLength(2);
@@ -355,7 +355,7 @@ describe('undoBatch', () => {
   it('changes nothing when any movement in the batch moved since', () => {
     const batchId = createBatch(db, 'move');
     moveCopies(db, stack(), 1, box, { reason: 'moved', batchId });
-    const ring = moveCopies(db, stack({ scryfallId: SOL_RING }), 1, box, {
+    const ring = moveCopies(db, stack({ printingId: SOL_RING }), 1, box, {
       reason: 'moved',
       batchId,
     });

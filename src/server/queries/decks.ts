@@ -48,7 +48,7 @@ export function cardSummary(card: CardRow, images: Images = NO_IMAGES): CardSumm
 
 export function printingSummary(printing: PrintingRow): PrintingSummary {
   return {
-    scryfallId: printing.scryfallId,
+    printingId: printing.printingId,
     oracleId: printing.oracleId,
     setCode: printing.setCode,
     setName: printing.setName,
@@ -133,7 +133,7 @@ function holdings(db: Db, liveDecks: DeckRow[], oracleIds: string[]): Holdings {
         isProxy: copyStacks.isProxy,
       })
       .from(copyStacks)
-      .innerJoin(printings, eq(printings.scryfallId, copyStacks.scryfallId))
+      .innerJoin(printings, eq(printings.printingId, copyStacks.printingId))
       .where(inArray(printings.oracleId, oracleIds))
       .all();
     for (const stack of stacks) {
@@ -215,7 +215,7 @@ function hintedPrintings(db: Db, deckIds: number[]): Map<number, PrintingRow> {
         sql`lower(${printings.setCode}) = lower(${deckSlots.hintSetCode})`,
       ),
     )
-    .where(and(inArray(deckSlots.deckId, deckIds), isNull(deckSlots.pickedScryfallId)))
+    .where(and(inArray(deckSlots.deckId, deckIds), isNull(deckSlots.pickedPrintingId)))
     .all();
   const bySlot = new Map<number, PrintingRow>();
   for (const { slotId, printing } of rows) {
@@ -231,15 +231,15 @@ function slotsOf(db: Db, deckIds: number[]): SlotWithCard[] {
     .from(printings)
     .where(
       inArray(
-        printings.scryfallId,
+        printings.printingId,
         db
-          .select({ id: deckSlots.pickedScryfallId })
+          .select({ id: deckSlots.pickedPrintingId })
           .from(deckSlots)
           .where(inArray(deckSlots.deckId, deckIds)),
       ),
     )
     .all();
-  const pickedById = new Map(picked.map((p) => [p.scryfallId, p]));
+  const pickedById = new Map(picked.map((p) => [p.printingId, p]));
   const hinted = hintedPrintings(db, deckIds);
   const tags = slotTags(db, deckIds);
   return db
@@ -250,8 +250,8 @@ function slotsOf(db: Db, deckIds: number[]): SlotWithCard[] {
     .orderBy(deckSlots.id)
     .all()
     .map((row) => {
-      const picked = row.deck_slots.pickedScryfallId
-        ? (pickedById.get(row.deck_slots.pickedScryfallId) ?? null)
+      const picked = row.deck_slots.pickedPrintingId
+        ? (pickedById.get(row.deck_slots.pickedPrintingId) ?? null)
         : null;
       const printing = picked ?? hinted.get(row.deck_slots.id) ?? null;
       const slotTags = tags.get(row.deck_slots.id) ?? [];

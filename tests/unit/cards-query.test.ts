@@ -40,7 +40,7 @@ function addPrinting(
   return db
     .insert(printings)
     .values({
-      scryfallId: randomUUID(),
+      printingId: randomUUID(),
       oracleId,
       setCode,
       setName: `${setCode.toUpperCase()} set`,
@@ -59,14 +59,14 @@ function addPrinting(
 
 function addStack(
   db: OpenDb,
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   quantity: number,
   isProxy = false,
 ) {
   db.insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       quantity,
       locationId,
       isProxy,
@@ -200,10 +200,10 @@ describe('copy counts and card details', () => {
 
     const box = addLocation(db, 'Long box', 'box');
     const deckBox = addLocation(db, 'Atraxa deck box', 'deck_box');
-    addStack(db, old.scryfallId, box, 3); // in storage
-    addStack(db, newest.scryfallId, box, 1, true); // a proxy in storage
-    addStack(db, newest.scryfallId, deckBox, 2); // in a deck
-    addStack(db, old.scryfallId, deckBox, 1, true); // a proxy in a deck
+    addStack(db, old.printingId, box, 3); // in storage
+    addStack(db, newest.printingId, box, 1, true); // a proxy in storage
+    addStack(db, newest.printingId, deckBox, 2); // in a deck
+    addStack(db, old.printingId, deckBox, 1, true); // a proxy in a deck
   });
 
   it('counts owned and free across printings in search results', () => {

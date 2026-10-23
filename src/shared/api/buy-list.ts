@@ -27,7 +27,7 @@ export type BuyList = z.infer<typeof BuyList>;
 export const NewBuyItem = z.object({
   oracleId: z.string().min(1),
   /** Leave out when any printing will do. */
-  scryfallId: z.string().min(1).optional(),
+  printingId: z.string().min(1).optional(),
   quantity: Quantity,
   note: z.string().optional(),
 });

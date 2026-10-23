@@ -27,13 +27,13 @@ function cannotUndo(message: string): AppError {
   return new AppError(409, 'cannot_undo', message);
 }
 
-function cardName(db: Db, scryfallId: string): string {
+function cardName(db: Db, printingId: string): string {
   return (
     db
       .select({ name: cards.name })
       .from(printings)
       .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-      .where(eq(printings.scryfallId, scryfallId))
+      .where(eq(printings.printingId, printingId))
       .get()?.name ?? 'card'
   );
 }
@@ -60,7 +60,7 @@ function isLive(db: Db, locationId: number): boolean {
 /** What a movement did, such as "moved Arcane Signet to Rares binder". */
 function describeMovement(db: Db, m: Movement): string {
   const what =
-    m.quantity === 1 ? cardName(db, m.scryfallId) : `${m.quantity} ${cardName(db, m.scryfallId)}`;
+    m.quantity === 1 ? cardName(db, m.printingId) : `${m.quantity} ${cardName(db, m.printingId)}`;
   const to = locationName(db, m.toLocationId);
   if (m.toLocationId === null) return `removed ${what} from ${locationName(db, m.fromLocationId)}`;
   switch (m.reason) {
@@ -93,7 +93,7 @@ const BATCH_LABELS: Record<BatchKind, string> = {
 /** A stack holding the copies exactly where the movement put them, or undefined. */
 function stackWhereMovementLeft(db: Db, m: Movement & { toLocationId: number }) {
   const conditions: SQL[] = [
-    eq(copyStacks.scryfallId, m.scryfallId),
+    eq(copyStacks.printingId, m.printingId),
     eq(copyStacks.finish, m.finish),
     eq(copyStacks.condition, m.condition),
     eq(copyStacks.language, m.language),
@@ -115,13 +115,13 @@ function stackWhereMovementLeft(db: Db, m: Movement & { toLocationId: number }) 
 
 /** "Arcane Signet has moved since. It is now in Rares binder." */
 function movedSinceError(db: Db, m: Movement & { toLocationId: number }): AppError {
-  const name = cardName(db, m.scryfallId);
+  const name = cardName(db, m.printingId);
   const elsewhere = db
     .select({ locationId: copyStacks.locationId })
     .from(copyStacks)
     .where(
       and(
-        eq(copyStacks.scryfallId, m.scryfallId),
+        eq(copyStacks.printingId, m.printingId),
         eq(copyStacks.finish, m.finish),
         eq(copyStacks.condition, m.condition),
         eq(copyStacks.language, m.language),
@@ -153,7 +153,7 @@ function reverse(db: Db, m: Movement, batchId: number) {
     slotId: m.slotId ?? undefined,
     undoesMovementId: m.id,
   };
-  const name = cardName(db, m.scryfallId);
+  const name = cardName(db, m.printingId);
 
   if (m.toLocationId === null) {
     // Removed: recreate the stack where it was, from the snapshot.
@@ -164,7 +164,7 @@ function reverse(db: Db, m: Movement, batchId: number) {
       );
     }
     addCopies(db, {
-      scryfallId: m.scryfallId,
+      printingId: m.printingId,
       quantity: m.quantity,
       purchasePrice: m.purchasePrice ?? undefined,
       purchaseCurrency: m.purchaseCurrency ?? undefined,
@@ -200,7 +200,7 @@ function reverse(db: Db, m: Movement, batchId: number) {
 
   if (m.slotId !== null && (m.pickedBefore !== null || PULL_REASONS.includes(m.reason))) {
     db.update(deckSlots)
-      .set({ pickedScryfallId: m.pickedBefore })
+      .set({ pickedPrintingId: m.pickedBefore })
       .where(eq(deckSlots.id, m.slotId))
       .run();
   }

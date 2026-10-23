@@ -73,7 +73,7 @@ describe('AddCardDialog', () => {
     expect(calls[0]).toEqual({
       url: '/api/stacks/add',
       body: expect.objectContaining({
-        scryfallId: arcaneSignetDetails.printings[0]?.scryfallId,
+        printingId: arcaneSignetDetails.printings[0]?.printingId,
         locationId: 6,
         quantity: 1,
       }),

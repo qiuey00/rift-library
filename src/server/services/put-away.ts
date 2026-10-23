@@ -98,7 +98,7 @@ export function returnCopies(db: Db, deckId: number, body: ReturnRequest): Retur
 
     const what = describeCopies(
       tx,
-      moves.map((m) => ({ scryfallId: m.stack.scryfallId, quantity: m.quantity })),
+      moves.map((m) => ({ printingId: m.stack.printingId, quantity: m.quantity })),
     );
     const destinations = new Set(moves.map((m) => m.to));
     const [only] = destinations;

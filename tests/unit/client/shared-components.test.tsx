@@ -4,9 +4,9 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CardCopiesSection } from '../../../src/client/components/CardCopiesSection';
 import { CardDecksSection } from '../../../src/client/components/CardDecksSection';
+import { DeckListExportDialog } from '../../../src/client/components/DeckListExportDialog';
 import { InboxBadge } from '../../../src/client/components/InboxBadge';
 import { LocationTile } from '../../../src/client/components/LocationTile';
-import { ManaBoxImportDialog } from '../../../src/client/components/ManaBoxImportDialog';
 import { Panel } from '../../../src/client/components/Panel';
 import { ProxyTag } from '../../../src/client/components/ProxyTag';
 import { StatePill } from '../../../src/client/components/StatePill';
@@ -101,7 +101,13 @@ describe('placeholder components', () => {
   const noop = () => {};
 
   it('keeps a closed dialog out of the page', () => {
-    render(<ManaBoxImportDialog open={false} onOpenChange={noop} />);
+    render(
+      <DeckListExportDialog
+        open={false}
+        onOpenChange={noop}
+        source={{ kind: 'deck', deckId: 1, deckName: 'Jinx Burn' }}
+      />,
+    );
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

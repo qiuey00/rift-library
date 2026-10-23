@@ -56,7 +56,7 @@ beforeEach(() => {
     .values([
       {
         ...printing,
-        scryfallId: signetCmm,
+        printingId: signetCmm,
         oracleId: signet,
         setCode: 'cmm',
         setName: 'Commander Masters',
@@ -67,7 +67,7 @@ beforeEach(() => {
       },
       {
         ...printing,
-        scryfallId: signetM3c,
+        printingId: signetM3c,
         oracleId: signet,
         setCode: 'm3c',
         setName: 'Modern Horizons 3 Commander',
@@ -78,7 +78,7 @@ beforeEach(() => {
       },
       {
         ...printing,
-        scryfallId: solCmm,
+        printingId: solCmm,
         oracleId: sol,
         setCode: 'cmm',
         setName: 'Commander Masters',
@@ -97,7 +97,7 @@ async function body<T extends z.ZodType>(res: Response, schema: T, status = 200)
 
 async function add(json: {
   oracleId: string;
-  scryfallId?: string;
+  printingId?: string;
   quantity: number;
   note?: string;
 }) {
@@ -126,21 +126,21 @@ describe('buy list', () => {
   });
 
   it('adds a card with a wanted printing, showing that printing’s picture', async () => {
-    const item = await add({ oracleId: signet, scryfallId: signetCmm, quantity: 1 });
-    expect(item.printing).toMatchObject({ scryfallId: signetCmm, setCode: 'cmm' });
+    const item = await add({ oracleId: signet, printingId: signetCmm, quantity: 1 });
+    expect(item.printing).toMatchObject({ printingId: signetCmm, setCode: 'cmm' });
     expect(item.card.imageSmall).toBe('cmm-small.jpg');
     expect(item.note).toBe('');
   });
 
   it('raises the quantity when the same card and printing is added again', async () => {
-    const first = await add({ oracleId: signet, scryfallId: signetCmm, quantity: 1, note: 'Old' });
-    const again = await add({ oracleId: signet, scryfallId: signetCmm, quantity: 2, note: 'New' });
+    const first = await add({ oracleId: signet, printingId: signetCmm, quantity: 1, note: 'Old' });
+    const again = await add({ oracleId: signet, printingId: signetCmm, quantity: 2, note: 'New' });
     expect(again.id).toBe(first.id);
     expect(again.quantity).toBe(3);
     expect(again.note).toBe('New');
 
     // An empty note keeps the old one.
-    const blank = await add({ oracleId: signet, scryfallId: signetCmm, quantity: 1, note: ' ' });
+    const blank = await add({ oracleId: signet, printingId: signetCmm, quantity: 1, note: ' ' });
     expect(blank).toMatchObject({ quantity: 4, note: 'New' });
     expect(await list()).toHaveLength(1);
   });
@@ -150,8 +150,8 @@ describe('buy list', () => {
     const again = await add({ oracleId: signet, quantity: 1 });
     expect(again).toMatchObject({ id: any.id, quantity: 2 });
 
-    const cmm = await add({ oracleId: signet, scryfallId: signetCmm, quantity: 1 });
-    const m3c = await add({ oracleId: signet, scryfallId: signetM3c, quantity: 1 });
+    const cmm = await add({ oracleId: signet, printingId: signetCmm, quantity: 1 });
+    const m3c = await add({ oracleId: signet, printingId: signetM3c, quantity: 1 });
     expect(new Set([any.id, cmm.id, m3c.id]).size).toBe(3);
     expect(await list()).toHaveLength(3);
   });
@@ -202,7 +202,7 @@ describe('buy list', () => {
 
   it('refuses a printing of another card', async () => {
     const res = await api['buy-list'].$post({
-      json: { oracleId: signet, scryfallId: solCmm, quantity: 1 },
+      json: { oracleId: signet, printingId: solCmm, quantity: 1 },
     });
     expect((await body(res, ErrorBody, 400)).error.code).toBe('printing_not_found');
   });

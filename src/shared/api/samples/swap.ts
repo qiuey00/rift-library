@@ -11,7 +11,7 @@ import {
 } from './hearthhull';
 
 // What GET /api/decks/1/swap answers once Hearthhull was fully assembled and Jeff updated it
-// from Moxfield: Rampaging Baloths and Blasphemous Act came out, and World Breaker and Uurg
+// from a deck list: Rampaging Baloths and Blasphemous Act came out, and World Breaker and Uurg
 // moved up from the maybe board.
 
 const { blackGreen, redGold, raresBinder } = locations;

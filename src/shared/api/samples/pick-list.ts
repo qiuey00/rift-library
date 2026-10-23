@@ -89,7 +89,7 @@ export const pickListSample: PickListResponse = {
         quantity: 1,
         hint: { setCode: 'eoc', collectorNumber: '126', foil: false },
       },
-      // Added in the app rather than from Moxfield, so there is no printing hint.
+      // Added in the app rather than from a deck list, so there is no printing hint.
       { slotId: 120, card: cards.omnath, quantity: 1, hint: null },
     ],
     basics: [

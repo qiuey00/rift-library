@@ -3,7 +3,7 @@ import type { CardSummary, Finish, LocationRef } from '../../../shared/api/commo
 
 /** The copy a walk line moves: what Jeff checks against the card in his hand. */
 export type WalkCopy = {
-  /** Lowercase, as Scryfall writes it, such as "eoc". */
+  /** Lowercase, such as "eoc". */
   setCode: string;
   /** Such as "rare"; colors the set symbol. */
   rarity: string;

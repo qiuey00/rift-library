@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/unit/**/*.test.{ts,tsx}'],
-    // Unit tests never touch Jeff's real database in data/, and never call Scryfall.
-    env: { DATA_DIR: mkdtempSync(path.join(tmpdir(), 'log-unit-')), SCRYFALL_SYNC: 'off' },
+    // Unit tests never touch Jeff's real database in data/.
+    env: { DATA_DIR: mkdtempSync(path.join(tmpdir(), 'log-unit-')) },
   },
 });

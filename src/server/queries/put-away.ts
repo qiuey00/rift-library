@@ -72,7 +72,7 @@ type BoxStack = {
   altered: number;
   isProxy: number;
   cameFromLocationId: number | null;
-  scryfallId: string;
+  printingId: string;
   setCode: string;
   setName: string;
   collectorNumber: string;
@@ -98,7 +98,7 @@ function boxStacks(db: Db, deckBoxId: number): BoxStack[] {
     SELECT
       s.id AS stackId, s.quantity, s.finish, s.condition, s.language, s.misprint, s.altered,
       s.is_proxy AS isProxy, s.came_from_location_id AS cameFromLocationId,
-      p.scryfall_id AS scryfallId, p.set_code AS setCode, p.set_name AS setName,
+      p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
       p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
       p.image_small AS imageSmall, p.image_normal AS imageNormal,
       c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
@@ -106,7 +106,7 @@ function boxStacks(db: Db, deckBoxId: number): BoxStack[] {
       c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
       c.is_basic_land AS isBasicLand
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     JOIN cards AS c ON c.oracle_id = p.oracle_id
     WHERE s.location_id = ${deckBoxId}
     ORDER BY c.name COLLATE NOCASE, s.id`);
@@ -149,7 +149,7 @@ export function deckState(db: Db, deck: DeckRow): DeckState {
       .all<{ oracleId: string; quantity: number }>(sql`
         SELECT p.oracle_id AS oracleId, SUM(s.quantity) AS quantity
         FROM copy_stacks AS s
-        JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+        JOIN printings AS p ON p.printing_id = s.printing_id
         WHERE s.location_id = ${deck.deckBoxId}
         GROUP BY p.oracle_id`)
       .map((row) => [row.oracleId, row.quantity]),
@@ -197,7 +197,7 @@ export function putAwayList(db: Db, deckId: number): PutAwayResponse | undefined
       stackId: stack.stackId,
       card: cardOf(stack),
       printing: {
-        scryfallId: stack.scryfallId,
+        printingId: stack.printingId,
         oracleId: stack.oracleId,
         setCode: stack.setCode,
         setName: stack.setName,

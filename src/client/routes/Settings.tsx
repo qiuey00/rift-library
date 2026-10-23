@@ -34,8 +34,8 @@ function CardDataPanel() {
             Card data
           </h2>
           <p className="text-muted-foreground text-sm">
-            Card names, sets and pictures come from Scryfall. The app checks for new data once a
-            day.
+            Card names, sets and pictures will come from Riftcodex, checked once a day. Loading them
+            comes in a later update.
           </p>
         </div>
         <Button variant="outline" disabled={running} onClick={() => refresh.mutate()}>
@@ -45,7 +45,7 @@ function CardDataPanel() {
       </div>
 
       <dl className="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-2.5 px-5 py-4 text-[15px]">
-        <Row label="Scryfall file date">
+        <Row label="Card data file date">
           {status?.bulkUpdatedAt
             ? fileDate.format(new Date(status.bulkUpdatedAt))
             : 'Not loaded yet'}

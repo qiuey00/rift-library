@@ -1,11 +1,10 @@
 import type { CardSummary, PrintingSummary } from '../common';
 
-// Real Scryfall card data for the deck samples: every card in Jeff's Hearthhull deck (his
-// Moxfield sample), the other decks' commanders and the cards the deck checks name. Each
-// card's printing is the one the Hearthhull list names, or Scryfall's default printing.
+// Card data for the deck samples: every card in the Hearthhull deck, the other decks' commanders and the cards the deck checks name. Each
+// card's printing is the one the Hearthhull list names, or a default printing.
 
-const image = (size: 'small' | 'normal', scryfallId: string, version: string) =>
-  `https://cards.scryfall.io/${size}/front/${scryfallId[0]}/${scryfallId[1]}/${scryfallId}.jpg?${version}`;
+const image = (size: 'small' | 'normal', printingId: string, version: string) =>
+  `https://images.example.com/${size}/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
 
 export const cards = {
   hearthhullTheWorldseed: {
@@ -1261,7 +1260,7 @@ export const cards = {
 /** One printing per card, under the same key as `cards`. */
 export const printings = {
   hearthhullTheWorldseed: {
-    scryfallId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
+    printingId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
     oracleId: '8d6f82d9-5c5b-4c41-8857-c0936f2d894c',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1273,7 +1272,7 @@ export const printings = {
     imageNormal: image('normal', '6b913e79-a9f6-44d4-bb37-c4f6f66b8151', '1783906067'),
   },
   aftermathAnalyst: {
-    scryfallId: '66f135b4-8cb3-4a4e-86ae-81a3cf4b7259',
+    printingId: '66f135b4-8cb3-4a4e-86ae-81a3cf4b7259',
     oracleId: '374e54d8-8e73-4268-9dde-c28c77bbbf32',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1285,7 +1284,7 @@ export const printings = {
     imageNormal: image('normal', '66f135b4-8cb3-4a4e-86ae-81a3cf4b7259', '1783906036'),
   },
   arcaneSignet: {
-    scryfallId: '3d994115-378d-4685-a5dc-e448831da434',
+    printingId: '3d994115-378d-4685-a5dc-e448831da434',
     oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1297,7 +1296,7 @@ export const printings = {
     imageNormal: image('normal', '3d994115-378d-4685-a5dc-e448831da434', '1783906051'),
   },
   augurOfAutumn: {
-    scryfallId: 'c09f0e1b-c13b-4e53-ab0e-c8b8a6151d82',
+    printingId: 'c09f0e1b-c13b-4e53-ab0e-c8b8a6151d82',
     oracleId: '9e774188-caa1-4b62-b9cc-547f8e444b7f',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1309,7 +1308,7 @@ export const printings = {
     imageNormal: image('normal', 'c09f0e1b-c13b-4e53-ab0e-c8b8a6151d82', '1783906036'),
   },
   balothPrime: {
-    scryfallId: '2c723fc9-d5c9-4126-a9a6-f80c247a4b6b',
+    printingId: '2c723fc9-d5c9-4126-a9a6-f80c247a4b6b',
     oracleId: 'dba3dcc1-2177-4a8c-8cf3-7d4fb83c7a16',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1321,7 +1320,7 @@ export const printings = {
     imageNormal: image('normal', '2c723fc9-d5c9-4126-a9a6-f80c247a4b6b', '1783906064'),
   },
   beastWithin: {
-    scryfallId: 'ccac70d4-6e04-4802-8bb8-021368a40e14',
+    printingId: 'ccac70d4-6e04-4802-8bb8-021368a40e14',
     oracleId: '7735eeba-693b-47e2-bd51-414379cf1016',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1333,7 +1332,7 @@ export const printings = {
     imageNormal: image('normal', 'ccac70d4-6e04-4802-8bb8-021368a40e14', '1783906036'),
   },
   bindingTheOldGods: {
-    scryfallId: '65b3df37-8dea-4486-8904-55372b93c66f',
+    printingId: '65b3df37-8dea-4486-8904-55372b93c66f',
     oracleId: '4050e5b3-07c2-461c-9852-a2c081c0198d',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1345,7 +1344,7 @@ export const printings = {
     imageNormal: image('normal', '65b3df37-8dea-4486-8904-55372b93c66f', '1783906050'),
   },
   blasphemousAct: {
-    scryfallId: 'fbeeb7d0-cda8-414b-82d3-a83f1883bdd2',
+    printingId: 'fbeeb7d0-cda8-414b-82d3-a83f1883bdd2',
     oracleId: '7a2484a9-04fd-41a0-8224-610c1c07ed10',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1357,7 +1356,7 @@ export const printings = {
     imageNormal: image('normal', 'fbeeb7d0-cda8-414b-82d3-a83f1883bdd2', '1783906038'),
   },
   bojukaBog: {
-    scryfallId: 'b0c6fb5e-07e2-4d22-be19-60592f00584a',
+    printingId: 'b0c6fb5e-07e2-4d22-be19-60592f00584a',
     oracleId: '04b7362d-0490-4cb0-b5d7-2a7732f659ce',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1369,7 +1368,7 @@ export const printings = {
     imageNormal: image('normal', 'b0c6fb5e-07e2-4d22-be19-60592f00584a', '1783906018'),
   },
   braidsArisenNightmare: {
-    scryfallId: 'f96223d0-04c4-40c2-87a9-0c6bc74adddb',
+    printingId: 'f96223d0-04c4-40c2-87a9-0c6bc74adddb',
     oracleId: 'e0445c80-fa53-4c3e-881e-940e9fce7f57',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1381,7 +1380,7 @@ export const printings = {
     imageNormal: image('normal', 'f96223d0-04c4-40c2-87a9-0c6bc74adddb', '1783906041'),
   },
   cabarettiCourtyard: {
-    scryfallId: 'c54ddd4e-f668-4ec8-b123-59afa977eba4',
+    printingId: 'c54ddd4e-f668-4ec8-b123-59afa977eba4',
     oracleId: '65424bea-fd53-4f85-9757-0b91a6d40ba4',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1393,7 +1392,7 @@ export const printings = {
     imageNormal: image('normal', 'c54ddd4e-f668-4ec8-b123-59afa977eba4', '1783906015'),
   },
   canyonSlough: {
-    scryfallId: '5d89a57c-d982-4d1d-beca-14f156b8c3e7',
+    printingId: '5d89a57c-d982-4d1d-beca-14f156b8c3e7',
     oracleId: '2031b17c-0536-446f-a9aa-b46fe79b7ea7',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1405,7 +1404,7 @@ export const printings = {
     imageNormal: image('normal', '5d89a57c-d982-4d1d-beca-14f156b8c3e7', '1783906016'),
   },
   cinderGlade: {
-    scryfallId: '7865ae5f-cfd9-4913-bcf5-aadbd6824e65',
+    printingId: '7865ae5f-cfd9-4913-bcf5-aadbd6824e65',
     oracleId: 'dfac0258-e148-4d7d-8ded-fc2466d9caa6',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1417,7 +1416,7 @@ export const printings = {
     imageNormal: image('normal', '7865ae5f-cfd9-4913-bcf5-aadbd6824e65', '1783906016'),
   },
   commandTower: {
-    scryfallId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
+    printingId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
     oracleId: '0895c9b7-ae7d-4bb3-af17-3b75deb50a25',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1429,7 +1428,7 @@ export const printings = {
     imageNormal: image('normal', '85eb4b03-305b-45a4-82e5-5fcd586cc744', '1783906048'),
   },
   cultivate: {
-    scryfallId: '7ee610ee-7711-4a6b-b441-d6c73e6ef2b4',
+    printingId: '7ee610ee-7711-4a6b-b441-d6c73e6ef2b4',
     oracleId: '8b755881-a72d-4e21-a369-d2924eb4585a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1441,7 +1440,7 @@ export const printings = {
     imageNormal: image('normal', '7ee610ee-7711-4a6b-b441-d6c73e6ef2b4', '1783906035'),
   },
   dakmorSalvage: {
-    scryfallId: '72474b66-1dda-409d-8703-b026c1777081',
+    printingId: '72474b66-1dda-409d-8703-b026c1777081',
     oracleId: 'cdc4048a-73ec-4ec1-a179-2b36c397bf1a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1453,7 +1452,7 @@ export const printings = {
     imageNormal: image('normal', '72474b66-1dda-409d-8703-b026c1777081', '1783906015'),
   },
   escapeToTheWilds: {
-    scryfallId: '889cdc42-fae3-4dda-9cf0-697730ef00e3',
+    printingId: '889cdc42-fae3-4dda-9cf0-697730ef00e3',
     oracleId: '45a8c126-5396-4736-a37e-460a50706a98',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1465,7 +1464,7 @@ export const printings = {
     imageNormal: image('normal', '889cdc42-fae3-4dda-9cf0-697730ef00e3', '1783906028'),
   },
   escapeTunnel: {
-    scryfallId: 'a0335da5-d754-480d-89d9-be6b8ca33fda',
+    printingId: 'a0335da5-d754-480d-89d9-be6b8ca33fda',
     oracleId: '0056fc91-4398-471c-b561-7ff99750ac8a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1477,7 +1476,7 @@ export const printings = {
     imageNormal: image('normal', 'a0335da5-d754-480d-89d9-be6b8ca33fda', '1783906014'),
   },
   eumidianHatchery: {
-    scryfallId: '25b57aaf-04fa-463d-8516-40fccd24d6ed',
+    printingId: '25b57aaf-04fa-463d-8516-40fccd24d6ed',
     oracleId: '5b6d933e-2830-4f5a-b244-a421aa9615dc',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1489,7 +1488,7 @@ export const printings = {
     imageNormal: image('normal', '25b57aaf-04fa-463d-8516-40fccd24d6ed', '1783906061'),
   },
   eumidianWastewaker: {
-    scryfallId: '3ee18d18-0167-4caa-adad-9d4435689c80',
+    printingId: '3ee18d18-0167-4caa-adad-9d4435689c80',
     oracleId: '72a570a2-0a22-4680-ac88-a1724faf17de',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1501,7 +1500,7 @@ export const printings = {
     imageNormal: image('normal', '3ee18d18-0167-4caa-adad-9d4435689c80', '1783906065'),
   },
   evendoBrushrazer: {
-    scryfallId: '8b9001a4-953c-4a32-b51a-c6bec7e74f9e',
+    printingId: '8b9001a4-953c-4a32-b51a-c6bec7e74f9e',
     oracleId: '795bc0b0-4b0a-49d6-ac8e-a52a10a93be8',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1513,7 +1512,7 @@ export const printings = {
     imageNormal: image('normal', '8b9001a4-953c-4a32-b51a-c6bec7e74f9e', '1783906065'),
   },
   evolvingWilds: {
-    scryfallId: '31181bd2-3a1f-4cb9-ba30-637ac479133a',
+    printingId: '31181bd2-3a1f-4cb9-ba30-637ac479133a',
     oracleId: 'a75445d3-1303-4bb5-89ad-26ea93fecd48',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1525,7 +1524,7 @@ export const printings = {
     imageNormal: image('normal', '31181bd2-3a1f-4cb9-ba30-637ac479133a', '1783906013'),
   },
   explorationBroodship: {
-    scryfallId: '61596da3-2a0e-47d9-b707-8db4cce2479d',
+    printingId: '61596da3-2a0e-47d9-b707-8db4cce2479d',
     oracleId: '8a83ecee-092b-456c-803f-a9aaa17c4da9',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1537,7 +1536,7 @@ export const printings = {
     imageNormal: image('normal', '61596da3-2a0e-47d9-b707-8db4cce2479d', '1783906063'),
   },
   fabledPassage: {
-    scryfallId: '6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe',
+    printingId: '6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe',
     oracleId: '0c85b8f7-0bd0-4680-9ec5-d4b110460a54',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1549,7 +1548,7 @@ export const printings = {
     imageNormal: image('normal', '6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe', '1783906047'),
   },
   farseek: {
-    scryfallId: '95e0760a-d285-493b-88cd-7556d9b10007',
+    printingId: '95e0760a-d285-493b-88cd-7556d9b10007',
     oracleId: '495e52e6-4c2b-4574-9474-eadbdcc8b4ac',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1561,7 +1560,7 @@ export const printings = {
     imageNormal: image('normal', '95e0760a-d285-493b-88cd-7556d9b10007', '1783906051'),
   },
   festeringThicket: {
-    scryfallId: 'd312f4ca-909a-47df-91dc-dfb63838b5f5',
+    printingId: 'd312f4ca-909a-47df-91dc-dfb63838b5f5',
     oracleId: 'bdb9b2ce-342c-4935-8943-d0c3971b1e38',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1573,7 +1572,7 @@ export const printings = {
     imageNormal: image('normal', 'd312f4ca-909a-47df-91dc-dfb63838b5f5', '1783906062'),
   },
   forest: {
-    scryfallId: '673141ec-826f-4132-8282-d499990495a7',
+    printingId: '673141ec-826f-4132-8282-d499990495a7',
     oracleId: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -1585,7 +1584,7 @@ export const printings = {
     imageNormal: image('normal', '673141ec-826f-4132-8282-d499990495a7', '1783905910'),
   },
   formlessGenesis: {
-    scryfallId: 'b2222cae-2b12-4163-ab1b-7d315877ee8d',
+    printingId: 'b2222cae-2b12-4163-ab1b-7d315877ee8d',
     oracleId: 'b978bdfe-a73e-4e99-90d7-4f99182c45ee',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1597,7 +1596,7 @@ export const printings = {
     imageNormal: image('normal', 'b2222cae-2b12-4163-ab1b-7d315877ee8d', '1783906034'),
   },
   gazeOfGranite: {
-    scryfallId: '97cf4cd8-9cb5-482e-92ca-da657b410e48',
+    printingId: '97cf4cd8-9cb5-482e-92ca-da657b410e48',
     oracleId: '103d9ad0-d655-4bd5-a899-e9f8869e333d',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1609,7 +1608,7 @@ export const printings = {
     imageNormal: image('normal', '97cf4cd8-9cb5-482e-92ca-da657b410e48', '1783906029'),
   },
   godEternalBontu: {
-    scryfallId: '142b0860-8a82-4830-a4ff-2bbfc102437e',
+    printingId: '142b0860-8a82-4830-a4ff-2bbfc102437e',
     oracleId: '183891b0-b5ec-47f4-8d09-b9d3cfc4e7f1',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1621,7 +1620,7 @@ export const printings = {
     imageNormal: image('normal', '142b0860-8a82-4830-a4ff-2bbfc102437e', '1783906039'),
   },
   hammerOfPurphoros: {
-    scryfallId: '900de725-741b-4b25-8e40-78ed7575a83f',
+    printingId: '900de725-741b-4b25-8e40-78ed7575a83f',
     oracleId: '212d058b-69c6-4dc2-8c93-bdfe26dc2ffe',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1633,7 +1632,7 @@ export const printings = {
     imageNormal: image('normal', '900de725-741b-4b25-8e40-78ed7575a83f', '1783906038'),
   },
   harrow: {
-    scryfallId: '3e76be46-cf81-4fef-bc5b-f87666cb0413',
+    printingId: '3e76be46-cf81-4fef-bc5b-f87666cb0413',
     oracleId: '705509e9-a034-4a5a-9c65-66f58748b8a2',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1645,7 +1644,7 @@ export const printings = {
     imageNormal: image('normal', '3e76be46-cf81-4fef-bc5b-f87666cb0413', '1783906034'),
   },
   horizonExplorer: {
-    scryfallId: 'a5873a4d-ab6e-4dd2-9380-5eaa367a8396',
+    printingId: 'a5873a4d-ab6e-4dd2-9380-5eaa367a8396',
     oracleId: 'e8d20361-d9b7-4f9c-8ec5-3ac7c460dcb2',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1657,7 +1656,7 @@ export const printings = {
     imageNormal: image('normal', 'a5873a4d-ab6e-4dd2-9380-5eaa367a8396', '1783906062'),
   },
   infernalGrasp: {
-    scryfallId: '060b7e5f-5b40-4efc-9fad-4cebf40b654b',
+    printingId: '060b7e5f-5b40-4efc-9fad-4cebf40b654b',
     oracleId: '94f0a572-e91c-4b56-a5d1-6cbbeabd210d',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1669,7 +1668,7 @@ export const printings = {
     imageNormal: image('normal', '060b7e5f-5b40-4efc-9fad-4cebf40b654b', '1783906040'),
   },
   juriMasterOfTheRevue: {
-    scryfallId: '5006eae5-3b77-45ab-a907-f5094b2eaf1f',
+    printingId: '5006eae5-3b77-45ab-a907-f5094b2eaf1f',
     oracleId: '3364bad6-6d0a-4141-b410-86e3d9e1916e',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1681,7 +1680,7 @@ export const printings = {
     imageNormal: image('normal', '5006eae5-3b77-45ab-a907-f5094b2eaf1f', '1783906029'),
   },
   karplusanForest: {
-    scryfallId: '67198b97-bac2-480f-aea8-12841e8884de',
+    printingId: '67198b97-bac2-480f-aea8-12841e8884de',
     oracleId: 'bd912666-f37f-4767-af6f-9e6d0fcccacf',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1693,7 +1692,7 @@ export const printings = {
     imageNormal: image('normal', '67198b97-bac2-480f-aea8-12841e8884de', '1783906010'),
   },
   korvoldFaeCursedKing: {
-    scryfallId: '607c1793-8e5a-4ebf-87c6-7f9c99bbd29a',
+    printingId: '607c1793-8e5a-4ebf-87c6-7f9c99bbd29a',
     oracleId: '9ae669dd-7e60-4649-b96e-35da28be641a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1705,7 +1704,7 @@ export const printings = {
     imageNormal: image('normal', '607c1793-8e5a-4ebf-87c6-7f9c99bbd29a', '1783906027'),
   },
   llanowarWastes: {
-    scryfallId: 'd9f0d724-3b77-4cf6-a745-a04aca743312',
+    printingId: 'd9f0d724-3b77-4cf6-a745-a04aca743312',
     oracleId: '32116127-cf96-4a1b-8896-a1ebc087b597',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1717,7 +1716,7 @@ export const printings = {
     imageNormal: image('normal', 'd9f0d724-3b77-4cf6-a745-a04aca743312', '1783906011'),
   },
   maestrosTheater: {
-    scryfallId: 'd4087ba6-8227-4ec3-a989-0833ad6c8788',
+    printingId: 'd4087ba6-8227-4ec3-a989-0833ad6c8788',
     oracleId: '9464ddf2-4bcb-44f6-b945-89a132544de6',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1729,7 +1728,7 @@ export const printings = {
     imageNormal: image('normal', 'd4087ba6-8227-4ec3-a989-0833ad6c8788', '1783906010'),
   },
   mayhemDevil: {
-    scryfallId: '674f3a8a-4552-4289-b92a-06ce158f115c',
+    printingId: '674f3a8a-4552-4289-b92a-06ce158f115c',
     oracleId: '4709f11c-aef8-45ac-b2bf-e640c568dfac',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1741,7 +1740,7 @@ export const printings = {
     imageNormal: image('normal', '674f3a8a-4552-4289-b92a-06ce158f115c', '1783906026'),
   },
   mazirekKraulDeathPriest: {
-    scryfallId: '1522122b-e4bf-4dba-b22c-efa18bc6c33b',
+    printingId: '1522122b-e4bf-4dba-b22c-efa18bc6c33b',
     oracleId: 'e0420f2c-d578-421e-ae75-e7dc5f70661a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1753,7 +1752,7 @@ export const printings = {
     imageNormal: image('normal', '1522122b-e4bf-4dba-b22c-efa18bc6c33b', '1783906025'),
   },
   moraugFuryOfAkoum: {
-    scryfallId: '4481eab8-9e7d-4db8-b1f2-fdf5ee1919a2',
+    printingId: '4481eab8-9e7d-4db8-b1f2-fdf5ee1919a2',
     oracleId: '6288c0cb-cf32-4ae9-abf0-104ec71654fa',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1765,7 +1764,7 @@ export const printings = {
     imageNormal: image('normal', '4481eab8-9e7d-4db8-b1f2-fdf5ee1919a2', '1783906037'),
   },
   mountain: {
-    scryfallId: 'de0ac2b0-175b-4e71-9172-ce2a72234818',
+    printingId: 'de0ac2b0-175b-4e71-9172-ce2a72234818',
     oracleId: 'a3fb7228-e76b-4e96-a40e-20b5fed75685',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -1777,7 +1776,7 @@ export const printings = {
     imageNormal: image('normal', 'de0ac2b0-175b-4e71-9172-ce2a72234818', '1783905907'),
   },
   mountainValley: {
-    scryfallId: '3094800e-9994-47c3-9ebc-536bf5de13cd',
+    printingId: '3094800e-9994-47c3-9ebc-536bf5de13cd',
     oracleId: '0b7393aa-d563-45bc-9946-8e7d1729d498',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1789,7 +1788,7 @@ export const printings = {
     imageNormal: image('normal', '3094800e-9994-47c3-9ebc-536bf5de13cd', '1783906048'),
   },
   multaniYavimayasAvatar: {
-    scryfallId: 'c37a0136-1c40-4cd1-8787-a25c377c1741',
+    printingId: 'c37a0136-1c40-4cd1-8787-a25c377c1741',
     oracleId: '4b8bf64b-4800-45ff-81c6-2857f34999b5',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1801,7 +1800,7 @@ export const printings = {
     imageNormal: image('normal', 'c37a0136-1c40-4cd1-8787-a25c377c1741', '1783906034'),
   },
   myriadLandscape: {
-    scryfallId: 'a0e2098f-1d94-491a-a7e9-a45a9f69e3a8',
+    printingId: 'a0e2098f-1d94-491a-a7e9-a45a9f69e3a8',
     oracleId: '2549bc57-9ffb-4053-9f10-f2a5f792b845',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1813,7 +1812,7 @@ export const printings = {
     imageNormal: image('normal', 'a0e2098f-1d94-491a-a7e9-a45a9f69e3a8', '1783906009'),
   },
   naturesLore: {
-    scryfallId: '5b42a79a-1f08-4e15-b40e-c993307ae066',
+    printingId: '5b42a79a-1f08-4e15-b40e-c993307ae066',
     oracleId: '78826359-fe63-44ad-adc4-a17ffcd710e4',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1825,7 +1824,7 @@ export const printings = {
     imageNormal: image('normal', '5b42a79a-1f08-4e15-b40e-c993307ae066', '1783906033'),
   },
   nightsWhisper: {
-    scryfallId: '67bdba19-c74a-462d-9e51-4fd7f0a6a2c3',
+    printingId: '67bdba19-c74a-462d-9e51-4fd7f0a6a2c3',
     oracleId: '7ffae8f8-3006-4969-a339-6d30678f87ea',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1837,7 +1836,7 @@ export const printings = {
     imageNormal: image('normal', '67bdba19-c74a-462d-9e51-4fd7f0a6a2c3', '1783906041'),
   },
   omnathLocusOfRage: {
-    scryfallId: '777552e5-cc2d-460f-b26f-977c6ebcfc6b',
+    printingId: '777552e5-cc2d-460f-b26f-977c6ebcfc6b',
     oracleId: '1816eede-c5bd-49df-958f-a3af64cb2932',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1849,7 +1848,7 @@ export const printings = {
     imageNormal: image('normal', '777552e5-cc2d-460f-b26f-977c6ebcfc6b', '1783906026'),
   },
   oracleOfMulDaya: {
-    scryfallId: 'ab19808f-a5b8-4dfd-800e-2064cd6538c8',
+    printingId: 'ab19808f-a5b8-4dfd-800e-2064cd6538c8',
     oracleId: '6c5b02eb-7829-436a-8555-fea200e4b67f',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1861,7 +1860,7 @@ export const printings = {
     imageNormal: image('normal', 'ab19808f-a5b8-4dfd-800e-2064cd6538c8', '1783906033'),
   },
   pestInfestation: {
-    scryfallId: '99add821-568b-4931-8525-a673e6cc8f65',
+    printingId: '99add821-568b-4931-8525-a673e6cc8f65',
     oracleId: '1b704798-0c69-4c18-ac7e-42933ce90028',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1873,7 +1872,7 @@ export const printings = {
     imageNormal: image('normal', '99add821-568b-4931-8525-a673e6cc8f65', '1783906034'),
   },
   planetaryAnnihilation: {
-    scryfallId: '8695796f-b6ed-46db-b1b8-07ed0cc5a5e5',
+    printingId: '8695796f-b6ed-46db-b1b8-07ed0cc5a5e5',
     oracleId: '1d45f248-5b83-4377-a3ba-4eae48e63ca1',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1885,7 +1884,7 @@ export const printings = {
     imageNormal: image('normal', '8695796f-b6ed-46db-b1b8-07ed0cc5a5e5', '1783906064'),
   },
   putrefy: {
-    scryfallId: '1e355b88-a73d-430b-95eb-8ba646f2e406',
+    printingId: '1e355b88-a73d-430b-95eb-8ba646f2e406',
     oracleId: '9b271430-f53d-42d6-a547-2f286dd9bcb6',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1897,7 +1896,7 @@ export const printings = {
     imageNormal: image('normal', '1e355b88-a73d-430b-95eb-8ba646f2e406', '1783906026'),
   },
   rakdosCharm: {
-    scryfallId: '64b67170-1602-4050-80c0-ade2a6cac211',
+    printingId: '64b67170-1602-4050-80c0-ade2a6cac211',
     oracleId: '5e62b51d-faec-4aa0-9504-cf2c282d08ea',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1909,7 +1908,7 @@ export const printings = {
     imageNormal: image('normal', '64b67170-1602-4050-80c0-ade2a6cac211', '1783906024'),
   },
   rampagingBaloths: {
-    scryfallId: '84aa18de-6acc-46cc-8e28-3046790a6751',
+    printingId: '84aa18de-6acc-46cc-8e28-3046790a6751',
     oracleId: '2d3e6549-6cc6-434f-a189-ba3b55e64c34',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1921,7 +1920,7 @@ export const printings = {
     imageNormal: image('normal', '84aa18de-6acc-46cc-8e28-3046790a6751', '1783906033'),
   },
   riveteersOverlook: {
-    scryfallId: '3dc4e8b8-6ee6-49aa-895a-2e35af6d1dbb',
+    printingId: '3dc4e8b8-6ee6-49aa-895a-2e35af6d1dbb',
     oracleId: '5548ff43-e5f6-4a63-8562-a2b1de06d6f5',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1933,7 +1932,7 @@ export const printings = {
     imageNormal: image('normal', '3dc4e8b8-6ee6-49aa-895a-2e35af6d1dbb', '1783906008'),
   },
   rockyTarPit: {
-    scryfallId: '2aa1f7c6-f888-4384-9626-f106571e164c',
+    printingId: '2aa1f7c6-f888-4384-9626-f106571e164c',
     oracleId: '8709b5b1-ef9e-45b2-bf4f-ef4c4d613dcd',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1945,7 +1944,7 @@ export const printings = {
     imageNormal: image('normal', '2aa1f7c6-f888-4384-9626-f106571e164c', '1783906008'),
   },
   roilingRegrowth: {
-    scryfallId: '2c446dbb-b883-47e9-aab3-ac921ff218f8',
+    printingId: '2c446dbb-b883-47e9-aab3-ac921ff218f8',
     oracleId: '65d63518-3261-40b5-87b8-19c152b29ee3',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1957,7 +1956,7 @@ export const printings = {
     imageNormal: image('normal', '2c446dbb-b883-47e9-aab3-ac921ff218f8', '1783906032'),
   },
   satyrWayfinder: {
-    scryfallId: '8bbbe65d-7162-42fb-94ee-d835d6c3f02a',
+    printingId: '8bbbe65d-7162-42fb-94ee-d835d6c3f02a',
     oracleId: 'ead4c01a-e2ae-49c9-95d9-651d81005907',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1969,7 +1968,7 @@ export const printings = {
     imageNormal: image('normal', '8bbbe65d-7162-42fb-94ee-d835d6c3f02a', '1783906031'),
   },
   scouringSwarm: {
-    scryfallId: '8fc25982-8668-43c4-93db-84e716e8783d',
+    printingId: '8fc25982-8668-43c4-93db-84e716e8783d',
     oracleId: 'aa64f830-b9b6-4d5e-9a5d-f9e120089335',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1981,7 +1980,7 @@ export const printings = {
     imageNormal: image('normal', '8fc25982-8668-43c4-93db-84e716e8783d', '1783906062'),
   },
   shelteredThicket: {
-    scryfallId: 'af373c1c-aeb8-48d9-9cea-dfd6d6c2ee87',
+    printingId: 'af373c1c-aeb8-48d9-9cea-dfd6d6c2ee87',
     oracleId: 'db8d8643-3d0b-4f20-bf53-f4cd26a0e8df',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -1993,7 +1992,7 @@ export const printings = {
     imageNormal: image('normal', 'af373c1c-aeb8-48d9-9cea-dfd6d6c2ee87', '1783906007'),
   },
   skyshroudClaim: {
-    scryfallId: '860c0808-3ec1-4182-bf83-783720a02780',
+    printingId: '860c0808-3ec1-4182-bf83-783720a02780',
     oracleId: '376c9d3f-21d3-4251-bb6a-026fa9e1b0e1',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2005,7 +2004,7 @@ export const printings = {
     imageNormal: image('normal', '860c0808-3ec1-4182-bf83-783720a02780', '1783906031'),
   },
   smolderingMarsh: {
-    scryfallId: 'ea5c3d9e-13e7-492d-80b8-d6dd42895f33',
+    printingId: 'ea5c3d9e-13e7-492d-80b8-d6dd42895f33',
     oracleId: '390f1b56-264e-4336-83be-dc1fe79bfdcf',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2017,7 +2016,7 @@ export const printings = {
     imageNormal: image('normal', 'ea5c3d9e-13e7-492d-80b8-d6dd42895f33', '1783906005'),
   },
   solRing: {
-    scryfallId: 'ee6e5a35-fe21-4dee-b0ef-a8f2841511ad',
+    printingId: 'ee6e5a35-fe21-4dee-b0ef-a8f2841511ad',
     oracleId: '6ad8011d-3471-4369-9d68-b264cc027487',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2029,7 +2028,7 @@ export const printings = {
     imageNormal: image('normal', 'ee6e5a35-fe21-4dee-b0ef-a8f2841511ad', '1783906049'),
   },
   soulOfWindgrace: {
-    scryfallId: '5a80f7e1-1d79-4302-a603-73eb060b97a6',
+    printingId: '5a80f7e1-1d79-4302-a603-73eb060b97a6',
     oracleId: '2d73a3bd-f052-4f48-9a72-12db03e27249',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2041,7 +2040,7 @@ export const printings = {
     imageNormal: image('normal', '5a80f7e1-1d79-4302-a603-73eb060b97a6', '1783906025'),
   },
   splendidReclamation: {
-    scryfallId: '63c7f172-0aec-4629-967c-37253aed0f0d',
+    printingId: '63c7f172-0aec-4629-967c-37253aed0f0d',
     oracleId: '13fe5e46-77a6-45d8-ac0b-c3d740eccf86',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2053,7 +2052,7 @@ export const printings = {
     imageNormal: image('normal', '63c7f172-0aec-4629-967c-37253aed0f0d', '1783906030'),
   },
   springbloomDruid: {
-    scryfallId: '6520f5dc-ead8-40c5-af1c-411fea2ba268',
+    printingId: '6520f5dc-ead8-40c5-af1c-411fea2ba268',
     oracleId: '788a4896-3414-40bf-b391-d2efea2fb5f9',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2065,7 +2064,7 @@ export const printings = {
     imageNormal: image('normal', '6520f5dc-ead8-40c5-af1c-411fea2ba268', '1783906051'),
   },
   sproutingGoblin: {
-    scryfallId: 'f5555845-0424-4cb6-b373-57a722444a4a',
+    printingId: 'f5555845-0424-4cb6-b373-57a722444a4a',
     oracleId: 'b0871e12-b156-4fa6-b01c-acaae222b3a5',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2077,7 +2076,7 @@ export const printings = {
     imageNormal: image('normal', 'f5555845-0424-4cb6-b373-57a722444a4a', '1783906037'),
   },
   sulfurousSprings: {
-    scryfallId: 'eedb9df2-20d3-4cfd-8aed-336edc37d5a9',
+    printingId: 'eedb9df2-20d3-4cfd-8aed-336edc37d5a9',
     oracleId: 'f5c38c01-4a40-469f-91a0-7479daf4e8e7',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2089,7 +2088,7 @@ export const printings = {
     imageNormal: image('normal', 'eedb9df2-20d3-4cfd-8aed-336edc37d5a9', '1783906003'),
   },
   swamp: {
-    scryfallId: '58496a56-437f-4204-9691-f63795e5cdab',
+    printingId: '58496a56-437f-4204-9691-f63795e5cdab',
     oracleId: '56719f6a-1a6c-4c0a-8d21-18f7d7350b68',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -2101,7 +2100,7 @@ export const printings = {
     imageNormal: image('normal', '58496a56-437f-4204-9691-f63795e5cdab', '1783905909'),
   },
   szarelGenesisShepherd: {
-    scryfallId: '89b61123-b10f-4bcf-b5f9-1f302f9b22d1',
+    printingId: '89b61123-b10f-4bcf-b5f9-1f302f9b22d1',
     oracleId: '1f3c3365-7dc8-47e1-b304-2a09aa229292',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2113,7 +2112,7 @@ export const printings = {
     imageNormal: image('normal', '89b61123-b10f-4bcf-b5f9-1f302f9b22d1', '1783906067'),
   },
   tearAsunder: {
-    scryfallId: 'e408c673-4a1f-45db-827a-75c501e1b3d6',
+    printingId: 'e408c673-4a1f-45db-827a-75c501e1b3d6',
     oracleId: '610af0f7-b5e3-43fb-9d02-7c59bd99034c',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2125,7 +2124,7 @@ export const printings = {
     imageNormal: image('normal', 'e408c673-4a1f-45db-827a-75c501e1b3d6', '1783906030'),
   },
   terramorphicExpanse: {
-    scryfallId: '7102269a-e0d1-42a0-aa9d-fdd53b5aaebe',
+    printingId: '7102269a-e0d1-42a0-aa9d-fdd53b5aaebe',
     oracleId: '1bd3e453-aa21-4ee6-95c2-d6d920ee8e7a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2137,7 +2136,7 @@ export const printings = {
     imageNormal: image('normal', '7102269a-e0d1-42a0-aa9d-fdd53b5aaebe', '1783906047'),
   },
   theGitrogMonster: {
-    scryfallId: '40489e28-878d-44a2-847f-07beef1aa0f8',
+    printingId: '40489e28-878d-44a2-847f-07beef1aa0f8',
     oracleId: 'a5e54d2b-aad8-4ddd-af4b-13668913762b',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2149,7 +2148,7 @@ export const printings = {
     imageNormal: image('normal', '40489e28-878d-44a2-847f-07beef1aa0f8', '1783906028'),
   },
   tirelessTracker: {
-    scryfallId: '66444549-ad9b-49c6-a7c6-34e977c1085d',
+    printingId: '66444549-ad9b-49c6-a7c6-34e977c1085d',
     oracleId: 'e6555cca-e608-4c87-b835-9cd47fd1f543',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2161,7 +2160,7 @@ export const printings = {
     imageNormal: image('normal', '66444549-ad9b-49c6-a7c6-34e977c1085d', '1783906030'),
   },
   titaniaProtectorOfArgoth: {
-    scryfallId: '732c208b-cd9e-48a9-9b9d-aba63066ba53',
+    printingId: '732c208b-cd9e-48a9-9b9d-aba63066ba53',
     oracleId: 'd0ade00d-a496-441d-9b7e-7dc033d3292c',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2173,7 +2172,7 @@ export const printings = {
     imageNormal: image('normal', '732c208b-cd9e-48a9-9b9d-aba63066ba53', '1783906029'),
   },
   twilightMire: {
-    scryfallId: 'b38ba12b-63ab-46ac-8fde-d1c9307c85e2',
+    printingId: 'b38ba12b-63ab-46ac-8fde-d1c9307c85e2',
     oracleId: 'db623754-e078-4030-ba07-818803c348a8',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2185,7 +2184,7 @@ export const printings = {
     imageNormal: image('normal', 'b38ba12b-63ab-46ac-8fde-d1c9307c85e2', '1783906003'),
   },
   vernalFen: {
-    scryfallId: 'bac98f27-ef3e-45e0-87cb-0fb4325ae734',
+    printingId: 'bac98f27-ef3e-45e0-87cb-0fb4325ae734',
     oracleId: '40544d12-0391-4a61-af95-9b8ec01ed8fc',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2197,7 +2196,7 @@ export const printings = {
     imageNormal: image('normal', 'bac98f27-ef3e-45e0-87cb-0fb4325ae734', '1783906060'),
   },
   viridescentBog: {
-    scryfallId: '96fccdf1-9c68-46cd-ba90-668f677bbc44',
+    printingId: '96fccdf1-9c68-46cd-ba90-668f677bbc44',
     oracleId: '6bd6d259-1af7-4dff-a79c-48a616d2a36e',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2209,7 +2208,7 @@ export const printings = {
     imageNormal: image('normal', '96fccdf1-9c68-46cd-ba90-668f677bbc44', '1783906004'),
   },
   wastes: {
-    scryfallId: 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac',
+    printingId: 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac',
     oracleId: '05d24b0c-904a-46b6-b42a-96a4d91a0dd4',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2221,7 +2220,7 @@ export const printings = {
     imageNormal: image('normal', 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac', '1783906001'),
   },
   windgracesJudgment: {
-    scryfallId: 'f1f6efcf-6ac3-4bf9-9bd2-d5c78a5defb3',
+    printingId: 'f1f6efcf-6ac3-4bf9-9bd2-d5c78a5defb3',
     oracleId: 'de1ca6ed-b275-4f62-ba05-f31b3659b352',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2233,7 +2232,7 @@ export const printings = {
     imageNormal: image('normal', 'f1f6efcf-6ac3-4bf9-9bd2-d5c78a5defb3', '1783906023'),
   },
   worldsoulsRage: {
-    scryfallId: '1a54246e-1e22-4660-b2c8-fdfa2110b4fe',
+    printingId: '1a54246e-1e22-4660-b2c8-fdfa2110b4fe',
     oracleId: '3b6ef144-bb98-4686-9718-204f1c3cf020',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2245,7 +2244,7 @@ export const printings = {
     imageNormal: image('normal', '1a54246e-1e22-4660-b2c8-fdfa2110b4fe', '1783906023'),
   },
   centaurVinecrasher: {
-    scryfallId: 'cf8712ba-574b-4e53-9c7e-0a1465116320',
+    printingId: 'cf8712ba-574b-4e53-9c7e-0a1465116320',
     oracleId: '90629e9c-83c0-4eca-b4ed-d0494ded6704',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2257,7 +2256,7 @@ export const printings = {
     imageNormal: image('normal', 'cf8712ba-574b-4e53-9c7e-0a1465116320', '1783906035'),
   },
   groundskeeper: {
-    scryfallId: '30444f88-5a7e-46bc-ab0c-17e62fae2457',
+    printingId: '30444f88-5a7e-46bc-ab0c-17e62fae2457',
     oracleId: 'f2c19fba-9b06-461f-bb5e-e827ba41204d',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2269,7 +2268,7 @@ export const printings = {
     imageNormal: image('normal', '30444f88-5a7e-46bc-ab0c-17e62fae2457', '1783906035'),
   },
   loamcrafterFaun: {
-    scryfallId: '066de4d6-3fa4-44e0-ab02-8d97b603015a',
+    printingId: '066de4d6-3fa4-44e0-ab02-8d97b603015a',
     oracleId: '2fbfdbcc-5f89-47b2-bd8d-49c797e0624f',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2281,7 +2280,7 @@ export const printings = {
     imageNormal: image('normal', '066de4d6-3fa4-44e0-ab02-8d97b603015a', '1783906034'),
   },
   uurgSpawnOfTurg: {
-    scryfallId: 'd1974536-9e4f-4808-9e49-a036ec7bf65c',
+    printingId: 'd1974536-9e4f-4808-9e49-a036ec7bf65c',
     oracleId: '0191a93a-f304-4c20-9af4-7cdea82c07cf',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2293,7 +2292,7 @@ export const printings = {
     imageNormal: image('normal', 'd1974536-9e4f-4808-9e49-a036ec7bf65c', '1783906023'),
   },
   worldBreaker: {
-    scryfallId: 'd25856c9-cb3d-44d9-905e-007f1af65c06',
+    printingId: 'd25856c9-cb3d-44d9-905e-007f1af65c06',
     oracleId: 'deeb7e22-b207-42de-b9d4-f790403d52a9',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -2305,7 +2304,7 @@ export const printings = {
     imageNormal: image('normal', 'd25856c9-cb3d-44d9-905e-007f1af65c06', '1783906029'),
   },
   atraxaPraetorsVoice: {
-    scryfallId: 'd0d33d52-3d28-4635-b985-51e126289259',
+    printingId: 'd0d33d52-3d28-4635-b985-51e126289259',
     oracleId: '7e6b9b59-cd68-4e3c-827b-38833c92d6eb',
     setCode: '2xm',
     setName: 'Double Masters',
@@ -2317,7 +2316,7 @@ export const printings = {
     imageNormal: image('normal', 'd0d33d52-3d28-4635-b985-51e126289259', '1783930136'),
   },
   lathrilBladeOfTheElves: {
-    scryfallId: '8d4e5480-a287-4a25-b855-a26dae555b1c',
+    printingId: '8d4e5480-a287-4a25-b855-a26dae555b1c',
     oracleId: '9b568c34-ba0a-44a7-a0ee-bee3a37b3396',
     setCode: 'fdn',
     setName: 'Foundations',
@@ -2329,7 +2328,7 @@ export const printings = {
     imageNormal: image('normal', '8d4e5480-a287-4a25-b855-a26dae555b1c', '1783909053'),
   },
   merenOfClanNelToth: {
-    scryfallId: '508b1442-bf2c-4ad6-9bcf-bd894e081ab6',
+    printingId: '508b1442-bf2c-4ad6-9bcf-bd894e081ab6',
     oracleId: '0310dfdb-0498-488d-9f1a-279f8239e024',
     setCode: 'tdc',
     setName: 'Tarkir: Dragonstorm Commander',
@@ -2341,7 +2340,7 @@ export const printings = {
     imageNormal: image('normal', '508b1442-bf2c-4ad6-9bcf-bd894e081ab6', '1783907026'),
   },
   prosperTomeBound: {
-    scryfallId: 'd743336e-d5c7-4053-a23d-92ec7581f74e',
+    printingId: 'd743336e-d5c7-4053-a23d-92ec7581f74e',
     oracleId: '1e9b0fd6-5aae-401a-8df5-d94ce6442696',
     setCode: 'afc',
     setName: 'Forgotten Realms Commander',
@@ -2353,7 +2352,7 @@ export const printings = {
     imageNormal: image('normal', 'd743336e-d5c7-4053-a23d-92ec7581f74e', '1783926259'),
   },
   tymnaTheWeaver: {
-    scryfallId: 'bc7cbe9b-324e-42b8-94e2-36e91cb32163',
+    printingId: 'bc7cbe9b-324e-42b8-94e2-36e91cb32163',
     oracleId: 'd15642e4-e61c-4d29-af48-de837991245e',
     setCode: 'c16',
     setName: 'Commander 2016',
@@ -2365,7 +2364,7 @@ export const printings = {
     imageNormal: image('normal', 'bc7cbe9b-324e-42b8-94e2-36e91cb32163', '1783937081'),
   },
   thrasiosTritonHero: {
-    scryfallId: '21e27b91-c7f1-4709-aa0d-8b5d81b22a0a',
+    printingId: '21e27b91-c7f1-4709-aa0d-8b5d81b22a0a',
     oracleId: '3d867016-2601-4a37-a73d-308898d3bd37',
     setCode: 'c16',
     setName: 'Commander 2016',
@@ -2377,7 +2376,7 @@ export const printings = {
     imageNormal: image('normal', '21e27b91-c7f1-4709-aa0d-8b5d81b22a0a', '1783937081'),
   },
   rampantGrowth: {
-    scryfallId: 'b7c47024-5e08-4b17-b41a-7647f8b814b9',
+    printingId: 'b7c47024-5e08-4b17-b41a-7647f8b814b9',
     oracleId: '8539f295-5d58-4436-a73a-b9277c4c7795',
     setCode: 'tdc',
     setName: 'Tarkir: Dragonstorm Commander',
@@ -2389,7 +2388,7 @@ export const printings = {
     imageNormal: image('normal', 'b7c47024-5e08-4b17-b41a-7647f8b814b9', '1783907042'),
   },
   swordsToPlowshares: {
-    scryfallId: 'f7e12477-d59f-442b-a678-1be746d0b7be',
+    printingId: 'f7e12477-d59f-442b-a678-1be746d0b7be',
     oracleId: 'b1544f21-7e98-461b-aed5-e748b0168c52',
     setCode: 'frc',
     setName: 'Reality Fracture Commander',
@@ -2401,7 +2400,7 @@ export const printings = {
     imageNormal: image('normal', 'f7e12477-d59f-442b-a678-1be746d0b7be', '1789599810'),
   },
   docksideExtortionist: {
-    scryfallId: '9e2e3efb-75cb-430f-b9f4-cb58f3aeb91b',
+    printingId: '9e2e3efb-75cb-430f-b9f4-cb58f3aeb91b',
     oracleId: '697bcfe1-ecbf-42a1-bfc7-0766d48ca56b',
     setCode: '2x2',
     setName: 'Double Masters 2022',

@@ -185,7 +185,7 @@ const FRIENDS_FOREVER = 'friends forever';
 const CHOOSE_BACKGROUND = 'choose a background';
 const DOCTORS_COMPANION = "doctor's companion";
 
-/** Scryfall keywords, compared without case. */
+/** Card keywords, compared without case. */
 function has(card: CheckCard, keyword: string) {
   return card.row.keywords.some((k) => k.toLowerCase() === keyword);
 }

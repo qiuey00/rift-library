@@ -311,7 +311,7 @@ function LocationMenu({
         </DropdownMenuItem>
         {tradeable && (
           <DropdownMenuItem onSelect={() => onAction({ kind: 'export', location: node })}>
-            Export to Moxfield
+            Export list
           </DropdownMenuItem>
         )}
         {deletable && (

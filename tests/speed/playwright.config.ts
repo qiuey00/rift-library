@@ -19,7 +19,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run seed:big && npm start',
-    env: { DATA_DIR: process.env.SPEED_DATA_DIR, SCRYFALL_SYNC: 'off' },
+    env: { DATA_DIR: process.env.SPEED_DATA_DIR },
     url: 'http://127.0.0.1:4300/api/health',
     // Never test against an app that is already running: it would be Jeff's real one.
     reuseExistingServer: false,

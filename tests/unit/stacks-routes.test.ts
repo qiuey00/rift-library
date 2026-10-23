@@ -45,7 +45,7 @@ function addCard(
   for (const print of prints) {
     db.insert(printings)
       .values({
-        scryfallId: `${name}-${print.set}-${print.number}`,
+        printingId: `${name}-${print.set}-${print.number}`,
         oracleId: oracle(n),
         setCode: print.set,
         setName: `Set ${print.set.toUpperCase()}`,
@@ -68,7 +68,7 @@ function addLocation(name: string, type: LocationType, parentId?: number, color?
 }
 
 function addStack(
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   quantity: number,
   details: { finish?: Finish; isProxy?: boolean; cameFrom?: number; condition?: string } = {},
@@ -76,7 +76,7 @@ function addStack(
   return db
     .insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       quantity,
       finish: details.finish ?? 'nonfoil',
       condition: details.condition ?? 'near_mint',
@@ -471,7 +471,7 @@ describe('speed with Jeff’s collection size', () => {
          VALUES (?, ?, ?, ?, ?, 'legal')`,
       );
       const printing = client.prepare(
-        `INSERT INTO printings (scryfall_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
+        `INSERT INTO printings (printing_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
          VALUES (?, ?, ?, ?, ?, 'en', '["nonfoil","foil"]', 'common', '2025-01-01')`,
       );
       const location = client.prepare(
@@ -496,7 +496,7 @@ describe('speed with Jeff’s collection size', () => {
         }
       }
       const stack = client.prepare(
-        `INSERT INTO copy_stacks (scryfall_id, quantity, finish, condition, language, is_proxy, location_id)
+        `INSERT INTO copy_stacks (printing_id, quantity, finish, condition, language, is_proxy, location_id)
          VALUES (?, ?, ?, 'near_mint', 'en', ?, ?)`,
       );
       for (let i = 0; i < 10_000; i++) {

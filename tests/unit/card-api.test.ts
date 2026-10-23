@@ -65,7 +65,7 @@ describe('card samples', () => {
       frontFaceName: 'Harmonized Trio',
     });
     expect(cardSamples.arcaneSignet.imageSmall).toMatch(
-      /^https:\/\/cards\.scryfall\.io\/small\/front\/[0-9a-f]\/[0-9a-f]\/[0-9a-f-]{36}\.jpg\?\d+$/,
+      /^https:\/\/images\.example\.com\/small\/front\/[0-9a-f]\/[0-9a-f]\/[0-9a-f-]{36}\.jpg\?\d+$/,
     );
   });
 });

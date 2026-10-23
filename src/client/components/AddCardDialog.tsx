@@ -38,7 +38,7 @@ export type AddCardDialogProps = {
 
 const finishWords: Record<Finish, string> = { nonfoil: 'Nonfoil', foil: 'Foil', etched: 'Etched' };
 
-/** The conditions ManaBox uses, best first. */
+/** The conditions, best first. */
 const conditions: [value: string, label: string][] = [
   ['mint', 'Mint'],
   ['near_mint', 'Near mint'],
@@ -49,7 +49,7 @@ const conditions: [value: string, label: string][] = [
   ['poor', 'Poor'],
 ];
 
-/** Scryfall's language codes for paper printings. */
+/** Language codes for paper printings. */
 const languages: [code: string, label: string][] = [
   ['en', 'English'],
   ['es', 'Spanish'],
@@ -116,7 +116,7 @@ function AddCardForm({
   const tree = useLocationTree();
 
   const [oracleId, setOracleId] = useState<string | null>(defaultOracleId ?? null);
-  const [printingId, setPrintingId] = useState<string | null>(null);
+  const [chosenId, setChosenId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [pickedFinish, setPickedFinish] = useState<Finish | null>(null);
   const [condition, setCondition] = useState('near_mint');
@@ -157,7 +157,7 @@ function AddCardForm({
   const card = details.data?.card;
   const printings = details.data?.printings ?? [];
   // The newest printing until Jeff picks another.
-  const printing = printings.find((p) => p.scryfallId === printingId) ?? printings[0];
+  const printing = printings.find((p) => p.printingId === chosenId) ?? printings[0];
   // The finish follows the printing: a pick it doesn't come in falls back to its first finish.
   const finishes = printing?.finishes ?? [];
   const finish = pickedFinish && finishes.includes(pickedFinish) ? pickedFinish : finishes[0];
@@ -170,14 +170,14 @@ function AddCardForm({
   const ready = printing !== undefined && finish !== undefined && locationId !== null && quantityOk;
 
   const pickPrinting = (next: PrintingSummary) => {
-    setPrintingId(next.scryfallId);
+    setChosenId(next.printingId);
     // A new printing brings its own language.
     setPickedLanguage(null);
   };
 
   const changeCard = () => {
     setOracleId(null);
-    setPrintingId(null);
+    setChosenId(null);
     setPickedFinish(null);
     setPickedLanguage(null);
   };
@@ -188,7 +188,7 @@ function AddCardForm({
       return;
     }
     add.mutate({
-      scryfallId: printing.scryfallId,
+      printingId: printing.printingId,
       quantity: count,
       finish,
       condition,
@@ -268,16 +268,16 @@ function AddCardForm({
                   </p>
                 )}
                 {printings.map((p) => {
-                  const checked = p.scryfallId === printing?.scryfallId;
+                  const checked = p.printingId === printing?.printingId;
                   return (
                     // biome-ignore lint/a11y/useSemanticElements: a row with a set symbol, not a bare radio input
                     <button
-                      key={p.scryfallId}
+                      key={p.printingId}
                       type="button"
                       role="radio"
                       aria-checked={checked}
                       onClick={() => pickPrinting(p)}
-                      data-scryfall-id={p.scryfallId}
+                      data-printing-id={p.printingId}
                       className={cn(
                         'flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
                         checked && 'bg-primary/10 hover:bg-primary/10',

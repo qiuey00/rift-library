@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-The Magic-only parts (ManaBox, Moxfield, Scryfall, Commander rules, the speed tests and the big seeded collection) still come from the copy. They are being removed and replaced in the issues listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27); until then, the sections below describe them as they work today.
+ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The other Magic-only parts (Commander rules, the Mana and Keyrune fonts, the speed tests and the big seeded collection) still come from the copy. They are being removed and replaced in the issues listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27); until then, the sections below describe them as they work today.
 
 ## Docs
 
@@ -22,7 +22,6 @@ src/server/server.ts     serves the API and the built screens on 127.0.0.1:4300
 src/server/routes/       one file per area
 src/server/services/     the rules (one database transaction per action)
 src/server/queries/      worked-out values
-src/server/scryfall/     card data
 src/server/db/           Drizzle schema and migrations
 src/client/api.ts        the typed API client
 src/client/router.tsx    every screen address, inside the app frame
@@ -33,7 +32,7 @@ src/client/styles.css    Tailwind, the look's colors and the fonts
 tests/unit/              Vitest
 tests/e2e/               Playwright
 tests/speed/             the big made-up collection and the speed checks
-tests/fixtures/          Jeff's ManaBox and Moxfield samples
+tests/fixtures/          made-up card data and a collection for the browser tests
 data/                    the database and downloads (not in git)
 docs/                    technical design, PRD and UI docs (the source)
 ```
@@ -55,7 +54,7 @@ Scripts must work on macOS and Windows: no `rm -rf`, no `FOO=bar cmd`, build pat
 
 - JSON in and out, all under `/api`.
 - Errors use the HTTP status plus `{ "error": { "code": string, "message": string } }` (`ErrorBody`). The message is written for Jeff, such as "This copy has moved, pick another". Throw `new AppError(status, code, message)` from `src/server/errors.ts`; anything else becomes a 500 `internal_error`.
-- App ids are numbers; Scryfall ids are strings. Path and query ids arrive as text: check them with `IdParam`.
+- App ids are numbers; card data ids (oracle ids, printing ids) are strings. Path and query ids arrive as text: check them with `IdParam`.
 - Every request body, query and path param is checked with Zod through `validate(target, schema)` from `src/server/validate.ts` (a wrapper over `@hono/zod-validator` that answers 400 `invalid_request` in the error shape).
 - Shared schemas used by every area are in `src/shared/api/common.ts`: `Finish`, `LocationType`, `Board`, `SlotStatus`, `DeckState`, `ErrorBody`, `CardSummary`, `PrintingSummary`, `LocationRef`, `CopyDetails`, `StackRow`, `ActionResult`, `Id`, `IdParam`. Each schema has a type of the same name.
 - Area contracts (separate issues) define each area's schemas in `src/shared/api/<area>.ts`, typed samples in `src/shared/api/samples/<area>.ts`, and route handlers that return the samples, each marked `// STUB until #N`. The server issue for that area replaces the stub with real logic.
@@ -63,9 +62,9 @@ Scripts must work on macOS and Windows: no `rm -rf`, no `FOO=bar cmd`, build pat
 
 ## Route modules
 
-Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` in `src/server/app.ts`. All 19 are already registered, so an area issue edits only its own file. Write full paths under `/api` (for example `.get('/locations', ...)` answers `GET /api/locations`) and chain every route onto the instance (`new Hono().get(...).post(...)`) so `AppType` and the typed client in `src/client/api.ts` see it.
+Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` in `src/server/app.ts`. All 15 are already registered, so an area issue edits only its own file. Write full paths under `/api` (for example `.get('/locations', ...)` answers `GET /api/locations`) and chain every route onto the instance (`new Hono().get(...).post(...)`) so `AppType` and the typed client in `src/client/api.ts` see it.
 
-`card-data`, `cards`, `locations`, `copies`, `stacks`, `undo`, `history`, `manabox`, `manabox-update`, `moxfield`, `moxfield-update`, `decks`, `deck-checks`, `buy-list`, `pick-list`, `pulls`, `put-away`, `swap`, `exports`.
+`card-data`, `cards`, `locations`, `copies`, `stacks`, `undo`, `history`, `decks`, `deck-checks`, `buy-list`, `pick-list`, `pulls`, `put-away`, `swap`, `exports`.
 
 ## Database
 

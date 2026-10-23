@@ -44,15 +44,15 @@ export const CardSearchResponse = z.object({
 export type CardSearchResponse = z.infer<typeof CardSearchResponse>;
 
 export const CardParams = z.object({
-  /** Scryfall's oracle id for the card. */
+  /** The card's oracle id. */
   oracleId: z.guid(),
 });
 export type CardParams = z.infer<typeof CardParams>;
 
 export const CardDetails = CardSummary.extend({
-  /** Scryfall's keywords, such as "Partner" or "Station"; the deck checks use them for partners. */
+  /** Keywords, such as "Partner" or "Station"; the deck checks use them for partners. */
   keywords: z.array(z.string()),
-  /** Scryfall's word for the card in Commander: 'legal', 'not_legal' or 'banned'. */
+  /** The card's Commander legality: 'legal', 'not_legal' or 'banned'. */
   commanderLegality: z.string(),
 });
 export type CardDetails = z.infer<typeof CardDetails>;

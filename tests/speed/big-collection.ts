@@ -1,9 +1,9 @@
 import type { OpenDb } from '../../src/server/db/database';
 
 // A made-up collection the size of Jeff's, for the speed checks (PLAT-6): about 35,000
-// cards in Scryfall's shape with about 105,000 printings, about 10,000 copies in about 7,000
+// cards in the card tables' shape with about 105,000 printings, about 10,000 copies in about 7,000
 // copy stacks across 40 locations, 15 decks of 100 cards (some assembled) and a year of
-// movements (about 50,000). Rows are written straight into the tables, like a ManaBox import
+// movements (about 50,000). Rows are written straight into the tables, like adding cards
 // and a year of use would leave them, and the same seed always makes the same collection.
 
 export type BigCollection = {
@@ -47,7 +47,7 @@ function random(seed: number) {
   return { next, int, pick, chance };
 }
 
-/** A UUID-shaped id, as Scryfall's oracle and printing ids are. */
+/** A UUID-shaped id, as oracle and printing ids are. */
 function uuid(kind: number, n: number) {
   const hex = n.toString(16).padStart(12, '0');
   return `${kind.toString(16).padStart(8, '0')}-0000-4000-8000-${hex}`;
@@ -275,7 +275,7 @@ function manaCost(identity: string, rng: ReturnType<typeof random>) {
 }
 
 function setCode(n: number) {
-  // Three letters, like most Scryfall set codes: "aaa", "aab", ...
+  // Three letters, like most set codes: "aaa", "aab", ...
   const a = 'abcdefghijklmnopqrstuvwxyz';
   return `${a[Math.floor(n / 676) % 26]}${a[Math.floor(n / 26) % 26]}${a[n % 26]}x`;
 }
@@ -301,7 +301,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
         color_identity, commander_legality, keywords, can_be_commander, is_basic_land, allows_many)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insertPrinting = client.prepare(`
-      INSERT INTO printings (scryfall_id, oracle_id, set_code, set_name, collector_number, lang,
+      INSERT INTO printings (printing_id, oracle_id, set_code, set_name, collector_number, lang,
         finishes, rarity, released_at, image_small, image_normal, price_usd, price_usd_foil,
         price_usd_etched)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -319,7 +319,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
     const addPrintings = (card: Card, count: number) => {
       for (let i = 0; i < count; i += 1) {
         const set = rng.pick(sets);
-        const scryfallId = uuid(2, printingCount);
+        const printingId = uuid(2, printingCount);
         printingCount += 1;
         const foil = rng.next();
         const finishes =
@@ -330,7 +330,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
               : foil < 0.97
                 ? ['foil']
                 : ['etched'];
-        const image = `https://cards.scryfall.io/%s/front/${scryfallId.slice(-2)}/${scryfallId}.jpg`;
+        const image = `https://images.example.com/%s/front/${printingId.slice(-2)}/${printingId}.jpg`;
         // Prices in cents, worked out from the printing's number rather than the random
         // numbers so the rest of the collection stays the same; about one in ten has none.
         const price = (printingCount * 7919) % 10_000;
@@ -338,7 +338,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
         const priceFor = (finish: string, cents: number) =>
           hasPrice && finishes.includes(finish) ? cents : null;
         insertPrinting.run(
-          scryfallId,
+          printingId,
           card.oracleId,
           set.code,
           set.name,
@@ -354,7 +354,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
           priceFor('etched', 40 + price * 3),
         );
         set.next += 1;
-        card.printings.push(scryfallId);
+        card.printings.push(printingId);
       }
     };
 
@@ -507,12 +507,12 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
 
     // Copy stacks in storage, keeping the merge rule: alike copies in one place are one row.
     const insertStack = client.prepare(`
-      INSERT INTO copy_stacks (scryfall_id, quantity, finish, condition, language, misprint,
+      INSERT INTO copy_stacks (printing_id, quantity, finish, condition, language, misprint,
         altered, is_proxy, location_id, came_from_location_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     type Stack = {
       id: number;
-      scryfallId: string;
+      printingId: string;
       finish: string;
       condition: string;
       locationId: number;
@@ -521,7 +521,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
     const seen = new Set<string>();
     let copies = 0;
     const addStack = (
-      scryfallId: string,
+      printingId: string,
       quantity: number,
       locationId: number,
       cameFrom: number | null = null,
@@ -529,13 +529,13 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
       condition = rng.pick(CONDITIONS),
     ) => {
       const proxy = rng.chance(0.02) ? 1 : 0;
-      const key = `${scryfallId}|${finish}|${condition}|${proxy}|${locationId}|${cameFrom ?? 0}`;
+      const key = `${printingId}|${finish}|${condition}|${proxy}|${locationId}|${cameFrom ?? 0}`;
       if (seen.has(key)) return undefined;
       seen.add(key);
       const at = new Date(now - rng.int(365) * DAY_MS).toISOString();
       const id = Number(
         insertStack.run(
-          scryfallId,
+          printingId,
           quantity,
           finish,
           condition,
@@ -549,7 +549,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
           at,
         ).lastInsertRowid,
       );
-      const stack = { id, scryfallId, finish, condition, locationId };
+      const stack = { id, printingId, finish, condition, locationId };
       stacks.push(stack);
       copies += quantity;
       return stack;
@@ -557,8 +557,8 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
 
     // Basic lands: a few big stacks in the box of lands.
     for (const basic of cards.slice(0, BASICS.length)) {
-      for (const scryfallId of basic.printings.slice(0, 6)) {
-        addStack(scryfallId, 4 + rng.int(12), landsBox, null, 'nonfoil', 'near_mint');
+      for (const printingId of basic.printings.slice(0, 6)) {
+        addStack(printingId, 4 + rng.int(12), landsBox, null, 'nonfoil', 'near_mint');
       }
     }
 
@@ -581,7 +581,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
       'INSERT INTO decks (name, deck_box_id, created_at, updated_at, opened_at) VALUES (?, ?, ?, ?, ?)',
     );
     const insertSlot = client.prepare(`
-      INSERT INTO deck_slots (deck_id, oracle_id, board, quantity, picked_scryfall_id)
+      INSERT INTO deck_slots (deck_id, oracle_id, board, quantity, picked_printing_id)
       VALUES (?, ?, ?, ?, ?)`);
     const insertTag = client.prepare(
       'INSERT INTO deck_slot_tags (slot_id, tag, tag_key) VALUES (?, ?, ?)',
@@ -602,7 +602,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
     let unassembledDeckId = 0;
     const firstStorageStack = new Map<string, Stack>();
     for (const stack of stacks) {
-      const card = stack.scryfallId;
+      const card = stack.printingId;
       if (!firstStorageStack.has(card)) firstStorageStack.set(card, stack);
     }
 
@@ -694,7 +694,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
       'INSERT INTO movement_batches (kind, deck_id, created_at) VALUES (?, ?, ?)',
     );
     const insertMovement = client.prepare(`
-      INSERT INTO movements (batch_id, copy_stack_id, scryfall_id, finish, condition, language,
+      INSERT INTO movements (batch_id, copy_stack_id, printing_id, finish, condition, language,
         quantity, from_location_id, to_location_id, reason, deck_id, created_at)
       VALUES (?, ?, ?, ?, ?, 'en', ?, ?, ?, ?, ?, ?)`);
     const kinds = [
@@ -735,7 +735,7 @@ export function seedBigCollection(db: OpenDb, options: { now?: number } = {}): B
         insertMovement.run(
           batchId,
           stack.id,
-          stack.scryfallId,
+          stack.printingId,
           stack.finish,
           stack.condition,
           1,

@@ -9,7 +9,6 @@ import {
   Plus,
   Search,
   ShoppingCart,
-  Upload,
   X,
 } from 'lucide-react';
 import {
@@ -30,7 +29,6 @@ import { AddCardDialog } from '../components/AddCardDialog';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { type CopyStackAction, CopyStackTable } from '../components/CopyStackTable';
 import { LocationPicker, useLocationTree } from '../components/LocationPicker';
-import { ManaBoxImportDialog } from '../components/ManaBoxImportDialog';
 import { MoveToDialog } from '../components/MoveToDialog';
 import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
@@ -61,7 +59,7 @@ export const STACKS_QUERY_KEY = ['stacks'];
 /** The query key for GET /api/collection/value, shared with the Locations screen. */
 const COLLECTION_VALUE_QUERY_KEY = ['collection', 'value'];
 
-/** The ManaBox CSV backup of the whole collection, with each card's location. */
+/** The CSV backup of the whole collection, with each card's location. */
 const EXPORT_URL = '/api/exports/collection.csv';
 
 type Sort = StacksQuery['sort'];
@@ -171,7 +169,6 @@ export function Collection() {
   const [moving, setMoving] = useState<StackRow[] | null>(null);
   const [buying, setBuying] = useState<StackRow | null>(null);
   const [adding, setAdding] = useState(false);
-  const [importing, setImporting] = useState(false);
   const proxy = useSetProxy();
 
   const actions: CopyStackAction[] = [
@@ -209,29 +206,17 @@ export function Collection() {
           {worth.data && <CollectionWorth worth={worth.data} />}
         </div>
         <div className="flex items-center gap-2.5">
-          <fieldset className="m-0 flex border-0 p-0">
-            <legend className="sr-only">ManaBox CSV</legend>
-            <Button
-              variant="outline"
-              aria-label="Import from ManaBox"
-              className="rounded-r-none"
-              onClick={() => setImporting(true)}
+          <Button variant="outline" asChild>
+            <a
+              href={EXPORT_URL}
+              aria-label="Export the collection as a CSV"
+              download
+              title="A CSV backup with each card's location."
             >
-              <Upload aria-hidden="true" />
-              Import
-            </Button>
-            <Button variant="outline" className="-ml-px rounded-l-none" asChild>
-              <a
-                href={EXPORT_URL}
-                aria-label="Export the collection as a ManaBox CSV"
-                download
-                title="ManaBox CSV with each card's location. Import it again to restore."
-              >
-                <Download aria-hidden="true" />
-                Export
-              </a>
-            </Button>
-          </fieldset>
+              <Download aria-hidden="true" />
+              Export
+            </a>
+          </Button>
           <Button onClick={() => setAdding(true)}>
             <Plus aria-hidden="true" />
             Add card
@@ -302,7 +287,7 @@ export function Collection() {
             }}
             emptyMessage={
               q.trim() === '' ? (
-                <EmptyCollection onImport={() => setImporting(true)} />
+                <EmptyCollection onAdd={() => setAdding(true)} />
               ) : (
                 'No cards match the search.'
               )
@@ -321,11 +306,10 @@ export function Collection() {
           open
           onOpenChange={(open) => !open && setBuying(null)}
           oracleId={buying.card.oracleId}
-          scryfallId={buying.printing.scryfallId}
+          printingId={buying.printing.printingId}
         />
       )}
       <AddCardDialog open={adding} onOpenChange={setAdding} />
-      <ManaBoxImportDialog open={importing} onOpenChange={setImporting} />
     </div>
   );
 }
@@ -417,11 +401,11 @@ function PreviewPane({ store, fallback }: { store: HoverStore; fallback: StackRo
   );
 }
 
-/** A new install: start with where the cards live, or bring the ManaBox collection in. */
-function EmptyCollection({ onImport }: { onImport: () => void }) {
+/** A new install: start with where the cards live, then add cards. */
+function EmptyCollection({ onAdd }: { onAdd: () => void }) {
   return (
     <span className="flex flex-col items-center gap-4 py-4">
-      <span>No cards yet. Create a location for each box and binder, or import from ManaBox.</span>
+      <span>No cards yet. Create a location for each box and binder, then add cards to it.</span>
       <span className="flex flex-wrap justify-center gap-2.5">
         <Button asChild>
           <Link to="/locations">
@@ -429,9 +413,9 @@ function EmptyCollection({ onImport }: { onImport: () => void }) {
             Create a location
           </Link>
         </Button>
-        <Button variant="outline" onClick={onImport}>
-          <Upload aria-hidden="true" />
-          Import ManaBox CSV
+        <Button variant="outline" onClick={onAdd}>
+          <Plus aria-hidden="true" />
+          Add cards
         </Button>
       </span>
     </span>

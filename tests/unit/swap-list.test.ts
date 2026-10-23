@@ -48,7 +48,7 @@ function location(
     .get().id;
 }
 
-function card(scryfallId: string, name: string) {
+function card(printingId: string, name: string) {
   const oracleId = `oracle-${name}`;
   db.insert(cards)
     .values({ oracleId, name, frontFaceName: name, typeLine: 'Card', commanderLegality: 'legal' })
@@ -56,11 +56,11 @@ function card(scryfallId: string, name: string) {
     .run();
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
-      collectorNumber: scryfallId,
+      collectorNumber: printingId,
       lang: 'en',
       finishes: ['nonfoil', 'foil'],
       rarity: 'rare',
@@ -71,14 +71,14 @@ function card(scryfallId: string, name: string) {
 }
 
 function stack(
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   overrides: Partial<typeof copyStacks.$inferInsert> = {},
 ) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       quantity: 1,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -104,11 +104,11 @@ function slot(
   oracleId: string,
   quantity = 1,
   board: 'commander' | 'main' | 'maybe' = 'main',
-  pickedScryfallId: string | null = null,
+  pickedPrintingId: string | null = null,
 ) {
   return db
     .insert(deckSlots)
-    .values({ deckId: hearthhull, oracleId, board, quantity, pickedScryfallId })
+    .values({ deckId: hearthhull, oracleId, board, quantity, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
@@ -223,7 +223,7 @@ describe('swapList', () => {
     const list = await getSwap();
     expect(list.takeOut.groups.map((g) => g.location.id)).toEqual([inbox, binder]);
     const lines = list.takeOut.groups.flatMap((g) => g.lines);
-    expect(lines.map((l) => [l.isProxy, l.printing.scryfallId])).toEqual([
+    expect(lines.map((l) => [l.isProxy, l.printing.printingId])).toEqual([
       [true, SIGNET],
       [false, SIGNET_PROMO],
     ]);

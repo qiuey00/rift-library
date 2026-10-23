@@ -31,7 +31,7 @@ type Mock = {
 
 async function openPickList(page: Page, { stale = false } = {}): Promise<Mock> {
   const mock: Mock = { pickListCalls: 0, pulls: [], proxies: [], undone: [] };
-  // Card images come from Scryfall; tests stay offline.
+  // Card images come from the internet; tests stay offline.
   await page.route(
     (url) => url.hostname !== '127.0.0.1' && url.hostname !== 'localhost',
     (route) => route.abort(),
@@ -185,7 +185,7 @@ test('Add proxy uses the decklist printing, or lets Jeff pick one', async ({ pag
   await expect(soul).toContainText('Proxy added to the deck box');
   await expect(undoBar(page)).toContainText(proxyResultSample.message);
   expect(mock.proxies).toEqual([
-    { slotId: 119, scryfallId: printings.soulOfWindgraceEoc.scryfallId, quantity: 1 },
+    { slotId: 119, printingId: printings.soulOfWindgraceEoc.printingId, quantity: 1 },
   ]);
 
   // Omnath has no printing hint, so Jeff picks one; it joins the open batch.
@@ -196,7 +196,7 @@ test('Add proxy uses the decklist printing, or lets Jeff pick one', async ({ pag
   await expect(omnath).toContainText('Proxy added to the deck box');
   expect(mock.proxies[1]).toEqual({
     slotId: 120,
-    scryfallId: printings.omnathEoc.scryfallId,
+    printingId: printings.omnathEoc.printingId,
     quantity: 1,
     batchId: 31,
   });

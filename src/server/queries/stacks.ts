@@ -40,7 +40,7 @@ type StackRecord = {
   colorIdentity: string;
   canBeCommander: number;
   isBasicLand: number;
-  scryfallId: string;
+  printingId: string;
   setCode: string;
   setName: string;
   collectorNumber: string;
@@ -60,13 +60,13 @@ const columns = sql`
   c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
   c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
   c.is_basic_land AS isBasicLand,
-  p.scryfall_id AS scryfallId, p.set_code AS setCode, p.set_name AS setName,
+  p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
   p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
   p.image_small AS imageSmall, p.image_normal AS imageNormal, ${unitPriceSql} AS unitPrice`;
 
 const from = sql`
   FROM copy_stacks AS s
-  JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+  JOIN printings AS p ON p.printing_id = s.printing_id
   JOIN cards AS c ON c.oracle_id = p.oracle_id`;
 
 /** The name order: card name, then set, then collector number (as a number first), then id. */
@@ -219,7 +219,7 @@ function toRow(record: StackRecord, places: Places): StackRow {
     quantity: record.quantity,
     card,
     printing: {
-      scryfallId: record.scryfallId,
+      printingId: record.printingId,
       oracleId: record.oracleId,
       setCode: record.setCode,
       setName: record.setName,

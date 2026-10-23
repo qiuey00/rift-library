@@ -40,7 +40,6 @@ test('every screen address opens', async ({ page }) => {
     ['/decks/3/assemble', 'Pick list'],
     ['/decks/3/take-apart', 'Take apart Hearthhull'],
     ['/decks/3/swap', 'Swap list'],
-    ['/import/moxfield', 'Import a Moxfield deck'],
   ];
   for (const [path, title] of screens) {
     await page.goto(path);
@@ -94,34 +93,10 @@ test('the gear opens Settings', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
 });
 
-test('the Import menu opens the ManaBox dialog or the Moxfield screen', async ({ page }) => {
-  await page.goto('/collection');
-  await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'ManaBox CSV' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Import from ManaBox' });
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('What should this import do?');
-  await dialog.getByRole('button', { name: 'Close' }).first().click();
-  await expect(dialog).toBeHidden();
-
-  await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Moxfield deck' }).click();
-  await expect(page).toHaveURL('/import/moxfield');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Import a Moxfield deck');
-
-  // The page still takes clicks once the menu and dialog have closed.
-  await nav(page).getByRole('link', { name: 'History' }).click();
-  await expect(page).toHaveURL('/history');
-});
-
-test('a new install starts with Create a location and Import ManaBox CSV', async ({ page }) => {
+test('a new install starts with Create a location', async ({ page }) => {
   await newInstall(page);
   await page.goto('/');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Import ManaBox CSV' }).click();
-  await expect(page.getByRole('dialog', { name: 'Import from ManaBox' })).toBeVisible();
-  await page.keyboard.press('Escape');
-
   await main.getByRole('link', { name: 'Create a location' }).click();
   await expect(page).toHaveURL('/locations');
 });
@@ -180,6 +155,5 @@ test('the top bar is one line at 1280 px and wraps at 1024 px with no sideways s
 
   await page.setViewportSize({ width: 1024, height: 768 });
   expect(await layout()).toEqual({ sameLine: false, sideways: false });
-  await expect(page.getByRole('button', { name: 'Import', exact: true })).toBeInViewport();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeInViewport();
 });

@@ -12,7 +12,7 @@ import type { StacksPage } from '../../src/shared/api/stacks';
 const LONGEST_TASK_MS = 200;
 
 test.beforeEach(async ({ page }) => {
-  // Card images come from Scryfall; these checks never reach it.
+  // Card images come from the internet; these checks never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

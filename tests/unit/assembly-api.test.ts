@@ -124,8 +124,8 @@ describe('assembly stub routes', () => {
   });
 
   it('POST /api/decks/:id/proxies checks the request', async () => {
-    const body = { slotId: 119, scryfallId: soulOfWindgrace.scryfallId, quantity: 1 };
-    await expectInvalid(await post('/api/decks/1/proxies', { ...body, scryfallId: '' }));
+    const body = { slotId: 119, printingId: soulOfWindgrace.printingId, quantity: 1 };
+    await expectInvalid(await post('/api/decks/1/proxies', { ...body, printingId: '' }));
     await expectInvalid(await post('/api/decks/1/proxies', { ...body, slotId: '119' }));
   });
 

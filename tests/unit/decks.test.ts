@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 afterEach(() => db.$client.close());
 
-/** A card with one printing whose Scryfall id is `<oracleId>-1`. */
+/** A card with one printing whose printing id is `<oracleId>-1`. */
 function card(oracleId: string, options: { basic?: boolean; colors?: string } = {}) {
   db.insert(cards)
     .values({
@@ -62,7 +62,7 @@ function card(oracleId: string, options: { basic?: boolean; colors?: string } = 
 function printing(oracleId: string, n: number, releasedAt = '2024-01-01') {
   db.insert(printings)
     .values({
-      scryfallId: `${oracleId}-${n}`,
+      printingId: `${oracleId}-${n}`,
       oracleId,
       setCode: 'tst',
       setName: 'Test set',
@@ -86,11 +86,11 @@ function stack(
   oracleId: string,
   locationId: number,
   quantity = 1,
-  options: { proxy?: boolean; scryfallId?: string } = {},
+  options: { proxy?: boolean; printingId?: string } = {},
 ) {
   db.insert(copyStacks)
     .values({
-      scryfallId: options.scryfallId ?? `${oracleId}-1`,
+      printingId: options.printingId ?? `${oracleId}-1`,
       quantity,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -210,7 +210,7 @@ describe('slot status', () => {
   it('counts copies of any printing', () => {
     const ring = card('sol-ring');
     const other = printing(ring, 2);
-    stack(ring, place('Binder'), 1, { scryfallId: other });
+    stack(ring, place('Binder'), 1, { printingId: other });
     const { id } = deck('A', [main(ring)]);
     expect(slotFor(id, ring).status).toBe('free');
   });
@@ -368,10 +368,10 @@ describe('editing slots', () => {
     const slot = slotFor(id, ring).id;
     expect(slotFor(id, ring).printing).toBeNull();
 
-    setSlotPrinting(db, id, slot, { scryfallId: second, foil: true });
+    setSlotPrinting(db, id, slot, { printingId: second, foil: true });
     const row = slotFor(id, ring);
     expect(row.hint).toEqual({ setCode: 'tst', collectorNumber: '2', foil: true });
-    expect(row.printing?.scryfallId).toBe(second);
+    expect(row.printing?.printingId).toBe(second);
     expect(row.printing?.imageNormal).toBe(`normal-${ring}-2`);
   });
 
@@ -381,17 +381,17 @@ describe('editing slots', () => {
     const { id, boxId } = deck('A', [main(ring)]);
     stack(ring, boxId);
     db.update(deckSlots)
-      .set({ pickedScryfallId: `${ring}-1` })
+      .set({ pickedPrintingId: `${ring}-1` })
       .run();
     const slot = slotFor(id, ring).id;
 
-    setSlotPrinting(db, id, slot, { scryfallId: `${ring}-1`, foil: false });
-    expect(slotFor(id, ring).pickedPrinting?.scryfallId).toBe(`${ring}-1`);
+    setSlotPrinting(db, id, slot, { printingId: `${ring}-1`, foil: false });
+    expect(slotFor(id, ring).pickedPrinting?.printingId).toBe(`${ring}-1`);
 
-    setSlotPrinting(db, id, slot, { scryfallId: second, foil: false });
+    setSlotPrinting(db, id, slot, { printingId: second, foil: false });
     const row = slotFor(id, ring);
     expect(row.pickedPrinting).toBeNull();
-    expect(row.printing?.scryfallId).toBe(second);
+    expect(row.printing?.printingId).toBe(second);
     expect(row).toMatchObject({ status: 'in_box', inBoxQuantity: 1 });
   });
 
@@ -401,10 +401,10 @@ describe('editing slots', () => {
     const { id } = deck('A', [main(ring)]);
     const slot = slotFor(id, ring).id;
     expect(
-      refusal(() => setSlotPrinting(db, id, slot, { scryfallId: `${signet}-1`, foil: false })),
+      refusal(() => setSlotPrinting(db, id, slot, { printingId: `${signet}-1`, foil: false })),
     ).toEqual({ status: 400, code: 'wrong_card' });
     expect(
-      refusal(() => setSlotPrinting(db, id, slot, { scryfallId: 'nope', foil: false })),
+      refusal(() => setSlotPrinting(db, id, slot, { printingId: 'nope', foil: false })),
     ).toEqual({ status: 404, code: 'printing_not_found' });
   });
 
@@ -434,7 +434,7 @@ describe('editing slots', () => {
     const thrasios = card('thrasios', { colors: 'GU' });
     const { id } = deck('A', [{ oracleId: korvold, board: 'commander', quantity: 1 }, main(tymna)]);
     db.update(deckSlots)
-      .set({ pickedScryfallId: `${tymna}-1` })
+      .set({ pickedPrintingId: `${tymna}-1` })
       .where(eq(deckSlots.oracleId, tymna))
       .run();
     setCommanders(db, id, [tymna, thrasios]);
@@ -446,7 +446,7 @@ describe('editing slots', () => {
       [tymna, 'commander'],
       [thrasios, 'commander'],
     ]);
-    expect(slotFor(id, tymna, 'commander').pickedPrinting?.scryfallId).toBe(`${tymna}-1`);
+    expect(slotFor(id, tymna, 'commander').pickedPrinting?.printingId).toBe(`${tymna}-1`);
   });
 
   it('replaceSlots keeps picked printings of cards that stay', () => {
@@ -455,13 +455,13 @@ describe('editing slots', () => {
     const grasp = card('grasp');
     const { id } = deck('A', [main(ring), main(signet)]);
     db.update(deckSlots)
-      .set({ pickedScryfallId: `${ring}-1` })
+      .set({ pickedPrintingId: `${ring}-1` })
       .run();
     const ringSlot = slotFor(id, ring).id;
 
     replaceSlots(db, id, [main(ring, 2), main(grasp)]);
     const { slots } = view(id);
-    expect(slots.map((s) => [s.card.oracleId, s.quantity, s.pickedPrinting?.scryfallId])).toEqual([
+    expect(slots.map((s) => [s.card.oracleId, s.quantity, s.pickedPrinting?.printingId])).toEqual([
       [ring, 2, `${ring}-1`],
       [grasp, 1, undefined],
     ]);
@@ -580,9 +580,9 @@ describe('decks routes', () => {
 
     const reprinted = await api.decks[':id'].slots[':slotId'].$patch({
       param: slot,
-      json: { printing: { scryfallId: `${ring}-1`, foil: false } },
+      json: { printing: { printingId: `${ring}-1`, foil: false } },
     });
-    expect((await body(reprinted, SlotRow)).printing?.scryfallId).toBe(`${ring}-1`);
+    expect((await body(reprinted, SlotRow)).printing?.printingId).toBe(`${ring}-1`);
 
     const empty = await api.decks[':id'].slots[':slotId'].$patch({ param: slot, json: {} });
     expect((await body(empty, ErrorBody, 400)).error.code).toBe('invalid_request');

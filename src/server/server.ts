@@ -6,7 +6,6 @@ import { Hono } from 'hono';
 import { app } from './app';
 import { dataDir, openDataDatabase, setDb } from './db/database';
 import { handleError } from './errors';
-import { CardDataSync, setCardDataSync } from './scryfall/sync';
 
 /**
  * Only this computer can reach the server: other devices on the network can't, which is
@@ -39,8 +38,8 @@ export function createSite(clientDir = CLIENT_DIR) {
 
 /**
  * Opens `<dataDir>/library.db`, bringing its tables up to date, then starts the server on
- * 127.0.0.1 and the card data check (on now and every 24 hours, unless SCRYFALL_SYNC=off).
- * Port 0 picks a free port, which tests use. Closing the server closes the database.
+ * 127.0.0.1. Nothing is downloaded. Port 0 picks a free port, which tests use. Closing the
+ * server closes the database.
  */
 export function startServer({
   port = PORT,
@@ -49,13 +48,7 @@ export function startServer({
 } = {}) {
   const db = openDataDatabase(dir);
   setDb(db);
-  const sync = new CardDataSync(db, dir, process.env.SCRYFALL_SYNC !== 'off');
-  setCardDataSync(sync);
   const server = serve({ fetch: createSite(clientDir).fetch, hostname: HOST, port });
-  sync.start();
-  server.on('close', () => {
-    sync.stop();
-    db.$client.close();
-  });
+  server.on('close', () => db.$client.close());
   return server;
 }

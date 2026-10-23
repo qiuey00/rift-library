@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-// Card data: the Scryfall bulk data the app loads, and the Refresh card data button.
+// Card data: the card data file the app loads, and the Refresh card data button. Nothing
+// loads card data until the Riftcodex sync (#7).
 //
 //   GET  /api/card-data/status   → CardDataStatus
 //   POST /api/card-data/refresh  → CardDataStatus, as the refresh starts; it runs in the
@@ -9,7 +10,7 @@ import { z } from 'zod';
 
 /**
  * - idle: no card data yet and nothing running (the first start, before the download begins).
- * - downloading: fetching Scryfall's Default Cards file.
+ * - downloading: fetching the card data file.
  * - loading: writing the downloaded cards and printings into the database.
  * - ready: card data is loaded and nothing is running.
  * - error: the last download or load failed; `error` says why, and any card data loaded
@@ -22,9 +23,9 @@ export const CardDataStatus = z.object({
   state: CardDataState,
   /** How far the current download or load is, from 0 to 1: 0 when idle, 1 when ready. */
   progress: z.number().min(0).max(1),
-  /** When Scryfall made the file the app last loaded (UTC); null before the first load. */
+  /** When the file the app last loaded was made (UTC); null before the first load. */
   bulkUpdatedAt: z.iso.datetime().nullable(),
-  /** When the app last asked Scryfall whether a newer file exists (UTC); null before the first check. */
+  /** When the app last checked for a newer file (UTC); null before the first check. */
   lastCheckedAt: z.iso.datetime().nullable(),
   /**
    * Cards and printings the app has now. A load swaps new data in at the end, so while one

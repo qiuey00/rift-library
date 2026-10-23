@@ -44,8 +44,8 @@ function location(name: string, type: typeof locations.$inferInsert.type, parent
     .id;
 }
 
-function card(scryfallId: string, name: string) {
-  const oracleId = `oracle-${scryfallId}`;
+function card(printingId: string, name: string) {
+  const oracleId = `oracle-${printingId}`;
   db.insert(cards)
     .values({
       oracleId,
@@ -57,7 +57,7 @@ function card(scryfallId: string, name: string) {
     .run();
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode: 'cmm',
       setName: 'Commander Masters',
@@ -74,7 +74,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 1,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -218,7 +218,7 @@ describe('moveCopies', () => {
         id: result.movementId,
         batchId: batch,
         copyStackId: result.destStackId,
-        scryfallId: SIGNET,
+        printingId: SIGNET,
         finish: 'foil',
         condition: 'lightly_played',
         language: 'ja',
@@ -254,7 +254,7 @@ describe('addCopies, removeCopies and setProxy', () => {
   it('addCopies merges into the alike stack and writes a movement with no from', () => {
     const there = stack({ quantity: 2 });
     const result = addCopies(db, {
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 3,
       ...details,
       locationId: binder,
@@ -270,7 +270,7 @@ describe('addCopies, removeCopies and setProxy', () => {
 
   it('addCopies into a deck box leaves came-from empty', () => {
     const result = addCopies(db, {
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 1,
       ...details,
       isProxy: true,
@@ -332,7 +332,7 @@ describe('copies routes', () => {
 
   it('POST /moves counts several cards', async () => {
     const a = stack({ quantity: 4 });
-    const b = stack({ scryfallId: SOL_RING, quantity: 8 });
+    const b = stack({ printingId: SOL_RING, quantity: 8 });
     const result = await json(
       await client.moves.$post({
         json: {
@@ -350,7 +350,7 @@ describe('copies routes', () => {
 
   it('POST /moves answers 409 stale_copy and moves nothing', async () => {
     const a = stack({ quantity: 2 });
-    const b = stack({ scryfallId: SOL_RING, quantity: 1 });
+    const b = stack({ printingId: SOL_RING, quantity: 1 });
     const res = await client.moves.$post({
       json: {
         moves: [
@@ -396,7 +396,7 @@ describe('copies routes', () => {
 
   it('POST /locations/:id/move-contents moves children too in one batch', async () => {
     stack({ locationId: box, quantity: 2 });
-    stack({ locationId: row, scryfallId: SOL_RING, quantity: 5 });
+    stack({ locationId: row, printingId: SOL_RING, quantity: 5 });
     const result = await json(
       await client.locations[':id']['move-contents'].$post({
         param: { id: String(box) },
@@ -431,7 +431,7 @@ describe('copies routes', () => {
     const result = await json(
       await client.stacks.add.$post({
         json: {
-          scryfallId: SIGNET,
+          printingId: SIGNET,
           quantity: 1,
           finish: 'nonfoil',
           condition: 'near_mint',
@@ -458,7 +458,7 @@ describe('copies routes', () => {
   it('POST /stacks/add answers 404 for an unknown printing', async () => {
     const res = await client.stacks.add.$post({
       json: {
-        scryfallId: 'no-such-printing',
+        printingId: 'no-such-printing',
         quantity: 1,
         finish: 'nonfoil',
         condition: 'near_mint',

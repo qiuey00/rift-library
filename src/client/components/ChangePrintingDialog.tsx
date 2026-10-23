@@ -43,15 +43,15 @@ export function ChangePrintingDialog({
     },
   });
   const printings = details.data?.printings ?? [];
-  const current = slot.printing?.scryfallId ?? null;
+  const current = slot.printing?.printingId ?? null;
   const [chosenId, setChosenId] = useState<string | null>(current);
   const [foil, setFoil] = useState(slot.hint?.foil ?? false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const chosen = printings.find((printing) => printing.scryfallId === chosenId) ?? null;
+  const chosen = printings.find((printing) => printing.printingId === chosenId) ?? null;
   const canFoil = chosen?.finishes.includes('foil') ?? false;
-  const unchanged = chosen?.scryfallId === current && foil === (slot.hint?.foil ?? false);
+  const unchanged = chosen?.printingId === current && foil === (slot.hint?.foil ?? false);
   const boxNote = inBoxNote(slot, chosen);
 
   const save = async () => {
@@ -59,7 +59,7 @@ export function ChangePrintingDialog({
     setSaving(true);
     setError(null);
     try {
-      await onSave({ scryfallId: chosen.scryfallId, foil: canFoil && foil });
+      await onSave({ printingId: chosen.printingId, foil: canFoil && foil });
       onClose();
     } catch (failed) {
       setError(failed instanceof Error ? failed.message : "Couldn't change the printing.");
@@ -93,12 +93,12 @@ export function ChangePrintingDialog({
           >
             {printings.map((printing) => (
               <PrintingTile
-                key={printing.scryfallId}
+                key={printing.printingId}
                 printing={printing}
                 name={slot.card.name}
-                checked={printing.scryfallId === chosenId}
-                current={printing.scryfallId === current}
-                onPick={() => setChosenId(printing.scryfallId)}
+                checked={printing.printingId === chosenId}
+                current={printing.printingId === current}
+                onPick={() => setChosenId(printing.printingId)}
               />
             ))}
           </div>
@@ -166,7 +166,7 @@ function PrintingTile({
       role="radio"
       aria-checked={checked}
       aria-label={current ? `${label} (in the deck now)` : label}
-      data-scryfall-id={printing.scryfallId}
+      data-printing-id={printing.printingId}
       onClick={onPick}
       className={cn(
         'flex flex-col gap-1.5 rounded-lg p-1.5 text-left hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
@@ -207,7 +207,7 @@ function PrintingTile({
 function inBoxNote(slot: SlotRow, chosen: PrintingSummary | null): string | null {
   if (slot.inBoxQuantity === 0 || !chosen) return null;
   const picked = slot.pickedPrinting;
-  if (picked && picked.scryfallId === chosen.scryfallId) return null;
+  if (picked && picked.printingId === chosen.printingId) return null;
   const which = picked
     ? `the ${picked.setCode.toUpperCase()} #${picked.collectorNumber} copy`
     : slot.inBoxQuantity === 1

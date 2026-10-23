@@ -40,7 +40,7 @@ function card(input: CardInput) {
     .run();
   db.insert(printings)
     .values({
-      scryfallId: `print-${input.name}`,
+      printingId: `print-${input.name}`,
       oracleId,
       setCode: 'tst',
       setName: 'Test Set',
@@ -87,7 +87,7 @@ function deck(name: string, slots: [string, Board, number][], deleted = false) {
 function copies(oracleId: string, locationId: number, quantity: number, isProxy = false) {
   db.insert(copyStacks)
     .values({
-      scryfallId: oracleId.replace('oracle-', 'print-'),
+      printingId: oracleId.replace('oracle-', 'print-'),
       quantity,
       finish: 'nonfoil',
       condition: 'near_mint',

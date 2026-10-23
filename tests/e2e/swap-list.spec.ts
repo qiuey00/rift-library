@@ -18,7 +18,7 @@ type Sent = { returns: ReturnRequest[]; pulls: PullRequest[]; undone: string[] }
 
 async function mockSwap(page: Page, swap: SwapResponse = swapSample): Promise<Sent> {
   const sent: Sent = { returns: [], pulls: [], undone: [] };
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

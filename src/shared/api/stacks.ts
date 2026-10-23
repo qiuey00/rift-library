@@ -51,7 +51,7 @@ export const CollectionValue = z.object({
   /** Non-proxy cards with no price. */
   noPriceCount: z.number().int().nonnegative(),
   proxies: z.number().int().nonnegative(),
-  /** When Scryfall made the loaded card data file (its prices); null before the first load. */
+  /** When the loaded card data file (its prices) was made; null before the first load. */
   pricesUpdatedAt: z.iso.datetime().nullable(),
 });
 export type CollectionValue = z.infer<typeof CollectionValue>;
@@ -70,7 +70,7 @@ export const LocationStacks = z.object({
 });
 export type LocationStacks = z.infer<typeof LocationStacks>;
 
-/** `:oracleId` in /api/cards/:oracleId/copies: a Scryfall oracle id. */
+/** `:oracleId` in /api/cards/:oracleId/copies: a card's oracle id. */
 export const OracleIdParams = z.object({ oracleId: z.guid() });
 
 /** How many copies of a card there are. */

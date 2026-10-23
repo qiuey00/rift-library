@@ -6,7 +6,7 @@ import { deckViewSample, slotTagsSample } from '../../src/shared/api/samples/dec
 // where Augur of Autumn (slot 130) is tagged Card draw and Ramp.
 
 test.beforeEach(async ({ page }) => {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),
@@ -154,13 +154,13 @@ test('Edit tags… opens from the keyboard and in Edit mode, and shows server er
   await expect(dialog).toBeVisible();
 });
 
-test('Export to Moxfield opens the export dialog for the deck', async ({ page }) => {
+test('Export opens the deck list export dialog for the deck', async ({ page }) => {
   await page.goto('/decks/1');
   const header = page.getByRole('region', { name: 'Deck header' });
   const buttons = header.getByRole('link').or(header.getByRole('button'));
   const names = await buttons.allTextContents();
-  expect(names.indexOf('Export to Moxfield')).toBe(names.indexOf('Take apart') + 1);
+  expect(names.indexOf('Export')).toBe(names.indexOf('Take apart') + 1);
 
-  await header.getByRole('button', { name: 'Export to Moxfield' }).click();
+  await header.getByRole('button', { name: 'Export', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Hearthhull');
 });

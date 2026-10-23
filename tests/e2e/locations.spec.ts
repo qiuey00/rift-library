@@ -4,7 +4,6 @@ import {
   setProxyResultSample,
 } from '../../src/shared/api/samples/copies';
 import { deckListSample } from '../../src/shared/api/samples/decks';
-import { tradeBinderMoxfieldExportSample } from '../../src/shared/api/samples/exports';
 import {
   createdLocationSample,
   locationNotEmptyErrorSample,
@@ -35,7 +34,7 @@ const tree = {
 };
 
 async function mockApi(page: Page) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),
@@ -479,41 +478,32 @@ test('the For trade switch sends the request; not offered for the inbox or deck 
     await openMenu(page, name);
     await expect(page.getByRole('menuitem', { name: 'History' })).toBeVisible();
     await expect(page.getByRole('menuitemcheckbox', { name: 'For trade' })).toHaveCount(0);
-    await expect(page.getByRole('menuitem', { name: 'Export to Moxfield' })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Export list' })).toHaveCount(0);
     await page.keyboard.press('Escape');
   }
 });
 
-test('Export to Moxfield opens the dialog from the header and the menu', async ({ page }) => {
+test('Export list opens the dialog from the header and the menu', async ({ page }) => {
   await mockApi(page);
-  await page.route('**/api/exports/locations/*/moxfield', (route) =>
-    route.fulfill({ json: tradeBinderMoxfieldExportSample }),
-  );
   await page.goto('/locations?selected=12');
-  await page.getByRole('button', { name: 'Export to Moxfield' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Export Trade binder to Moxfield' });
+  await page.getByRole('button', { name: 'Export list' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export Trade binder' });
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByText('86 cards in 10 lines · one line per printing and finish'),
-  ).toBeVisible();
-  await expect(dialog.getByLabel('Moxfield text')).toHaveValue(/^10 Arcane Signet \(FIC\) 332\n/);
-  await expect(dialog.getByRole('link', { name: 'Download .txt' })).toHaveAttribute(
-    'href',
-    '/api/exports/locations/12/moxfield.txt',
-  );
+  // Coming soon until the deck list export (#24).
+  await expect(dialog.getByText('Coming soon.')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 
   await openMenu(page, 'Rares binder');
-  await page.getByRole('menuitem', { name: 'Export to Moxfield' }).click();
-  await expect(page.getByRole('dialog', { name: 'Export Rares binder to Moxfield' })).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Export list' }).click();
+  await expect(page.getByRole('dialog', { name: 'Export Rares binder' })).toBeVisible();
   await page.keyboard.press('Escape');
 
   // Not for the inbox or a deck box.
   await page.goto('/locations?selected=1');
   await expect(page.getByRole('heading', { level: 2, name: 'To sort' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export to Moxfield' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Export list' })).toHaveCount(0);
   await page.goto('/locations?selected=9');
   await expect(page.getByRole('heading', { level: 2, name: 'Hearthhull deck box' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export to Moxfield' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Export list' })).toHaveCount(0);
 });

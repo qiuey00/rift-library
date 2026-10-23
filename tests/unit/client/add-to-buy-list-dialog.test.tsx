@@ -79,7 +79,7 @@ describe('AddToBuyListDialog', () => {
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
 
     fireEvent.change(field('Quantity'), { target: { value: '2' } });
-    fireEvent.change(field('Printing'), { target: { value: arcaneSignetPrintings[1].scryfallId } });
+    fireEvent.change(field('Printing'), { target: { value: arcaneSignetPrintings[1].printingId } });
     fireEvent.change(field('Note'), { target: { value: 'Foil for Atraxa' } });
     fireEvent.click(addButton());
 
@@ -91,7 +91,7 @@ describe('AddToBuyListDialog', () => {
         body: {
           oracleId,
           quantity: 2,
-          scryfallId: arcaneSignetPrintings[1].scryfallId,
+          printingId: arcaneSignetPrintings[1].printingId,
           note: 'Foil for Atraxa',
         } satisfies NewBuyItem,
       },
@@ -103,10 +103,10 @@ describe('AddToBuyListDialog', () => {
 
   it('starts from the quantity and printing it was opened with', async () => {
     const calls = mockApi();
-    renderDialog({ quantity: 3, scryfallId: arcaneSignetPrintings[2].scryfallId });
+    renderDialog({ quantity: 3, printingId: arcaneSignetPrintings[2].printingId });
     await screen.findByText('Arcane Signet');
     expect(field('Quantity').value).toBe('3');
-    expect(field('Printing').value).toBe(arcaneSignetPrintings[2].scryfallId);
+    expect(field('Printing').value).toBe(arcaneSignetPrintings[2].printingId);
 
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(addButton());
@@ -114,7 +114,7 @@ describe('AddToBuyListDialog', () => {
     expect(posts(calls)[0].body).toEqual({
       oracleId,
       quantity: 3,
-      scryfallId: arcaneSignetPrintings[2].scryfallId,
+      printingId: arcaneSignetPrintings[2].printingId,
     });
   });
 
