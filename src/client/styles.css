@@ -1,0 +1,117 @@
+@import "tailwindcss" source(".");
+@import "tw-animate-css";
+
+/* Fonts and symbol fonts ship with the app, so it looks right with no network. */
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/500.css";
+@import "@fontsource/instrument-sans/600.css";
+@import "@fontsource/instrument-sans/700.css";
+@import "@fontsource/instrument-serif/400.css";
+/* Mana symbols (`ms ms-g`) and set symbols (`ss ss-eoc ss-rare`), layered so utilities win. */
+@import "mana-font/css/mana.css" layer(base);
+@import "keyrune/css/keyrune.css" layer(base);
+
+/* shadcn/ui parts carry `dark:` classes; the app is light only, so they apply only under a `.dark` class it never sets. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * The app's look, light theme only. Colors use the names shadcn/ui parts expect:
+ * the design's accent blue is `primary`, the page is `background`, panels are `card`.
+ */
+:root {
+  --radius: 0.5rem;
+  --background: #eef0f3;
+  --foreground: #171a21;
+  --card: #ffffff;
+  --card-foreground: #171a21;
+  --popover: #ffffff;
+  --popover-foreground: #171a21;
+  --primary: #2453c7;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #171a21;
+  --muted: #f1f2f4;
+  --muted-foreground: #4a5161;
+  --accent: #eef1f6;
+  --accent-foreground: #171a21;
+  --destructive: #b0201f;
+  --border: #dde1e7;
+  --input: #c9ced6;
+  --ring: #2453c7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  /* rounded-lg is 8px (buttons, fields); rounded-xl is 12px (panels). */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme {
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+
+  /* The dark top bar. */
+  --color-top-bar: #161922;
+  --color-top-bar-raised: #2a2f3c;
+  --color-top-bar-hover: #262b37;
+  --color-top-bar-field: #232733;
+  --color-top-bar-line: #3a4152;
+  --color-top-bar-text: #c3c8d2;
+  --color-top-bar-muted: #aab0bd;
+
+  /* Slot statuses: text, fill (bars and dots) and soft (badge background). */
+  --color-status-in-box: #146c3a;
+  --color-status-in-box-fill: #1f8a4c;
+  --color-status-in-box-soft: #e3f3e9;
+  --color-status-free: #3b4252;
+  --color-status-free-fill: #aab6cc;
+  --color-status-free-soft: #eef1f6;
+  --color-status-other-decks: #8f4a00;
+  --color-status-other-decks-fill: #e08a1e;
+  --color-status-other-decks-soft: #fdf0dc;
+  --color-status-missing: #b0201f;
+  --color-status-missing-fill: #c8352c;
+  --color-status-missing-soft: #fde8e7;
+  --color-status-basic: #636a7a;
+  --color-status-basic-fill: #d5d9e0;
+  --color-status-basic-soft: #f1f2f4;
+
+  --color-proxy: #7b61c4;
+  --color-proxy-ink: #5b3fa8;
+  /* Locations and copies marked for trade. */
+  --color-trade: #1b9aa0;
+  --color-trade-soft: #effafa;
+  /* A location with no color of its own. */
+  --color-location-none: #e4e7ec;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}

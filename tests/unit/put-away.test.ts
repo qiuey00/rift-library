@@ -1,0 +1,461 @@
+import { asc, eq } from 'drizzle-orm';
+import { hc } from 'hono/client';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { type AppType, app } from '../../src/server/app';
+import { type OpenDb, setDb } from '../../src/server/db/database';
+import {
+  cards,
+  copyStacks,
+  deckSlots,
+  decks,
+  locations,
+  movementBatches,
+  movements,
+  printings,
+} from '../../src/server/db/schema';
+import { createTestDb } from '../../src/server/db/test-db';
+import { destinationFor, putAwayList } from '../../src/server/queries/put-away';
+import { createBatch, moveCopies } from '../../src/server/services/copies';
+import { ErrorBody } from '../../src/shared/api/common';
+import { PutAwayResponse, ReturnResult } from '../../src/shared/api/put-away';
+
+const client = hc<AppType>('http://localhost', {
+  fetch: async (input: RequestInfo | URL, init?: RequestInit) => app.request(input, init),
+}).api;
+
+let db: OpenDb;
+let inbox: number;
+let binder: number;
+let longBox: number;
+let blackGreen: number;
+let lands: number;
+let hearthhullBox: number;
+let atraxaBox: number;
+let hearthhull: number;
+let atraxa: number;
+
+const SIGNET = 'printing-arcane-signet';
+const FARSEEK = 'printing-farseek';
+const BOG = 'printing-bojuka-bog';
+const BRAIDS = 'printing-braids';
+const FOREST = 'printing-forest';
+
+function location(
+  name: string,
+  type: typeof locations.$inferInsert.type,
+  parentId?: number,
+  position = 0,
+) {
+  return db
+    .insert(locations)
+    .values({ name, type, parentId, position })
+    .returning({ id: locations.id })
+    .get().id;
+}
+
+function card(scryfallId: string, name: string, isBasicLand = false) {
+  const oracleId = `oracle-${scryfallId}`;
+  db.insert(cards)
+    .values({
+      oracleId,
+      name,
+      frontFaceName: name,
+      typeLine: 'Card',
+      commanderLegality: 'legal',
+      isBasicLand,
+    })
+    .run();
+  db.insert(printings)
+    .values({
+      scryfallId,
+      oracleId,
+      setCode: 'eoc',
+      setName: 'Edge of Eternities Commander',
+      collectorNumber: '1',
+      lang: 'en',
+      finishes: ['nonfoil', 'foil'],
+      rarity: 'rare',
+      releasedAt: '2025-08-01',
+    })
+    .run();
+  return oracleId;
+}
+
+function stack(
+  scryfallId: string,
+  locationId: number,
+  overrides: Partial<typeof copyStacks.$inferInsert> = {},
+) {
+  return db
+    .insert(copyStacks)
+    .values({
+      scryfallId,
+      quantity: 1,
+      finish: 'nonfoil',
+      condition: 'near_mint',
+      language: 'en',
+      locationId,
+      ...overrides,
+    })
+    .returning({ id: copyStacks.id })
+    .get().id;
+}
+
+/** Pulls copies from storage into a deck box the way the pick list does, setting came-from. */
+function pull(stackId: number, quantity: number, toBox: number, deckId: number) {
+  const batchId = createBatch(db, 'pick_list', { deckId });
+  return moveCopies(db, stackId, quantity, toBox, { reason: 'assembled', batchId, deckId })
+    .destStackId;
+}
+
+function slot(
+  deckId: number,
+  oracleId: string,
+  quantity = 1,
+  pickedScryfallId: string | null = null,
+) {
+  return db
+    .insert(deckSlots)
+    .values({ deckId, oracleId, board: 'main', quantity, pickedScryfallId })
+    .returning({ id: deckSlots.id })
+    .get().id;
+}
+
+const getStack = (id: number) => db.select().from(copyStacks).where(eq(copyStacks.id, id)).get();
+const stacksIn = (locationId: number) =>
+  db.select().from(copyStacks).where(eq(copyStacks.locationId, locationId)).all();
+const allStacks = () => db.select().from(copyStacks).orderBy(asc(copyStacks.id)).all();
+const allMovements = () => db.select().from(movements).orderBy(asc(movements.id)).all();
+
+function postReturns(deckId: number, body: unknown) {
+  return app.request(`/api/decks/${deckId}/returns`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+async function getList(deckId: number) {
+  const res = await app.request(`/api/decks/${deckId}/put-away`);
+  expect(res.status).toBe(200);
+  return PutAwayResponse.parse(await res.json());
+}
+
+let signetOracle: string;
+let farseekOracle: string;
+let bogOracle: string;
+
+beforeEach(() => {
+  db = createTestDb();
+  setDb(db);
+  inbox = db.select().from(locations).get()?.id ?? 0;
+  // Tree order: inbox, Long box (position 0) › Black & Green, Lands, then Rares binder.
+  binder = location('Rares binder', 'binder', undefined, 1);
+  longBox = location('Long box', 'box', undefined, 0);
+  lands = location('Lands', 'box', longBox, 1);
+  blackGreen = location('Black & Green', 'box', longBox, 0);
+  hearthhullBox = location('Hearthhull deck box', 'deck_box');
+  atraxaBox = location('Atraxa deck box', 'deck_box');
+  hearthhull = db
+    .insert(decks)
+    .values({ name: 'Hearthhull', deckBoxId: hearthhullBox })
+    .returning({ id: decks.id })
+    .get().id;
+  atraxa = db
+    .insert(decks)
+    .values({ name: 'Atraxa', deckBoxId: atraxaBox })
+    .returning({ id: decks.id })
+    .get().id;
+  signetOracle = card(SIGNET, 'Arcane Signet');
+  farseekOracle = card(FARSEEK, 'Farseek');
+  bogOracle = card(BOG, 'Bojuka Bog');
+  card(BRAIDS, 'Braids, Arisen Nightmare');
+  card(FOREST, 'Forest', true);
+});
+afterEach(() => db.$client.close());
+
+describe('putAwayList', () => {
+  it('groups every stack in the box by destination, in location-tree order', async () => {
+    pull(stack(SIGNET, binder, { finish: 'foil' }), 1, hearthhullBox, hearthhull);
+    pull(stack(BOG, lands), 1, hearthhullBox, hearthhull);
+    pull(stack(FARSEEK, blackGreen, { quantity: 3 }), 2, hearthhullBox, hearthhull);
+    stack(BRAIDS, hearthhullBox, { isProxy: true });
+
+    const list = await getList(hearthhull);
+    expect(list.groups.map((g) => g.location.path)).toEqual([
+      'To sort',
+      'Long box › Black & Green',
+      'Long box › Lands',
+      'Rares binder',
+    ]);
+    expect(list.groups.map((g) => g.lines.map((l) => [l.card.name, l.quantity]))).toEqual([
+      [['Braids, Arisen Nightmare', 1]],
+      [['Farseek', 2]],
+      [['Bojuka Bog', 1]],
+      [['Arcane Signet', 1]],
+    ]);
+    expect(list.totals).toEqual({ lines: 4, cards: 5 });
+    const farseek = list.groups[1].lines[0];
+    expect(farseek.destination).toEqual(farseek.cameFrom);
+    expect(farseek.printing).toMatchObject({ scryfallId: FARSEEK, finishes: ['nonfoil', 'foil'] });
+    expect(list.groups[3].lines[0].finish).toBe('foil');
+    expect(list.deck).toEqual({ id: hearthhull, name: 'Hearthhull', state: 'not_assembled' });
+  });
+
+  it('sends copies with no came-from location to the "To sort" inbox', () => {
+    const proxy = stack(BRAIDS, hearthhullBox, { isProxy: true });
+    const list = putAwayList(db, hearthhull);
+    expect(list?.groups).toHaveLength(1);
+    expect(list?.groups[0].location).toMatchObject({ id: inbox, type: 'inbox' });
+    expect(list?.groups[0].lines[0]).toMatchObject({
+      stackId: proxy,
+      cameFrom: null,
+      isProxy: true,
+    });
+    expect(destinationFor(db, { cameFromLocationId: null })).toBe(inbox);
+  });
+
+  it('sends a copy whose came-from location was deleted to the inbox', () => {
+    const inBox = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    db.update(locations)
+      .set({ deletedAt: '2026-10-19T00:00:00Z' })
+      .where(eq(locations.id, binder))
+      .run();
+    const line = putAwayList(db, hearthhull)?.groups[0].lines[0];
+    expect(line).toMatchObject({ stackId: inBox, destination: { id: inbox } });
+    expect(line?.cameFrom).toMatchObject({ id: binder, path: 'Rares binder' });
+  });
+
+  it('sends a copy borrowed from another deck back to its original storage spot', async () => {
+    const inAtraxa = pull(stack(SIGNET, binder), 1, atraxaBox, atraxa);
+    const inHearthhull = pull(inAtraxa, 1, hearthhullBox, hearthhull);
+    const list = await getList(hearthhull);
+    expect(list.groups.map((g) => g.location.id)).toEqual([binder]);
+
+    const res = await postReturns(hearthhull, { lines: [{ stackId: inHearthhull, quantity: 1 }] });
+    expect(res.status).toBe(200);
+    expect(stacksIn(binder)).toMatchObject([{ scryfallId: SIGNET, cameFromLocationId: null }]);
+    expect(stacksIn(atraxaBox)).toEqual([]);
+  });
+
+  it('works out the deck state from the box', () => {
+    slot(hearthhull, signetOracle);
+    slot(hearthhull, farseekOracle);
+    db.insert(deckSlots)
+      .values({
+        deckId: hearthhull,
+        oracleId: 'oracle-printing-forest',
+        board: 'main',
+        quantity: 8,
+      })
+      .run();
+    expect(putAwayList(db, hearthhull)?.deck.state).toBe('not_assembled');
+    pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    expect(putAwayList(db, hearthhull)?.deck.state).toBe('partly_assembled');
+    pull(stack(FARSEEK, blackGreen), 1, hearthhullBox, hearthhull);
+    expect(putAwayList(db, hearthhull)?.deck.state).toBe('assembled');
+  });
+
+  it('answers 404 for a deck that does not exist', async () => {
+    const res = await app.request('/api/decks/999/put-away');
+    expect(res.status).toBe(404);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_not_found');
+  });
+});
+
+describe('POST /api/decks/:id/returns', () => {
+  it('returns a copy to its came-from location and clears came-from', async () => {
+    const inBox = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const res = await postReturns(hearthhull, { lines: [{ stackId: inBox, quantity: 1 }] });
+    expect(res.status).toBe(200);
+    const result = ReturnResult.parse(await res.json());
+    expect(result.message).toBe('Returned Arcane Signet to Rares binder');
+    expect(stacksIn(hearthhullBox)).toEqual([]);
+    expect(stacksIn(binder)).toMatchObject([{ quantity: 1, cameFromLocationId: null }]);
+
+    const [movement] = allMovements().filter((m) => m.batchId === result.batchId);
+    expect(result.movementIds).toEqual([movement.id]);
+    expect(movement).toMatchObject({
+      reason: 'returned',
+      deckId: hearthhull,
+      fromLocationId: hearthhullBox,
+      toLocationId: binder,
+      cameFromBefore: binder,
+      cameFromAfter: null,
+    });
+    const batch = db
+      .select()
+      .from(movementBatches)
+      .where(eq(movementBatches.id, result.batchId))
+      .get();
+    expect(batch).toMatchObject({ kind: 'put_away', deckId: hearthhull });
+  });
+
+  it('merges a returned copy into the alike stack it left', async () => {
+    const source = stack(FARSEEK, blackGreen, { quantity: 3 });
+    const inBox = pull(source, 1, hearthhullBox, hearthhull);
+    await postReturns(hearthhull, { lines: [{ stackId: inBox, quantity: 1 }] });
+    expect(stacksIn(blackGreen)).toMatchObject([{ id: source, quantity: 3 }]);
+  });
+
+  it('Send elsewhere leaves the copy there with no came-from', async () => {
+    const inBox = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const res = await postReturns(hearthhull, {
+      lines: [{ stackId: inBox, quantity: 1, toLocationId: lands }],
+    });
+    expect(res.status).toBe(200);
+    expect(ReturnResult.parse(await res.json()).message).toBe(
+      'Returned Arcane Signet to Long box › Lands',
+    );
+    expect(stacksIn(binder)).toEqual([]);
+    expect(stacksIn(lands)).toMatchObject([{ scryfallId: SIGNET, cameFromLocationId: null }]);
+  });
+
+  it('refuses a deck box as Send elsewhere destination and changes nothing', async () => {
+    const inBox = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const other = pull(stack(BOG, lands), 1, hearthhullBox, hearthhull);
+    const before = allStacks();
+    const moves = allMovements().length;
+    const res = await postReturns(hearthhull, {
+      lines: [
+        { stackId: other, quantity: 1 },
+        { stackId: inBox, quantity: 1, toLocationId: atraxaBox },
+      ],
+    });
+    expect(res.status).toBe(400);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_box_destination');
+    expect(allStacks()).toEqual(before);
+    expect(allMovements()).toHaveLength(moves);
+  });
+
+  it('answers 409 stale_copy for a stack that moved or shrank, and changes nothing', async () => {
+    const signet = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const farseek = pull(stack(FARSEEK, blackGreen, { quantity: 2 }), 2, hearthhullBox, hearthhull);
+    const batches = db.select().from(movementBatches).all().length;
+    const before = allStacks();
+
+    for (const lines of [
+      [
+        { stackId: signet, quantity: 1 },
+        { stackId: farseek, quantity: 3 },
+      ],
+      [
+        { stackId: farseek, quantity: 2 },
+        { stackId: farseek, quantity: 1 },
+      ],
+      [{ stackId: 9999, quantity: 1 }],
+    ]) {
+      const res = await postReturns(hearthhull, { lines });
+      expect(res.status).toBe(409);
+      expect(ErrorBody.parse(await res.json()).error.code).toBe('stale_copy');
+    }
+    // A stack outside this deck's box is stale too.
+    const elsewhere = stack(BOG, lands);
+    const res = await postReturns(hearthhull, { lines: [{ stackId: elsewhere, quantity: 1 }] });
+    expect(res.status).toBe(409);
+
+    expect(allStacks().filter((s) => s.id !== elsewhere)).toEqual(before);
+    expect(db.select().from(movementBatches).all()).toHaveLength(batches);
+  });
+
+  it('keeps one batch across calls', async () => {
+    const signet = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const bog = pull(stack(BOG, lands), 1, hearthhullBox, hearthhull);
+    const first = ReturnResult.parse(
+      await (await postReturns(hearthhull, { lines: [{ stackId: signet, quantity: 1 }] })).json(),
+    );
+    const second = ReturnResult.parse(
+      await (
+        await postReturns(hearthhull, {
+          lines: [{ stackId: bog, quantity: 1 }],
+          batchId: first.batchId,
+        })
+      ).json(),
+    );
+    expect(second.batchId).toBe(first.batchId);
+    const inBatch = allMovements().filter((m) => m.batchId === first.batchId);
+    expect(inBatch.map((m) => m.id)).toEqual([...first.movementIds, ...second.movementIds]);
+  });
+
+  it('refuses a batch that is not this deck’s put-away', async () => {
+    const signet = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const other = createBatch(db, 'move');
+    const res = await postReturns(hearthhull, {
+      lines: [{ stackId: signet, quantity: 1 }],
+      batchId: other,
+    });
+    expect(res.status).toBe(404);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('batch_not_found');
+    expect(getStack(signet)?.locationId).toBe(hearthhullBox);
+  });
+
+  it('records swapped_out returns in a swap batch', async () => {
+    const signet = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const result = ReturnResult.parse(
+      await (
+        await postReturns(hearthhull, {
+          lines: [{ stackId: signet, quantity: 1 }],
+          reason: 'swapped_out',
+        })
+      ).json(),
+    );
+    expect(
+      db.select().from(movementBatches).where(eq(movementBatches.id, result.batchId)).get(),
+    ).toMatchObject({ kind: 'swap', deckId: hearthhull });
+    expect(allMovements().at(-1)?.reason).toBe('swapped_out');
+  });
+
+  it('returning everything leaves the decklist and picked printings unchanged', async () => {
+    slot(hearthhull, signetOracle, 1, SIGNET);
+    slot(hearthhull, farseekOracle, 2, FARSEEK);
+    slot(hearthhull, bogOracle, 1, BOG);
+    pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    pull(stack(FARSEEK, blackGreen, { quantity: 2 }), 2, hearthhullBox, hearthhull);
+    pull(stack(BOG, lands), 1, hearthhullBox, hearthhull);
+    const slotsBefore = db.select().from(deckSlots).all();
+    expect((await getList(hearthhull)).deck.state).toBe('assembled');
+
+    // Keep in box: the Bog line simply isn't sent.
+    const list = await getList(hearthhull);
+    const lines = list.groups
+      .flatMap((g) => g.lines)
+      .filter((l) => l.card.name !== 'Bojuka Bog')
+      .map((l) => ({ stackId: l.stackId, quantity: l.quantity }));
+    const kept = ReturnResult.parse(await (await postReturns(hearthhull, { lines })).json());
+    expect(kept.message).toBe('Returned 3 cards');
+    expect((await getList(hearthhull)).deck.state).toBe('partly_assembled');
+
+    const rest = (await getList(hearthhull)).groups.flatMap((g) => g.lines);
+    await postReturns(hearthhull, {
+      lines: rest.map((l) => ({ stackId: l.stackId, quantity: l.quantity })),
+      batchId: kept.batchId,
+    });
+    const after = await getList(hearthhull);
+    expect(after.groups).toEqual([]);
+    expect(after.totals).toEqual({ lines: 0, cards: 0 });
+    expect(after.deck.state).toBe('not_assembled');
+    expect(db.select().from(deckSlots).all()).toEqual(slotsBefore);
+  });
+
+  it('works through the typed client', async () => {
+    const inBox = pull(stack(SIGNET, binder), 1, hearthhullBox, hearthhull);
+    const param = { id: String(hearthhull) };
+    const list: PutAwayResponse = await (
+      await client.decks[':id']['put-away'].$get({ param })
+    ).json();
+    expect(list.groups[0].lines[0].stackId).toBe(inBox);
+    const returned: ReturnResult = await (
+      await client.decks[':id'].returns.$post({
+        param,
+        json: { lines: [{ stackId: inBox, quantity: 1 }], reason: 'returned' },
+      })
+    ).json();
+    expect(returned.message).toBe('Returned Arcane Signet to Rares binder');
+  });
+
+  it('answers 404 for a deck that does not exist', async () => {
+    const res = await postReturns(999, { lines: [{ stackId: 1, quantity: 1 }] });
+    expect(res.status).toBe(404);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_not_found');
+  });
+});

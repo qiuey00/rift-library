@@ -1,0 +1,21 @@
+# Dependencies and builds
+node_modules/
+dist/
+
+# The database and downloads live here on Jeff's computer
+data/
+
+# Test output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+
+# Editors and systems
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
