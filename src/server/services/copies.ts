@@ -20,21 +20,17 @@ export class StaleCopyError extends AppError {
 }
 
 /** Starts the batch that groups one action's movements. Returns its id. */
-export function createBatch(
-  db: Db,
-  kind: BatchKind,
-  { deckId, importId }: { deckId?: number; importId?: number } = {},
-): number {
+export function createBatch(db: Db, kind: BatchKind, { deckId }: { deckId?: number } = {}): number {
   return db
     .insert(movementBatches)
-    .values({ kind, deckId: deckId ?? null, importId: importId ?? null })
+    .values({ kind, deckId: deckId ?? null })
     .returning({ id: movementBatches.id })
     .get().id;
 }
 
 /** What makes two stacks alike, apart from the printing's details. */
 type AlikeKey = {
-  scryfallId: string;
+  printingId: string;
   finish: Finish;
   condition: string;
   language: string;
@@ -46,7 +42,7 @@ type AlikeKey = {
 };
 
 const alikeKey = (stack: Stack): AlikeKey => ({
-  scryfallId: stack.scryfallId,
+  printingId: stack.printingId,
   finish: stack.finish,
   condition: stack.condition,
   language: stack.language,
@@ -60,7 +56,7 @@ const alikeKey = (stack: Stack): AlikeKey => ({
 /** The alike stack for these details, if there is one (came-from compared null-safe). */
 function findAlike(db: Db, key: AlikeKey, exceptStackId?: number): Stack | undefined {
   const conditions: SQL[] = [
-    eq(copyStacks.scryfallId, key.scryfallId),
+    eq(copyStacks.printingId, key.printingId),
     eq(copyStacks.finish, key.finish),
     eq(copyStacks.condition, key.condition),
     eq(copyStacks.language, key.language),
@@ -127,7 +123,7 @@ type MovementLinks = {
 };
 
 export type AddCopiesInput = {
-  scryfallId: string;
+  printingId: string;
   quantity: number;
   purchasePrice?: number;
   purchaseCurrency?: string;
@@ -144,7 +140,7 @@ export type AddCopiesInput = {
 export function addCopies(db: Db, input: AddCopiesInput) {
   return db.transaction((tx) => {
     const key: AlikeKey = {
-      scryfallId: input.scryfallId,
+      printingId: input.printingId,
       finish: input.finish,
       condition: input.condition,
       language: input.language,
@@ -284,7 +280,7 @@ export function setProxy(db: Db, stackIds: number[], isProxy: boolean): number {
 
 type MovementDetails = Pick<
   Stack,
-  | 'scryfallId'
+  | 'printingId'
   | 'finish'
   | 'condition'
   | 'language'
@@ -315,7 +311,7 @@ function writeMovement(
     .values({
       batchId: links.batchId,
       copyStackId: m.copyStackId,
-      scryfallId: details.scryfallId,
+      printingId: details.printingId,
       finish: details.finish,
       condition: details.condition,
       language: details.language,
@@ -340,12 +336,12 @@ function writeMovement(
 }
 
 /** The printing exists in the card data. */
-export function printingExists(db: Db, scryfallId: string): boolean {
+export function printingExists(db: Db, printingId: string): boolean {
   return (
     db
-      .select({ id: printings.scryfallId })
+      .select({ id: printings.printingId })
       .from(printings)
-      .where(eq(printings.scryfallId, scryfallId))
+      .where(eq(printings.printingId, printingId))
       .get() !== undefined
   );
 }

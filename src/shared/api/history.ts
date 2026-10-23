@@ -15,7 +15,7 @@ export const MovementReason = z.enum([
   'returned',
   'swapped_out',
   'swapped_in',
-  /** Changed by a ManaBox update import of a location. */
+  /** Changed by an update import of a location. */
   'location_update',
   'undo',
 ]);
@@ -46,7 +46,7 @@ export type BatchKind = z.infer<typeof BatchKind>;
 export const HistoryBatch = z.object({
   id: Id,
   kind: BatchKind,
-  /** Such as "Imported manabox-sample.csv · 389 cards into To sort" or "Pick list · Hearthhull · 12 cards". */
+  /** Such as "Imported 389 cards" or "Pick list · Hearthhull · 12 cards". */
   summary: z.string(),
   deck: DeckRef.nullable(),
   createdAt: z.iso.datetime(),

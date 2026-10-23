@@ -15,7 +15,7 @@ import { stacksPageSample } from '../../src/shared/api/samples/stacks';
 // CMM #367 (nonfoil, foil) and ELD #331 (nonfoil).
 
 async function mockApi(page: Page) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),
@@ -83,7 +83,7 @@ test('search, pick a printing, set every field and add: the body carries them al
 
   await expect.poll(() => added).toHaveLength(1);
   expect(added[0]).toEqual({
-    scryfallId: '0539b83c-4459-41b5-a001-d15a1c9ddf23',
+    printingId: '0539b83c-4459-41b5-a001-d15a1c9ddf23',
     quantity: 3,
     finish: 'foil',
     condition: 'light_played',
@@ -129,7 +129,7 @@ test('the defaults: one near mint copy in the printing’s language, into To sor
 
   await expect.poll(() => added).toHaveLength(1);
   expect(added[0]).toEqual({
-    scryfallId: '3d994115-378d-4685-a5dc-e448831da434',
+    printingId: '3d994115-378d-4685-a5dc-e448831da434',
     quantity: 1,
     finish: 'nonfoil',
     condition: 'near_mint',

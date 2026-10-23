@@ -212,13 +212,13 @@ export function PickList() {
     else pullLine(entry.line);
   };
 
-  const postProxy = (line: MissingLine, scryfallId: string) => {
+  const postProxy = (line: MissingLine, printingId: string) => {
     setProxies((all) => ({ ...all, [line.slotId]: { status: 'adding' } }));
     enqueue(async () => {
       try {
         const result = await addProxy(deckId, {
           slotId: line.slotId,
-          scryfallId,
+          printingId,
           quantity: line.quantity,
           batchId: batchId.current,
         });
@@ -260,7 +260,7 @@ export function PickList() {
         )
       : undefined;
     if (match) {
-      postProxy(line, match.scryfallId);
+      postProxy(line, match.printingId);
     } else {
       setProxies(({ [line.slotId]: _, ...rest }) => rest);
       setChoosingPrinting({ line, printings });
@@ -453,7 +453,7 @@ export function PickList() {
         onPick={(printing) => {
           if (!choosingPrinting) return;
           setChoosingPrinting(null);
-          postProxy(choosingPrinting.line, printing.scryfallId);
+          postProxy(choosingPrinting.line, printing.printingId);
         }}
       />
     </div>

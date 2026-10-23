@@ -4,8 +4,8 @@ import { deckListSample } from '../../src/shared/api/samples/decks';
 import { locationTreeSample } from '../../src/shared/api/samples/locations';
 
 async function mockDecks(page: Page, list: DeckList, locationNodes: unknown[] = []) {
-  // Card images come from Scryfall; tests never reach the network.
-  await page.route('https://cards.scryfall.io/**', (route) => route.abort());
+  // Card images come from the internet; tests never reach the network.
+  await page.route('https://images.example.com/**', (route) => route.abort());
   await page.route('**/api/decks', (route) => route.fulfill({ json: list }));
   await page.route('**/api/locations/tree', (route) =>
     route.fulfill({ json: { nodes: locationNodes } }),
@@ -91,21 +91,14 @@ test('the table shows the same decks and the choice is remembered', async ({ pag
   await expect(tiles(page)).toHaveCount(6);
 });
 
-test('New deck opens a menu of the two ways to make one', async ({ page }) => {
+test('New deck goes to the new deck screen', async ({ page }) => {
   await mockDecks(page, deckListSample);
   await page.goto('/');
-  await page.getByRole('button', { name: 'New deck' }).click();
-  const menu = page.getByRole('menu');
-  await expect(menu.getByRole('menuitem')).toHaveText(['Import from Moxfield', 'Build in the app']);
-  await expect(menu.getByRole('menuitem', { name: 'Import from Moxfield' })).toHaveAttribute(
-    'href',
-    '/import/moxfield',
-  );
-  await menu.getByRole('menuitem', { name: 'Build in the app' }).click();
+  await page.getByRole('link', { name: 'New deck' }).click();
   await expect(page).toHaveURL('/decks/new');
 });
 
-test('with no locations and no decks, it shows the two ways to start', async ({ page }) => {
+test('with no locations and no decks, it starts with Create a location', async ({ page }) => {
   await mockDecks(page, { decks: [] });
   await page.goto('/');
   await expect(
@@ -115,19 +108,17 @@ test('with no locations and no decks, it shows the two ways to start', async ({ 
     'href',
     '/locations',
   );
-  await expect(page.getByRole('button', { name: 'Import ManaBox CSV' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Paste a Moxfield list' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'New deck' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Build a deck' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'New deck' })).toHaveCount(0);
 });
 
-test('with locations but no decks, it also offers a Moxfield list', async ({ page }) => {
+test('with locations but no decks, it also offers Build a deck', async ({ page }) => {
   await mockDecks(page, { decks: [] }, locationTreeSample.nodes);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'No decks yet' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Paste a Moxfield list' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Build a deck' })).toHaveAttribute(
     'href',
-    '/import/moxfield',
+    '/decks/new',
   );
   await expect(page.getByRole('link', { name: 'Create a location' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Import ManaBox CSV' })).toBeVisible();
 });

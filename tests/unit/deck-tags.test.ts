@@ -1,14 +1,11 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { hc } from 'hono/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
 import { cards, deckSlots, deckSlotTags } from '../../src/server/db/schema';
 import { createTestDb } from '../../src/server/db/test-db';
 import { deckView } from '../../src/server/queries/decks';
-import { lookupCards } from '../../src/server/scryfall/lookup';
 import {
   createDeck,
   moveSlotBoard,
@@ -17,24 +14,13 @@ import {
   setSlotTags,
   tagKey,
 } from '../../src/server/services/decks';
-import { createMoxfieldDeck } from '../../src/server/services/imports/moxfield';
 import type { Board } from '../../src/shared/api/common';
 import { ErrorBody } from '../../src/shared/api/common';
 import { SlotRow } from '../../src/shared/api/decks';
 
-// Tests never call Scryfall: names the app doesn't know stay unmatched.
-vi.mock('../../src/server/scryfall/lookup', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../src/server/scryfall/lookup')>();
-  return { ...original, lookupCards: vi.fn() };
-});
-const lookup = vi.mocked(lookupCards);
-
 const api = hc<AppType>('http://localhost', {
   fetch: (input: RequestInfo | URL, init?: RequestInit) => app.request(input, init),
 }).api;
-
-const fixture = (name: string) =>
-  readFileSync(path.join(import.meta.dirname, '..', 'fixtures', name), 'utf8');
 
 const oracle = (name: string) => `oracle-${name}`;
 const HEARTHHULL = oracle('Hearthhull, the Worldseed');
@@ -78,8 +64,6 @@ function tagsByCard(deck = deckId) {
 beforeEach(() => {
   db = createTestDb();
   setDb(db);
-  lookup.mockReset();
-  lookup.mockImplementation(async (_db, identifiers) => ({ resolved: [], not_found: identifiers }));
   insertCard('Hearthhull, the Worldseed', { canBeCommander: true });
   insertCard('Atraxa, Grand Unifier', { canBeCommander: true });
   for (const name of [
@@ -214,82 +198,5 @@ describe('tag rules', () => {
       before?.slots.map(({ tags, ...rest }) => rest),
     );
     expect(after?.slots.every((slot) => slot.tags.join() === 'Combo,Ramp')).toBe(true);
-  });
-});
-
-describe('Moxfield tags', () => {
-  it('saves the tags of Jeff’s tagged export on the new deck’s slots', async () => {
-    const text = `1 Atraxa, Grand Unifier (ONE) 196 #commander\n${fixture('moxfield-deck-sample-with-tags.txt')}`;
-    const { deckId: id } = await createMoxfieldDeck(db, {
-      name: 'Tagged',
-      text,
-      commanders: [oracle('Atraxa, Grand Unifier')],
-      fixes: {},
-      skips: [],
-    });
-    expect(tagsByCard(id)).toEqual({
-      'commander Atraxa, Grand Unifier': ['commander'],
-      'main Adeline, Resplendent Cathar': ['token-maker'],
-      'main Ashaya, Soul of the Wild': ['combo'],
-      "main Avacyn's Pilgrim": ['ramp'],
-      'main Beast Whisperer': ['draw'],
-      'main Beast Within': [],
-    });
-  });
-
-  it('keeps the first spelling of a tag repeated in the text', async () => {
-    const text = '1 Hearthhull, the Worldseed\n1 Sol Ring #Card-Draw\n1 Farseek #card-draw\n';
-    const { deckId: id } = await createMoxfieldDeck(db, {
-      name: 'Draw',
-      text,
-      commanders: [HEARTHHULL],
-      fixes: {},
-      skips: [],
-    });
-    expect(tagsByCard(id)['main Farseek']).toEqual(['Card-Draw']);
-  });
-
-  async function update(text: string) {
-    const res = await api.imports.moxfield['update-apply'].$post({
-      json: { deckId, text, commanders: [HEARTHHULL], fixes: {}, skips: [] },
-    });
-    expect(res.status).toBe(200);
-  }
-
-  it('sets the staying slots’ tags from an update whose text has tags', async () => {
-    setSlotTags(db, deckId, slotId(SOL_RING, 'main'), ['Card draw', 'Old']);
-    setSlotTags(db, deckId, slotId(oracle('Arcane Signet'), 'main'), ['Ramp']);
-    await update(
-      [
-        '1 Hearthhull, the Worldseed (EOC) 1',
-        '1 Sol Ring (EOC) 57 #card-draw #ramp',
-        '1 Arcane Signet (EOC) 53',
-        '1 Chaos Warp (MBC) 72 #removal',
-      ].join('\n'),
-    );
-    expect(tagsByCard()).toEqual({
-      'commander Hearthhull, the Worldseed': [],
-      // "ramp" takes the spelling Arcane Signet had; Arcane Signet's own tags go.
-      'main Sol Ring': ['Card draw', 'Ramp'],
-      'main Arcane Signet': [],
-      'main Chaos Warp': ['removal'],
-    });
-  });
-
-  it('keeps the slots’ tags when the update text has no tags (a plain export)', async () => {
-    setSlotTags(db, deckId, slotId(SOL_RING, 'main'), ['Ramp']);
-    await update('1 Hearthhull, the Worldseed\n1 Sol Ring\n1 Chaos Warp\n');
-    expect(tagsByCard()).toEqual({
-      'commander Hearthhull, the Worldseed': [],
-      'main Sol Ring': ['Ramp'],
-      'main Chaos Warp': [],
-    });
-  });
-
-  it('leaves tags out of the preview answers', async () => {
-    const res = await api.imports.moxfield.preview.$post({
-      json: { text: '1 Sol Ring #ramp\n' },
-    });
-    expect(Object.keys(await res.json())).not.toContain('slotTags');
   });
 });

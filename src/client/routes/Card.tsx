@@ -93,7 +93,7 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
 
       <figure className="flex-[0_0_312px]">
         {card.imageNormal ? (
-          // Scryfall's image rules: show the whole card, never cropped or covered.
+          // Show the whole card, never cropped or covered.
           <img
             src={card.imageNormal}
             alt={card.name}
@@ -157,7 +157,7 @@ function Printings({ printings }: { printings: PrintingSummary[] }) {
         </thead>
         <tbody>
           {printings.map((p) => (
-            <tr key={p.scryfallId} className="border-[#eceef2] border-t">
+            <tr key={p.printingId} className="border-[#eceef2] border-t">
               <td className="px-4 py-2.5">
                 <span className="flex items-center gap-2.5">
                   <i

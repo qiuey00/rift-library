@@ -14,15 +14,15 @@ type CardNeeds = { needed: number; picked: Set<string> };
 
 /** Per card: copies the commander and main slots need, and the slots' picked printings. */
 function cardNeeds(db: Db, deckId: number): Map<string, CardNeeds> {
-  const slots = db.all<{ oracleId: string; quantity: number; pickedScryfallId: string | null }>(sql`
-    SELECT oracle_id AS oracleId, quantity, picked_scryfall_id AS pickedScryfallId
+  const slots = db.all<{ oracleId: string; quantity: number; pickedPrintingId: string | null }>(sql`
+    SELECT oracle_id AS oracleId, quantity, picked_printing_id AS pickedPrintingId
     FROM deck_slots
     WHERE deck_id = ${deckId} AND board <> 'maybe'`);
   const byCard = new Map<string, CardNeeds>();
   for (const slot of slots) {
     const card = byCard.get(slot.oracleId) ?? { needed: 0, picked: new Set() };
     card.needed += slot.quantity;
-    if (slot.pickedScryfallId) card.picked.add(slot.pickedScryfallId);
+    if (slot.pickedPrintingId) card.picked.add(slot.pickedPrintingId);
     byCard.set(slot.oracleId, card);
   }
   return byCard;
@@ -49,7 +49,7 @@ function takeOutLines(lines: PutAwayLine[], needs: Map<string, CardNeeds>): Set<
     let extra = inBox - (card?.needed ?? 0);
     if (extra <= 0) continue;
     const rank = (line: PutAwayLine) =>
-      line.isProxy ? 0 : card?.picked.has(line.printing.scryfallId) ? 2 : 1;
+      line.isProxy ? 0 : card?.picked.has(line.printing.printingId) ? 2 : 1;
     const order = [...stacks].sort((a, b) => rank(a) - rank(b) || a.stackId - b.stackId);
     for (const line of order) {
       if (extra <= 0) break;

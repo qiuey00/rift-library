@@ -10,8 +10,8 @@ import { boxCopyCount, findDeck } from '../queries/decks';
 // state are worked out in src/server/queries/decks.ts, never stored here.
 
 /**
- * A slot to save, with the printing hint and tags a Moxfield export gives. Without `tags`,
- * Update from Moxfield keeps the slot's tags.
+ * A slot to save, with the printing hint and tags a deck list gives. Without `tags`, an
+ * update from a deck list keeps the slot's tags.
  */
 export type DeckSlotInput = SlotInput & { hint?: PrintingHint | null; tags?: string[] };
 
@@ -109,7 +109,7 @@ function uniqueTags(tags: string[]) {
 
 /**
  * Replaces a slot's tags. A tag the deck already has under the same key keeps the deck's
- * spelling, so "card-draw" from Moxfield joins an existing "Card draw". With `renaming`
+ * spelling, so "card-draw" from a deck list joins an existing "Card draw". With `renaming`
  * (Jeff editing the slot's tags), the slot's own old spellings don't count.
  */
 function writeTags(db: Db, deckId: number, slotId: number, tags: string[], renaming = false) {
@@ -177,7 +177,7 @@ function touch(db: Db, deckId: number) {
 
 /**
  * Creates the deck's own box (a top-level deck box named "<deck name> deck box"), the deck
- * and its slots. Returns the new deck's id. The Moxfield import calls it too.
+ * and its slots. Returns the new deck's id.
  */
 export function createDeck(db: Db, input: { name: string; slots: DeckSlotInput[] }): number {
   return db.transaction((tx) => {
@@ -285,7 +285,7 @@ export function setCommanders(db: Db, deckId: number, oracleIds: string[]) {
           oracleId,
           board: 'commander',
           quantity: 1,
-          pickedScryfallId: main?.pickedScryfallId ?? null,
+          pickedPrintingId: main?.pickedPrintingId ?? null,
         })
         .returning({ id: deckSlots.id })
         .get();
@@ -323,32 +323,6 @@ export function addSlot(db: Db, deckId: number, input: DeckSlotInput): number {
   });
 }
 
-/**
- * Adds one copy of a card dropped onto the deck view to a board. Refuses a card already on
- * any board of the deck, unless a deck can hold any number of it (basic lands, Relentless Rats),
- * which gets one more. Returns the slot id.
- */
-export function addDroppedCard(db: Db, deckId: number, oracleId: string, board: Board): number {
-  return db.transaction((tx) => {
-    deckOrThrow(tx, deckId);
-    checkCards(tx, [oracleId]);
-    const card = tx
-      .select({ name: cards.name, allowsMany: cards.allowsMany, basic: cards.isBasicLand })
-      .from(cards)
-      .where(eq(cards.oracleId, oracleId))
-      .get();
-    const inDeck = tx
-      .select({ id: deckSlots.id })
-      .from(deckSlots)
-      .where(and(eq(deckSlots.deckId, deckId), eq(deckSlots.oracleId, oracleId)))
-      .get();
-    if (inDeck && !card?.allowsMany && !card?.basic) {
-      throw new AppError(409, 'card_in_deck', `${card?.name} is already in this deck.`);
-    }
-    return addSlot(tx, deckId, { oracleId, board, quantity: 1 });
-  });
-}
-
 export function setSlotQuantity(db: Db, deckId: number, slotId: number, quantity: number) {
   db.transaction((tx) => {
     slotOrThrow(tx, deckId, slotId);
@@ -374,7 +348,7 @@ export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: Boa
     tx.update(deckSlots)
       .set({
         quantity: target.quantity + slot.quantity,
-        pickedScryfallId: target.pickedScryfallId ?? slot.pickedScryfallId,
+        pickedPrintingId: target.pickedPrintingId ?? slot.pickedPrintingId,
         ...(target.hintSetCode ? {} : hintColumns(hintOf(slot))),
       })
       .where(eq(deckSlots.id, target.id))
@@ -400,7 +374,7 @@ export function setSlotPrinting(db: Db, deckId: number, slotId: number, printing
         collectorNumber: printings.collectorNumber,
       })
       .from(printings)
-      .where(eq(printings.scryfallId, printing.scryfallId))
+      .where(eq(printings.printingId, printing.printingId))
       .get();
     if (!found) {
       throw new AppError(404, 'printing_not_found', 'That printing isn’t in the card data.');
@@ -415,8 +389,8 @@ export function setSlotPrinting(db: Db, deckId: number, slotId: number, printing
           collectorNumber: found.collectorNumber,
           foil: printing.foil,
         }),
-        pickedScryfallId:
-          slot.pickedScryfallId === printing.scryfallId ? slot.pickedScryfallId : null,
+        pickedPrintingId:
+          slot.pickedPrintingId === printing.printingId ? slot.pickedPrintingId : null,
       })
       .where(eq(deckSlots.id, slot.id))
       .run();
@@ -439,7 +413,7 @@ export function removeSlot(db: Db, deckId: number, slotId: number) {
 }
 
 /**
- * Replaces every slot of the deck with these, for Update from Moxfield. A card that stays
+ * Replaces every slot of the deck with these, for an update from a deck list. A card that stays
  * keeps its picked printing, and a slot that stays on its board keeps its id. A slot given
  * `tags` gets exactly those; one without keeps its tags.
  */
@@ -453,8 +427,8 @@ export function replaceSlots(db: Db, deckId: number, slots: DeckSlotInput[]) {
     const old = tx.select().from(deckSlots).where(eq(deckSlots.deckId, deckId)).all();
     const pickedByCard = new Map<string, string>();
     for (const slot of old) {
-      if (slot.pickedScryfallId && !pickedByCard.has(slot.oracleId)) {
-        pickedByCard.set(slot.oracleId, slot.pickedScryfallId);
+      if (slot.pickedPrintingId && !pickedByCard.has(slot.oracleId)) {
+        pickedByCard.set(slot.oracleId, slot.pickedPrintingId);
       }
     }
     const oldByKey = new Map(old.map((slot) => [`${slot.board}\n${slot.oracleId}`, slot]));
@@ -478,7 +452,7 @@ export function replaceSlots(db: Db, deckId: number, slots: DeckSlotInput[]) {
             oracleId: slot.oracleId,
             board: slot.board,
             quantity: slot.quantity,
-            pickedScryfallId: pickedByCard.get(slot.oracleId) ?? null,
+            pickedPrintingId: pickedByCard.get(slot.oracleId) ?? null,
             ...hintColumns(slot.hint),
           })
           .returning({ id: deckSlots.id })

@@ -49,7 +49,7 @@ export const cardDataStatusSamples: Record<CardDataState, CardDataStatus> = {
     cardCount: 33_801,
     printingCount: 101_390,
     error:
-      "Couldn't download the new card data from Scryfall, so the app is still using the data from October 11. Check the internet connection and press Refresh card data to try again.",
+      "Couldn't download the new card data, so the app is still using the data from October 11. Check the internet connection and press Refresh card data to try again.",
   },
 };
 

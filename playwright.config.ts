@@ -8,9 +8,6 @@ import { defineConfig, devices } from '@playwright/test';
 process.env.E2E_DATA_DIR ??= mkdtempSync(path.join(tmpdir(), 'log-e2e-'));
 process.env.E2E_FLOWS_DATA_DIR ??= mkdtempSync(path.join(tmpdir(), 'log-e2e-flows-'));
 
-/** Never call Scryfall during tests: no card data sync and no card lookups. */
-const OFFLINE = { SCRYFALL_SYNC: 'off', SCRYFALL_LOOKUP: 'off' };
-
 export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: Boolean(process.env.CI),
@@ -30,19 +27,19 @@ export default defineConfig({
     },
   ],
   // Never test against an app that is already running: it would be Jeff's real one. Both
-  // servers load the Scryfall fixtures first (see tests/e2e/global-setup.ts). The servers
+  // servers load the card fixtures first (see tests/e2e/global-setup.ts). The servers
   // start in order, so the screens are built before the flow server starts.
   webServer: [
     {
       command: 'npx tsx tests/e2e/global-setup.ts && npm start',
-      env: { DATA_DIR: process.env.E2E_DATA_DIR, ...OFFLINE },
+      env: { DATA_DIR: process.env.E2E_DATA_DIR },
       url: 'http://127.0.0.1:4300/api/health',
       reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: 'npx tsx tests/e2e/global-setup.ts && npx tsx tests/e2e/flows/server.ts',
-      env: { DATA_DIR: process.env.E2E_FLOWS_DATA_DIR, ...OFFLINE },
+      env: { DATA_DIR: process.env.E2E_FLOWS_DATA_DIR },
       url: 'http://127.0.0.1:4301/api/health',
       reuseExistingServer: false,
       timeout: 120_000,

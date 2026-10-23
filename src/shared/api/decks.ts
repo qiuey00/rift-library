@@ -50,9 +50,9 @@ export const DeckSummary = z.object({
 });
 export type DeckSummary = z.infer<typeof DeckSummary>;
 
-/** The printing a Moxfield export named for a slot, such as "(EOC) 1 *F*". */
+/** The printing a deck list named for a slot: its set, collector number and foil. */
 export const PrintingHint = z.object({
-  /** Lowercase, as Scryfall writes it, such as "eoc". */
+  /** Lowercase, such as "eoc". */
   setCode: z.string(),
   collectorNumber: z.string(),
   foil: z.boolean(),
@@ -83,7 +83,7 @@ export const SlotRow = z.object({
    * when neither is known. The deck view shows its image.
    */
   printing: PrintingSummary.nullable(),
-  /** Null for slots added in the app rather than from a Moxfield export with sets. */
+  /** Null for slots added in the app rather than from a deck list with sets. */
   hint: PrintingHint.nullable(),
   /** Null on the maybe board. */
   status: SlotStatus.nullable(),
@@ -145,22 +145,8 @@ export const SlotTags = z.object({
 });
 export type SlotTags = z.infer<typeof SlotTags>;
 
-/**
- * POST /api/decks/:id/slots/drop: a card dragged in from another site (scryfall.com,
- * edhrec.com), as the browser's drop strings. Answers with the slot the card is in.
- */
-export const CardDrop = z.object({
-  /** The panel it was dropped on. */
-  board: z.enum(['main', 'maybe']),
-  /** The drop's `text/uri-list`, `text/html` and `text/plain`. */
-  uriList: z.string().max(10_000).optional(),
-  html: z.string().max(100_000).optional(),
-  text: z.string().max(10_000).optional(),
-});
-export type CardDrop = z.infer<typeof CardDrop>;
-
 /** The printing a slot should have: one of the card's printings, and whether the foil. */
-export const SlotPrinting = z.object({ scryfallId: z.string().min(1), foil: z.boolean() });
+export const SlotPrinting = z.object({ printingId: z.string().min(1), foil: z.boolean() });
 export type SlotPrinting = z.infer<typeof SlotPrinting>;
 
 /**

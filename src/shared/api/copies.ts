@@ -38,7 +38,7 @@ export type SetProxyBody = z.infer<typeof SetProxyBody>;
 /** POST /api/stacks/add → `ActionResult`. Adds to the alike stack in the location, or makes one. */
 export const AddCopiesBody = z.object({
   /** The printing. */
-  scryfallId: z.string().min(1),
+  printingId: z.string().min(1),
   quantity: Quantity,
   ...CopyDetails.shape,
   /** Kept, not shown in v1. */

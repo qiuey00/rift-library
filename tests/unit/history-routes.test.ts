@@ -5,7 +5,6 @@ import { type OpenDb, setDb } from '../../src/server/db/database';
 import {
   cards,
   decks,
-  imports,
   locations,
   movementBatches,
   movements,
@@ -49,10 +48,10 @@ function addCard(n: number, name: string, prints: string[]) {
       commanderLegality: 'legal',
     })
     .run();
-  for (const [i, scryfallId] of prints.entries()) {
+  for (const [i, printingId] of prints.entries()) {
     db.insert(printings)
       .values({
-        scryfallId,
+        printingId,
         oracleId: oracle(n),
         setCode: 'eoc',
         setName: 'Edge of Eternities Commander',
@@ -74,11 +73,7 @@ function addLocation(name: string, type: LocationType, parentId?: number, color?
     .get().id;
 }
 
-function addBatch(
-  kind: BatchKind,
-  createdAt: string,
-  more: { deckId?: number; importId?: number } = {},
-) {
+function addBatch(kind: BatchKind, createdAt: string, more: { deckId?: number } = {}) {
   return db
     .insert(movementBatches)
     .values({ kind, createdAt, ...more })
@@ -89,7 +84,7 @@ function addBatch(
 function addMovement(
   batchId: number,
   createdAt: string,
-  scryfallId: string,
+  printingId: string,
   details: {
     quantity?: number;
     from?: number | null;
@@ -105,7 +100,7 @@ function addMovement(
     .values({
       batchId,
       copyStackId: 1,
-      scryfallId,
+      printingId,
       finish: 'nonfoil',
       condition: 'near_mint',
       language: 'en',
@@ -123,8 +118,8 @@ function addMovement(
 }
 
 /** A single move in its own batch. */
-function move(createdAt: string, scryfallId: string, from: number, to: number) {
-  return addMovement(addBatch('move', createdAt), createdAt, scryfallId, { from, to });
+function move(createdAt: string, printingId: string, from: number, to: number) {
+  return addMovement(addBatch('move', createdAt), createdAt, printingId, { from, to });
 }
 
 async function history(query: {
@@ -199,7 +194,7 @@ describe('GET /api/history', () => {
             isBasicLand: false,
           },
           printing: {
-            scryfallId: 'sol-eoc',
+            printingId: 'sol-eoc',
             oracleId: oracle(1),
             setCode: 'eoc',
             setName: 'Edge of Eternities Commander',
@@ -366,18 +361,7 @@ describe('GET /api/history', () => {
       .get().id;
     const t = (minute: number) => `2026-10-18T12:${String(minute).padStart(2, '0')}:00.000Z`;
 
-    const importId = db
-      .insert(imports)
-      .values({
-        kind: 'manabox_add',
-        fileName: 'manabox-sample.csv',
-        targetLocationId: inboxId,
-        rowCount: 2,
-        cardCount: 389,
-      })
-      .returning({ id: imports.id })
-      .get().id;
-    const imported = addBatch('import', t(1), { importId });
+    const imported = addBatch('import', t(1));
     const i1 = addMovement(imported, t(1), 'sol-eoc', { quantity: 388, to: inboxId });
     const i2 = addMovement(imported, t(1), 'signet', { quantity: 1, to: inboxId });
 
@@ -452,25 +436,20 @@ describe('GET /api/history', () => {
       ['put_away', 'Put-away list · Hearthhull · 1 card', 'Hearthhull', true, t(5)],
       ['swap', 'Swap list · Hearthhull · 1 card', 'Hearthhull', false, t(4)],
       ['pick_list', 'Pick list · Hearthhull · 3 cards', 'Hearthhull', false, t(2)],
-      ['import', 'Imported manabox-sample.csv · 389 cards into To sort', null, false, t(1)],
+      ['import', 'Imported 389 cards', null, false, t(1)],
     ]);
   });
 
   it('keeps a batch’s summary whole when a filter shows only some of its movements', async () => {
     seedCards();
-    const importId = db
-      .insert(imports)
-      .values({ kind: 'manabox_add', fileName: 'cards.csv', targetLocationId: inboxId })
-      .returning({ id: imports.id })
-      .get().id;
-    const batch = addBatch('import', '2026-10-18T12:00:00.000Z', { importId });
+    const batch = addBatch('import', '2026-10-18T12:00:00.000Z');
     addMovement(batch, '2026-10-18T12:00:00.000Z', 'sol-eoc', { quantity: 3, to: inboxId });
     const signet = addMovement(batch, '2026-10-18T12:00:00.000Z', 'signet', { to: inboxId });
 
     const day = await history({ before: '2026-10-18', card: oracle(2) });
     expect(shape(day.entries)).toEqual([[signet]]);
     expect(day.entries[0]).toMatchObject({
-      batch: { summary: 'Imported cards.csv · 4 cards into To sort' },
+      batch: { summary: 'Imported 4 cards' },
     });
   });
 
@@ -533,7 +512,7 @@ describe('speed with years of history', () => {
          VALUES (?, ?, ?, 'Artifact', 'legal')`,
       );
       const printing = sqlite.prepare(
-        `INSERT INTO printings (scryfall_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
+        `INSERT INTO printings (printing_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
          VALUES (?, ?, 'eoc', 'EOC', ?, 'en', '["nonfoil"]', 'common', '2025-01-01')`,
       );
       for (let n = 0; n < 1000; n++) {
@@ -546,7 +525,7 @@ describe('speed with years of history', () => {
       }
       const batch = sqlite.prepare('INSERT INTO movement_batches (kind, created_at) VALUES (?, ?)');
       const movement = sqlite.prepare(
-        `INSERT INTO movements (batch_id, copy_stack_id, scryfall_id, finish, condition, language,
+        `INSERT INTO movements (batch_id, copy_stack_id, printing_id, finish, condition, language,
            quantity, from_location_id, to_location_id, reason, created_at)
          VALUES (?, 1, ?, 'nonfoil', 'near_mint', 'en', 1, ?, ?, ?, ?)`,
       );

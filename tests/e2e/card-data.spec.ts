@@ -67,7 +67,7 @@ test('Settings shows the card data panel', async ({ page }) => {
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
   const panel = page.getByRole('region', { name: 'Card data' });
-  await expect(panel).toContainText('Scryfall file dateOct 18, 2026');
+  await expect(panel).toContainText('Card data file dateOct 18, 2026');
   await expect(panel).toContainText('Last checkedOct 19, 2026, 1:30 AM');
   await expect(panel).toContainText('Cards33,874');
   await expect(panel).toContainText('Printings101,652');
@@ -105,7 +105,7 @@ test('Settings shows the last error', async ({ page }) => {
   await expect(panel.getByRole('alert')).toHaveText(
     cardDataStatusSamples.error.error ?? 'missing sample error',
   );
-  await expect(panel).toContainText('Scryfall file dateOct 11, 2026');
+  await expect(panel).toContainText('Card data file dateOct 11, 2026');
   await expect(panel.getByRole('button', { name: 'Refresh card data' })).toBeEnabled();
 });
 

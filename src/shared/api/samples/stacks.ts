@@ -21,7 +21,7 @@ import {
 
 export type SampleCard = { card: CardSummary; printing: PrintingSummary };
 
-/** Real cards and printings from Scryfall, from Jeff's collection and Hearthhull deck. */
+/** Cards and printings (Magic stand-ins until #5), from the collection and Hearthhull deck. */
 export const sampleCards = {
   arcaneSignet: {
     card: {
@@ -33,14 +33,14 @@ export const sampleCards = {
       typeLine: 'Artifact',
       colorIdentity: '',
       imageSmall:
-        'https://cards.scryfall.io/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+        'https://images.example.com/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+        'https://images.example.com/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '3d994115-378d-4685-a5dc-e448831da434',
+      printingId: '3d994115-378d-4685-a5dc-e448831da434',
       oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
@@ -49,9 +49,9 @@ export const sampleCards = {
       finishes: ['nonfoil'],
       rarity: 'common',
       imageSmall:
-        'https://cards.scryfall.io/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+        'https://images.example.com/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+        'https://images.example.com/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
     },
   },
   arcaneSignetTdc: {
@@ -64,14 +64,14 @@ export const sampleCards = {
       typeLine: 'Artifact',
       colorIdentity: '',
       imageSmall:
-        'https://cards.scryfall.io/small/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
+        'https://images.example.com/small/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
+        'https://images.example.com/normal/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '935644d4-a140-4f24-b8ab-d5e79a682a9b',
+      printingId: '935644d4-a140-4f24-b8ab-d5e79a682a9b',
       oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
       setCode: 'tdc',
       setName: 'Tarkir: Dragonstorm Commander',
@@ -80,9 +80,9 @@ export const sampleCards = {
       finishes: ['nonfoil'],
       rarity: 'uncommon',
       imageSmall:
-        'https://cards.scryfall.io/small/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
+        'https://images.example.com/small/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
+        'https://images.example.com/normal/front/9/3/935644d4-a140-4f24-b8ab-d5e79a682a9b.jpg?1783907131',
     },
   },
   arcaneSignetFic: {
@@ -95,14 +95,14 @@ export const sampleCards = {
       typeLine: 'Artifact',
       colorIdentity: '',
       imageSmall:
-        'https://cards.scryfall.io/small/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
+        'https://images.example.com/small/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
+        'https://images.example.com/normal/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '9ce66ebc-b39f-4b40-9d95-981629a5dd06',
+      printingId: '9ce66ebc-b39f-4b40-9d95-981629a5dd06',
       oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
       setCode: 'fic',
       setName: 'Final Fantasy Commander',
@@ -111,9 +111,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'common',
       imageSmall:
-        'https://cards.scryfall.io/small/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
+        'https://images.example.com/small/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
+        'https://images.example.com/normal/front/9/c/9ce66ebc-b39f-4b40-9d95-981629a5dd06.jpg?1783906246',
     },
   },
   blech: {
@@ -126,14 +126,14 @@ export const sampleCards = {
       typeLine: 'Legendary Creature — Pest',
       colorIdentity: 'BG',
       imageSmall:
-        'https://cards.scryfall.io/small/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
+        'https://images.example.com/small/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
+        'https://images.example.com/normal/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
       canBeCommander: true,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: 'f588fa50-7cc5-41ba-90df-2d252eb5c785',
+      printingId: 'f588fa50-7cc5-41ba-90df-2d252eb5c785',
       oracleId: 'c1bdd361-c7f2-4aa2-8d07-b582775551ff',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -142,9 +142,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'rare',
       imageSmall:
-        'https://cards.scryfall.io/small/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
+        'https://images.example.com/small/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
+        'https://images.example.com/normal/front/f/5/f588fa50-7cc5-41ba-90df-2d252eb5c785.jpg?1783903648',
     },
   },
   commandTower: {
@@ -157,14 +157,14 @@ export const sampleCards = {
       typeLine: 'Land',
       colorIdentity: '',
       imageSmall:
-        'https://cards.scryfall.io/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+        'https://images.example.com/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+        'https://images.example.com/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
+      printingId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
       oracleId: '0895c9b7-ae7d-4bb3-af17-3b75deb50a25',
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
@@ -173,9 +173,9 @@ export const sampleCards = {
       finishes: ['nonfoil'],
       rarity: 'common',
       imageSmall:
-        'https://cards.scryfall.io/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+        'https://images.example.com/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+        'https://images.example.com/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
     },
   },
   elementalMascot: {
@@ -188,14 +188,14 @@ export const sampleCards = {
       typeLine: 'Creature — Elemental Bird',
       colorIdentity: 'UR',
       imageSmall:
-        'https://cards.scryfall.io/small/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
+        'https://images.example.com/small/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
+        'https://images.example.com/normal/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: 'c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0',
+      printingId: 'c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0',
       oracleId: '882f30e4-4ce1-4581-8d2d-d763aa13befe',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -204,9 +204,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'common',
       imageSmall:
-        'https://cards.scryfall.io/small/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
+        'https://images.example.com/small/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
+        'https://images.example.com/normal/front/c/5/c507eb1c-48e9-4d28-bb2d-71f2a9df9ab0.jpg?1783903646',
     },
   },
   emeritusOfWoe: {
@@ -219,14 +219,14 @@ export const sampleCards = {
       typeLine: 'Creature — Vampire Warlock // Sorcery',
       colorIdentity: 'B',
       imageSmall:
-        'https://cards.scryfall.io/small/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
+        'https://images.example.com/small/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
+        'https://images.example.com/normal/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '7eb9e83d-515d-4911-a06b-9982200277b2',
+      printingId: '7eb9e83d-515d-4911-a06b-9982200277b2',
       oracleId: '93056597-b964-421f-be2f-e92abef1c2a4',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -235,9 +235,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'mythic',
       imageSmall:
-        'https://cards.scryfall.io/small/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
+        'https://images.example.com/small/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
+        'https://images.example.com/normal/front/7/e/7eb9e83d-515d-4911-a06b-9982200277b2.jpg?1783903682',
     },
   },
   gaeasCradle: {
@@ -250,14 +250,14 @@ export const sampleCards = {
       typeLine: 'Legendary Land',
       colorIdentity: 'G',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
+        'https://images.example.com/small/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
+        'https://images.example.com/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '25b0b816-0583-44aa-9dc5-f3ff48993a51',
+      printingId: '25b0b816-0583-44aa-9dc5-f3ff48993a51',
       oracleId: '7c427c3d-ecd8-45ef-bebd-8f10f4a311db',
       setCode: 'usg',
       setName: "Urza's Saga",
@@ -266,9 +266,9 @@ export const sampleCards = {
       finishes: ['nonfoil'],
       rarity: 'rare',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
+        'https://images.example.com/small/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
+        'https://images.example.com/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299',
     },
   },
   harmonizedTrio: {
@@ -281,14 +281,14 @@ export const sampleCards = {
       typeLine: 'Creature — Merfolk Bard Wizard // Instant',
       colorIdentity: 'U',
       imageSmall:
-        'https://cards.scryfall.io/small/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
+        'https://images.example.com/small/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
+        'https://images.example.com/normal/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '617208ff-dd9b-44fd-a740-d3188081e5cc',
+      printingId: '617208ff-dd9b-44fd-a740-d3188081e5cc',
       oracleId: 'f6036065-7196-44d4-8a27-2199f0e1a03c',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -297,9 +297,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'rare',
       imageSmall:
-        'https://cards.scryfall.io/small/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
+        'https://images.example.com/small/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
+        'https://images.example.com/normal/front/6/1/617208ff-dd9b-44fd-a740-d3188081e5cc.jpg?1783903691',
     },
   },
   hearthhull: {
@@ -312,14 +312,14 @@ export const sampleCards = {
       typeLine: 'Legendary Artifact — Spacecraft',
       colorIdentity: 'BRG',
       imageSmall:
-        'https://cards.scryfall.io/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+        'https://images.example.com/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+        'https://images.example.com/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
       canBeCommander: true,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
+      printingId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
       oracleId: '8d6f82d9-5c5b-4c41-8857-c0936f2d894c',
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
@@ -328,9 +328,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'mythic',
       imageSmall:
-        'https://cards.scryfall.io/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+        'https://images.example.com/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+        'https://images.example.com/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
     },
   },
   magmabloodArchaicJa: {
@@ -343,14 +343,14 @@ export const sampleCards = {
       typeLine: 'Creature — Avatar',
       colorIdentity: 'R',
       imageSmall:
-        'https://cards.scryfall.io/small/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
+        'https://images.example.com/small/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
+        'https://images.example.com/normal/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: 'ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed',
+      printingId: 'ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed',
       oracleId: 'c6a5adc8-ee57-421e-8235-0b3160f44568',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -359,9 +359,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'rare',
       imageSmall:
-        'https://cards.scryfall.io/small/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
+        'https://images.example.com/small/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
+        'https://images.example.com/normal/front/a/c/ac5c561b-68b4-4d5d-b8d1-d5ca24f127ed.jpg?1788983479',
     },
   },
   pickYourPoison: {
@@ -374,14 +374,14 @@ export const sampleCards = {
       typeLine: 'Sorcery',
       colorIdentity: 'G',
       imageSmall:
-        'https://cards.scryfall.io/small/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
+        'https://images.example.com/small/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
+        'https://images.example.com/normal/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: 'a11f1013-d747-4cf2-bbf5-0bd68a949ddf',
+      printingId: 'a11f1013-d747-4cf2-bbf5-0bd68a949ddf',
       oracleId: '9af4a832-d634-47aa-91ed-79d44fe08864',
       setCode: 'soa',
       setName: 'Secrets of Strixhaven Mystical Archive',
@@ -390,9 +390,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'uncommon',
       imageSmall:
-        'https://cards.scryfall.io/small/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
+        'https://images.example.com/small/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
+        'https://images.example.com/normal/front/a/1/a11f1013-d747-4cf2-bbf5-0bd68a949ddf.jpg?1783903918',
     },
   },
   sylvanLibrary: {
@@ -405,14 +405,14 @@ export const sampleCards = {
       typeLine: 'Enchantment',
       colorIdentity: 'G',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
+        'https://images.example.com/small/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
+        'https://images.example.com/normal/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '26a7c62c-12ed-493c-ba95-0f55fec83686',
+      printingId: '26a7c62c-12ed-493c-ba95-0f55fec83686',
       oracleId: '92eed395-62ca-4293-882b-8565c40daab5',
       setCode: 'spg',
       setName: 'Special Guests',
@@ -421,9 +421,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'mythic',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
+        'https://images.example.com/small/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
+        'https://images.example.com/normal/front/2/6/26a7c62c-12ed-493c-ba95-0f55fec83686.jpg?1783903578',
     },
   },
   triumphOfTheHordes: {
@@ -436,14 +436,14 @@ export const sampleCards = {
       typeLine: 'Sorcery',
       colorIdentity: 'G',
       imageSmall:
-        'https://cards.scryfall.io/small/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
+        'https://images.example.com/small/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
+        'https://images.example.com/normal/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84',
+      printingId: '5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84',
       oracleId: '3ded0c0c-40ce-4d14-a9a6-b023bc19ee0e',
       setCode: 'soa',
       setName: 'Secrets of Strixhaven Mystical Archive',
@@ -452,9 +452,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'mythic',
       imageSmall:
-        'https://cards.scryfall.io/small/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
+        'https://images.example.com/small/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
+        'https://images.example.com/normal/front/5/a/5a0bc9d4-d99d-48e1-aeca-d2e5b1c99a84.jpg?1783903916',
     },
   },
   witherbloomCharm: {
@@ -467,14 +467,14 @@ export const sampleCards = {
       typeLine: 'Instant',
       colorIdentity: 'BG',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
+        'https://images.example.com/small/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
+        'https://images.example.com/normal/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
       canBeCommander: false,
       isBasicLand: false,
     },
     printing: {
-      scryfallId: '254437f7-7a8a-4b11-9cea-e8e7ea23c59e',
+      printingId: '254437f7-7a8a-4b11-9cea-e8e7ea23c59e',
       oracleId: 'ee1db746-f5c1-4dce-82eb-24b273cc9507',
       setCode: 'sos',
       setName: 'Secrets of Strixhaven',
@@ -483,9 +483,9 @@ export const sampleCards = {
       finishes: ['nonfoil', 'foil'],
       rarity: 'uncommon',
       imageSmall:
-        'https://cards.scryfall.io/small/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
+        'https://images.example.com/small/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
       imageNormal:
-        'https://cards.scryfall.io/normal/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
+        'https://images.example.com/normal/front/2/5/254437f7-7a8a-4b11-9cea-e8e7ea23c59e.jpg?1783903624',
     },
   },
 } satisfies Record<string, SampleCard>;
@@ -499,7 +499,7 @@ const nonfoil: CopyDetails = {
   isProxy: false,
 };
 
-/** A stack of `quantity` copies, each worth `unitPrice` cents (null: Scryfall has no price). */
+/** A stack of `quantity` copies, each worth `unitPrice` cents (null: there is no price). */
 const stack = (
   stackId: number,
   quantity: number,
@@ -551,7 +551,7 @@ export const sampleStacks = {
   elementalMascot: stack(106, 4, c.elementalMascot, bulkTrayNode, 12),
   emeritusOfWoeFoil: stack(107, 1, c.emeritusOfWoe, raresBinderNode, 268, { finish: 'foil' }),
   gaeasCradleProxy: stack(108, 1, c.gaeasCradle, landsNode, 89500, { isProxy: true }),
-  /** Scryfall has no price for it. */
+  /** There is no price for it. */
   harmonizedTrio: stack(109, 1, c.harmonizedTrio, toSortNode, null),
   /** The commander, in its deck box, pulled from the Rares binder. */
   hearthhullFoil: stack(

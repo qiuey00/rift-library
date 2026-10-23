@@ -38,7 +38,7 @@ const WUBRG = ['W', 'U', 'B', 'R', 'G'] as const;
 
 /**
  * The card's own columns, plus the images of its newest printing (English first, then any
- * language), since Scryfall keeps images on printings.
+ * language), since images belong to printings.
  */
 const cardColumns = sql`
   c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
@@ -48,23 +48,23 @@ const cardColumns = sql`
   img.image_normal AS imageNormal`;
 
 const imageJoin = sql`
-  LEFT JOIN printings AS img ON img.scryfall_id = (
-    SELECT p.scryfall_id FROM printings AS p
+  LEFT JOIN printings AS img ON img.printing_id = (
+    SELECT p.printing_id FROM printings AS p
     WHERE p.oracle_id = c.oracle_id
-    ORDER BY p.image_normal IS NULL, p.lang <> 'en', p.released_at DESC, p.scryfall_id
+    ORDER BY p.image_normal IS NULL, p.lang <> 'en', p.released_at DESC, p.printing_id
     LIMIT 1
   )`;
 
 /** Copy counts of one card (`c.oracle_id`), as columns. */
 const countColumns = sql`
   (SELECT COALESCE(SUM(s.quantity), 0) FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     WHERE p.oracle_id = c.oracle_id) AS owned,
   (SELECT COALESCE(SUM(s.quantity), 0) FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     WHERE p.oracle_id = c.oracle_id AND s.is_proxy = 1) AS proxies,
   (SELECT COALESCE(SUM(s.quantity), 0) FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     JOIN locations AS l ON l.id = s.location_id
     WHERE p.oracle_id = c.oracle_id AND l.type = 'deck_box') AS inDecks`;
 
@@ -164,7 +164,7 @@ export function cardDetails(db: Db, oracleId: string): CardDetailsResponse | und
   if (!row) return undefined;
 
   const printings = db.all<PrintingRecord>(sql`
-    SELECT scryfall_id AS scryfallId, oracle_id AS oracleId, set_code AS setCode,
+    SELECT printing_id AS printingId, oracle_id AS oracleId, set_code AS setCode,
       set_name AS setName, collector_number AS collectorNumber, lang, finishes, rarity,
       image_small AS imageSmall, image_normal AS imageNormal
     FROM printings

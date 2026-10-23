@@ -23,7 +23,7 @@ export type AddToBuyListDialogProps = {
   onOpenChange: (open: boolean) => void;
   oracleId: string;
   /** A wanted printing; without one any printing will do. */
-  scryfallId?: string;
+  printingId?: string;
   quantity?: number;
 };
 
@@ -46,7 +46,7 @@ export function AddToBuyListDialog({
   open,
   onOpenChange,
   oracleId,
-  scryfallId,
+  printingId,
   quantity,
 }: AddToBuyListDialogProps) {
   return (
@@ -55,7 +55,7 @@ export function AddToBuyListDialog({
         {/* Mounted only while open, so each opening starts from the props again. */}
         <AddToBuyListForm
           oracleId={oracleId}
-          scryfallId={scryfallId}
+          printingId={printingId}
           quantity={quantity}
           onDone={() => onOpenChange(false)}
         />
@@ -66,12 +66,12 @@ export function AddToBuyListDialog({
 
 function AddToBuyListForm({
   oracleId,
-  scryfallId,
+  printingId,
   quantity: initialQuantity,
   onDone,
 }: {
   oracleId: string;
-  scryfallId?: string;
+  printingId?: string;
   quantity?: number;
   onDone: () => void;
 }) {
@@ -79,7 +79,7 @@ function AddToBuyListForm({
   const queryClient = useQueryClient();
   const undoBar = useUndoBar();
   const [quantity, setQuantity] = useState(String(initialQuantity ?? 1));
-  const [printingId, setPrintingId] = useState(scryfallId ?? '');
+  const [chosenId, setChosenId] = useState(printingId ?? '');
   const [note, setNote] = useState('');
 
   const details = useQuery({
@@ -121,16 +121,16 @@ function AddToBuyListForm({
     add.mutate({
       oracleId,
       quantity: count,
-      ...(printingId ? { scryfallId: printingId } : {}),
+      ...(chosenId ? { printingId: chosenId } : {}),
       ...(note.trim() ? { note: note.trim() } : {}),
     });
   };
 
   const card = details.data?.card;
   const printings = details.data?.printings ?? [];
-  const picked = printings.find((printing) => printing.scryfallId === printingId);
+  const picked = printings.find((printing) => printing.printingId === chosenId);
   // A wanted printing the card data doesn't list still shows, so it isn't dropped silently.
-  const unlisted = printingId && details.isSuccess && !picked;
+  const unlisted = chosenId && details.isSuccess && !picked;
   const image = picked?.imageNormal ?? card?.imageNormal ?? null;
 
   return (
@@ -171,14 +171,14 @@ function AddToBuyListForm({
             </label>
             <NativeSelect
               id={`${ids}-printing`}
-              value={printingId}
-              onChange={(event) => setPrintingId(event.target.value)}
+              value={chosenId}
+              onChange={(event) => setChosenId(event.target.value)}
               disabled={!details.isSuccess}
             >
               <NativeSelectOption value="">Any printing</NativeSelectOption>
-              {unlisted && <NativeSelectOption value={printingId}>{printingId}</NativeSelectOption>}
+              {unlisted && <NativeSelectOption value={chosenId}>{chosenId}</NativeSelectOption>}
               {printings.map((printing) => (
-                <NativeSelectOption key={printing.scryfallId} value={printing.scryfallId}>
+                <NativeSelectOption key={printing.printingId} value={printing.printingId}>
                   {printingLabel(printing)}
                 </NativeSelectOption>
               ))}

@@ -15,7 +15,7 @@ import { Board, Finish, LocationType } from '../../shared/api/common';
 // The whole database. Change it here, then run `npm run db:generate` to write a migration
 // into ./migrations, which the server applies when it starts.
 //
-// Conventions: app rows have autoincrement whole-number ids, Scryfall rows keep Scryfall's
+// Conventions: app rows have autoincrement whole-number ids, card data rows keep their source's
 // ids (text), true/false is stored as 0 or 1, and times are UTC ISO 8601 text.
 
 /** The current UTC time as ISO 8601 text, such as "2026-10-19T02:20:45.123Z". */
@@ -27,7 +27,7 @@ const createdAt = () => text('created_at').notNull().default(now);
 /** A shared Zod enum's values, as the non-empty list a text column's `enum` takes. */
 const values = <T extends string>(options: readonly T[]) => options as [T, ...T[]];
 
-// Card data from Scryfall.
+// Card data. Nothing loads it until the Riftcodex sync (#7), so the tables start empty.
 
 /** A card's columns, shared by `cards` and `cards_staging`. */
 const cardColumns = () => ({
@@ -52,7 +52,7 @@ const cardColumns = () => ({
 
 /** A printing's columns, shared by `printings` and `printings_staging`. */
 const printingColumns = () => ({
-  scryfallId: text('scryfall_id').primaryKey(),
+  printingId: text('printing_id').primaryKey(),
   setCode: text('set_code').notNull(),
   setName: text('set_name').notNull(),
   collectorNumber: text('collector_number').notNull(),
@@ -65,8 +65,7 @@ const printingColumns = () => ({
   imageNormal: text('image_normal'),
   /** The name this printing carries instead of the card's, such as "T'Challa's Protection". */
   flavorName: text('flavor_name'),
-  // TCGplayer market price for each finish (Scryfall's usd fields), in whole cents; null when
-  // Scryfall has none.
+  // TCGplayer market price for each finish, in whole cents; null when there is none.
   priceUsd: integer('price_usd'),
   priceUsdFoil: integer('price_usd_foil'),
   priceUsdEtched: integer('price_usd_etched'),
@@ -104,7 +103,7 @@ export const printingsStaging = sqliteTable('printings_staging', {
   oracleId: text('oracle_id').notNull(),
 });
 
-/** Which Scryfall file the app last loaded, and when it last checked. One row at most. */
+/** Which card data file the app last loaded, and when it last checked. One row at most. */
 export const cardDataStatus = sqliteTable(
   'card_data_status',
   {
@@ -148,12 +147,12 @@ export const copyStacks = sqliteTable(
   'copy_stacks',
   {
     id: id(),
-    scryfallId: text('scryfall_id')
+    printingId: text('printing_id')
       .notNull()
-      .references(() => printings.scryfallId),
+      .references(() => printings.printingId),
     quantity: integer('quantity').notNull(),
     finish: text('finish', { enum: values(Finish.options) }).notNull(),
-    /** As ManaBox writes it, such as "near_mint". */
+    /** Such as "near_mint". */
     condition: text('condition').notNull(),
     /** Such as "en". */
     language: text('language').notNull(),
@@ -180,7 +179,7 @@ export const copyStacks = sqliteTable(
     // COALESCE(came_from_location_id, 0) written without a comma, which drizzle-kit would
     // split into two broken index columns.
     uniqueIndex('copy_stacks_merge_rule').on(
-      t.scryfallId,
+      t.printingId,
       t.finish,
       t.condition,
       t.language,
@@ -228,8 +227,8 @@ export const deckSlots = sqliteTable(
     board: text('board', { enum: values(Board.options) }).notNull(),
     quantity: integer('quantity').notNull(),
     /** The printing of the copy pulled for this slot; null until one is pulled. */
-    pickedScryfallId: text('picked_scryfall_id'),
-    // The printing hint from the decklist, such as Moxfield's "(SET) 123 *F*".
+    pickedPrintingId: text('picked_printing_id'),
+    // The printing hint from the deck list: a set code, collector number and foil.
     hintSetCode: text('hint_set_code'),
     hintCollectorNumber: text('hint_collector_number'),
     hintFoil: flag('hint_foil'),
@@ -267,7 +266,6 @@ export const movementBatches = sqliteTable('movement_batches', {
     enum: ['import', 'add', 'move', 'pick_list', 'put_away', 'swap', 'undo'],
   }).notNull(),
   deckId: integer('deck_id'),
-  importId: integer('import_id'),
   createdAt: createdAt(),
 });
 
@@ -283,7 +281,7 @@ export const movements = sqliteTable(
     batchId: integer('batch_id').notNull(),
     /** No foreign key: stacks split and merge, so the row may be gone. */
     copyStackId: integer('copy_stack_id').notNull(),
-    scryfallId: text('scryfall_id').notNull(),
+    printingId: text('printing_id').notNull(),
     finish: text('finish', { enum: values(Finish.options) }).notNull(),
     condition: text('condition').notNull(),
     language: text('language').notNull(),
@@ -325,36 +323,8 @@ export const movements = sqliteTable(
     index('movements_batch_id').on(t.batchId),
     index('movements_created_at').on(t.createdAt),
     index('movements_deck_id').on(t.deckId),
-    index('movements_scryfall_id').on(t.scryfallId),
+    index('movements_printing_id').on(t.printingId),
   ],
-);
-
-/** One ManaBox or Moxfield import. */
-export const imports = sqliteTable('imports', {
-  id: id(),
-  kind: text('kind', {
-    enum: ['manabox_add', 'manabox_update', 'moxfield_new', 'moxfield_update'],
-  }).notNull(),
-  fileName: text('file_name'),
-  targetLocationId: integer('target_location_id'),
-  deckId: integer('deck_id'),
-  rowCount: integer('row_count').notNull().default(0),
-  cardCount: integer('card_count').notNull().default(0),
-  skippedCount: integer('skipped_count').notNull().default(0),
-  createdAt: createdAt(),
-});
-
-/** Which location each ManaBox binder or deck imports into. */
-export const binderMappings = sqliteTable(
-  'binder_mappings',
-  {
-    manaboxName: text('manabox_name').notNull(),
-    manaboxType: text('manabox_type', { enum: ['binder', 'deck'] }).notNull(),
-    locationId: integer('location_id')
-      .notNull()
-      .references(() => locations.id),
-  },
-  (t) => [primaryKey({ columns: [t.manaboxName, t.manaboxType] })],
 );
 
 /** The one buy list. Only Jeff adds rows. */
@@ -366,7 +336,7 @@ export const buyListItems = sqliteTable(
       .notNull()
       .references(() => cards.oracleId),
     /** A wanted printing, or null for any. */
-    scryfallId: text('scryfall_id'),
+    printingId: text('printing_id'),
     quantity: integer('quantity').notNull(),
     note: text('note'),
     createdAt: createdAt(),

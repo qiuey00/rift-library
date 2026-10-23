@@ -32,8 +32,8 @@ export function buyItem(db: Db, id: number): BuyItem | undefined {
 function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
   if (rows.length === 0) return [];
   const oracleIds = [...new Set(rows.map((row) => row.oracleId))];
-  const scryfallIds = [
-    ...new Set(rows.flatMap((row) => (row.scryfallId === null ? [] : [row.scryfallId]))),
+  const printingIds = [
+    ...new Set(rows.flatMap((row) => (row.printingId === null ? [] : [row.printingId]))),
   ];
   const cardRows = new Map(
     db
@@ -44,14 +44,14 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
       .map((card) => [card.oracleId, card]),
   );
   const printingRows = new Map(
-    scryfallIds.length === 0
+    printingIds.length === 0
       ? []
       : db
           .select()
           .from(printings)
-          .where(inArray(printings.scryfallId, scryfallIds))
+          .where(inArray(printings.printingId, printingIds))
           .all()
-          .map((printing) => [printing.scryfallId, printing]),
+          .map((printing) => [printing.printingId, printing]),
   );
   const images = cardImages(db, oracleIds);
 
@@ -59,7 +59,7 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
     const card = cardRows.get(row.oracleId);
     // The foreign key keeps the card; a card data reload can't remove one that's in use.
     if (!card) return [];
-    const printing = row.scryfallId === null ? undefined : printingRows.get(row.scryfallId);
+    const printing = row.printingId === null ? undefined : printingRows.get(row.printingId);
     return [
       {
         id: row.id,
@@ -96,7 +96,7 @@ function cardSummary(card: CardRow, images: Images = NO_IMAGES): CardSummary {
 
 function printingSummary(printing: PrintingRow): PrintingSummary {
   return {
-    scryfallId: printing.scryfallId,
+    printingId: printing.printingId,
     oracleId: printing.oracleId,
     setCode: printing.setCode,
     setName: printing.setName,

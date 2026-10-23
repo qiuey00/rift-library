@@ -1,36 +1,36 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { openDataDatabase } from '../../src/server/db/database';
-import { loadBulkFile } from '../../src/server/scryfall/load';
+import { cards, printings } from '../../src/server/db/schema';
 
-// Browser tests' global setup: loads the hand-made Scryfall fixtures into the test database
-// in DATA_DIR, so flow tests have cards and printings without calling Scryfall. The flow
-// fixture holds every printing in Jeff's ManaBox sample and the Hearthhull decklist, trimmed
-// to the fields the app reads.
+// Browser tests' global setup: writes the made-up card data in tests/fixtures/cards.json into
+// the test database in DATA_DIR, so flow tests have cards and printings while the app has no
+// card data source of its own (until #7).
 // playwright.config.ts runs it as part of the web server command, because Playwright starts
 // the web server before its own `globalSetup` and the cards must be there before the app is.
 
-const E2E_FIXTURES = ['default-cards.json', 'flow-cards.json'].map((file) =>
-  path.join(import.meta.dirname, '..', 'fixtures', 'scryfall', file),
-);
+const FIXTURE = path.join(import.meta.dirname, '..', 'fixtures', 'cards.json');
 
-/** When the fixture's "file" was made, as card data status reports it. */
-const E2E_BULK_UPDATED_AT = '2026-10-18T09:05:12.000Z';
+type Fixture = {
+  cards: (typeof cards.$inferInsert)[];
+  printings: (typeof printings.$inferInsert)[];
+};
 
 if (!process.env.DATA_DIR) {
   throw new Error(
     'Set DATA_DIR to a temp folder: the setup never loads into the real data folder.',
   );
 }
+const fixture: Fixture = JSON.parse(readFileSync(FIXTURE, 'utf8'));
 const db = openDataDatabase(process.env.DATA_DIR);
 try {
-  // Loads only ever add rows, so the second file adds to the first.
-  let result: Awaited<ReturnType<typeof loadBulkFile>> | undefined;
-  for (const file of E2E_FIXTURES) {
-    result = await loadBulkFile(db, file, { bulkUpdatedAt: E2E_BULK_UPDATED_AT });
-  }
-  if (!result) throw new Error('No fixtures to load.');
+  db.transaction((tx) => {
+    for (const card of fixture.cards) tx.insert(cards).values(card).onConflictDoNothing().run();
+    for (const printing of fixture.printings)
+      tx.insert(printings).values(printing).onConflictDoNothing().run();
+  });
   console.log(
-    `Loaded ${result.cardCount} cards and ${result.printingCount} printings for the browser tests.`,
+    `Loaded ${fixture.cards.length} cards and ${fixture.printings.length} printings for the browser tests.`,
   );
 } finally {
   db.$client.close();

@@ -2,8 +2,8 @@ import type { CardSummary, CopyDetails, LocationRef, PrintingSummary, StackRow }
 import type { PickLine } from '../pick-list';
 import type { PutAwayLine } from '../put-away';
 
-// The Hearthhull deck (Jeff's Moxfield sample) and the copies it pulls from, shared by the
-// pick list, put-away and swap samples. Cards and printings are real Scryfall data.
+// The Hearthhull deck and the copies it pulls from, shared by the pick list, put-away and
+// swap samples. Cards and printings are Magic stand-ins until #5.
 
 export const cards = {
   hearthhull: {
@@ -15,9 +15,9 @@ export const cards = {
     typeLine: 'Legendary Artifact — Spacecraft',
     colorIdentity: 'BRG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+      'https://images.example.com/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+      'https://images.example.com/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -30,9 +30,9 @@ export const cards = {
     typeLine: 'Instant',
     colorIdentity: 'B',
     imageSmall:
-      'https://cards.scryfall.io/small/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
+      'https://images.example.com/small/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
+      'https://images.example.com/normal/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -45,9 +45,9 @@ export const cards = {
     typeLine: 'Sorcery',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
+      'https://images.example.com/small/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
+      'https://images.example.com/normal/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -60,9 +60,9 @@ export const cards = {
     typeLine: 'Creature — Human Scout',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
+      'https://images.example.com/small/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
+      'https://images.example.com/normal/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -75,9 +75,9 @@ export const cards = {
     typeLine: 'Instant',
     colorIdentity: 'BG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
+      'https://images.example.com/small/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
+      'https://images.example.com/normal/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -90,9 +90,9 @@ export const cards = {
     typeLine: 'Creature — Devil',
     colorIdentity: 'BR',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
+      'https://images.example.com/small/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
+      'https://images.example.com/normal/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -105,9 +105,9 @@ export const cards = {
     typeLine: 'Instant',
     colorIdentity: 'BR',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
+      'https://images.example.com/small/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
+      'https://images.example.com/normal/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -120,9 +120,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Dragon Noble',
     colorIdentity: 'BRG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
+      'https://images.example.com/small/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
+      'https://images.example.com/normal/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -135,9 +135,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Frog Horror',
     colorIdentity: 'BG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
+      'https://images.example.com/small/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
+      'https://images.example.com/normal/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -150,9 +150,9 @@ export const cards = {
     typeLine: 'Creature — Elf Shaman',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
+      'https://images.example.com/small/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
+      'https://images.example.com/normal/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -165,9 +165,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Elemental',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
+      'https://images.example.com/small/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
+      'https://images.example.com/normal/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -180,9 +180,9 @@ export const cards = {
     typeLine: 'Artifact',
     colorIdentity: '',
     imageSmall:
-      'https://cards.scryfall.io/small/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
+      'https://images.example.com/small/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
+      'https://images.example.com/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -195,9 +195,9 @@ export const cards = {
     typeLine: 'Land',
     colorIdentity: '',
     imageSmall:
-      'https://cards.scryfall.io/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+      'https://images.example.com/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+      'https://images.example.com/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -210,9 +210,9 @@ export const cards = {
     typeLine: 'Instant',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
+      'https://images.example.com/small/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
+      'https://images.example.com/normal/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -225,9 +225,9 @@ export const cards = {
     typeLine: 'Land',
     colorIdentity: '',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
+      'https://images.example.com/small/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
+      'https://images.example.com/normal/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -240,9 +240,9 @@ export const cards = {
     typeLine: 'Artifact',
     colorIdentity: '',
     imageSmall:
-      'https://cards.scryfall.io/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+      'https://images.example.com/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+      'https://images.example.com/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -255,9 +255,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Cat Avatar',
     colorIdentity: 'BRG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
+      'https://images.example.com/small/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
+      'https://images.example.com/normal/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -270,9 +270,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Elemental',
     colorIdentity: 'RG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
+      'https://images.example.com/small/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
+      'https://images.example.com/normal/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -285,9 +285,9 @@ export const cards = {
     typeLine: 'Basic Land — Forest',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
+      'https://images.example.com/small/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
+      'https://images.example.com/normal/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
     canBeCommander: false,
     isBasicLand: true,
   },
@@ -300,9 +300,9 @@ export const cards = {
     typeLine: 'Basic Land — Mountain',
     colorIdentity: 'R',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
+      'https://images.example.com/small/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
+      'https://images.example.com/normal/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
     canBeCommander: false,
     isBasicLand: true,
   },
@@ -315,9 +315,9 @@ export const cards = {
     typeLine: 'Basic Land — Swamp',
     colorIdentity: 'B',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
+      'https://images.example.com/small/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
+      'https://images.example.com/normal/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
     canBeCommander: false,
     isBasicLand: true,
   },
@@ -330,9 +330,9 @@ export const cards = {
     typeLine: 'Creature — Beast',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
+      'https://images.example.com/small/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
+      'https://images.example.com/normal/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -345,9 +345,9 @@ export const cards = {
     typeLine: 'Sorcery',
     colorIdentity: 'R',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
+      'https://images.example.com/small/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
+      'https://images.example.com/normal/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -360,9 +360,9 @@ export const cards = {
     typeLine: 'Creature — Eldrazi',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
+      'https://images.example.com/small/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
+      'https://images.example.com/normal/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -375,9 +375,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Frog Beast',
     colorIdentity: 'BG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
+      'https://images.example.com/small/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
+      'https://images.example.com/normal/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -390,9 +390,9 @@ export const cards = {
     typeLine: 'Sorcery',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
+      'https://images.example.com/small/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
+      'https://images.example.com/normal/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -405,9 +405,9 @@ export const cards = {
     typeLine: 'Sorcery',
     colorIdentity: 'G',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
+      'https://images.example.com/small/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
+      'https://images.example.com/normal/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -420,9 +420,9 @@ export const cards = {
     typeLine: 'Sorcery',
     colorIdentity: 'B',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
+      'https://images.example.com/small/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
+      'https://images.example.com/normal/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -435,9 +435,9 @@ export const cards = {
     typeLine: 'Legendary Creature — Nightmare',
     colorIdentity: 'B',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
+      'https://images.example.com/small/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
+      'https://images.example.com/normal/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
     canBeCommander: true,
     isBasicLand: false,
   },
@@ -450,9 +450,9 @@ export const cards = {
     typeLine: 'Land',
     colorIdentity: 'B',
     imageSmall:
-      'https://cards.scryfall.io/small/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
+      'https://images.example.com/small/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
+      'https://images.example.com/normal/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -465,9 +465,9 @@ export const cards = {
     typeLine: 'Land — Mountain Forest',
     colorIdentity: 'RG',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
+      'https://images.example.com/small/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
+      'https://images.example.com/normal/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
     canBeCommander: false,
     isBasicLand: false,
   },
@@ -475,7 +475,7 @@ export const cards = {
 
 export const printings = {
   hearthhullEoc: {
-    scryfallId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
+    printingId: '6b913e79-a9f6-44d4-bb37-c4f6f66b8151',
     oracleId: '8d6f82d9-5c5b-4c41-8857-c0936f2d894c',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -484,12 +484,12 @@ export const printings = {
     finishes: ['nonfoil', 'foil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+      'https://images.example.com/small/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
+      'https://images.example.com/normal/front/6/b/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.jpg?1783906067',
   },
   infernalGraspEoc: {
-    scryfallId: '060b7e5f-5b40-4efc-9fad-4cebf40b654b',
+    printingId: '060b7e5f-5b40-4efc-9fad-4cebf40b654b',
     oracleId: '94f0a572-e91c-4b56-a5d1-6cbbeabd210d',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -498,12 +498,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
+      'https://images.example.com/small/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
+      'https://images.example.com/normal/front/0/6/060b7e5f-5b40-4efc-9fad-4cebf40b654b.jpg?1783906040',
   },
   cultivateEoc: {
-    scryfallId: '7ee610ee-7711-4a6b-b441-d6c73e6ef2b4',
+    printingId: '7ee610ee-7711-4a6b-b441-d6c73e6ef2b4',
     oracleId: '8b755881-a72d-4e21-a369-d2924eb4585a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -512,12 +512,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
+      'https://images.example.com/small/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
+      'https://images.example.com/normal/front/7/e/7ee610ee-7711-4a6b-b441-d6c73e6ef2b4.jpg?1783906035',
   },
   tirelessTrackerEoc: {
-    scryfallId: '66444549-ad9b-49c6-a7c6-34e977c1085d',
+    printingId: '66444549-ad9b-49c6-a7c6-34e977c1085d',
     oracleId: 'e6555cca-e608-4c87-b835-9cd47fd1f543',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -526,12 +526,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
+      'https://images.example.com/small/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
+      'https://images.example.com/normal/front/6/6/66444549-ad9b-49c6-a7c6-34e977c1085d.jpg?1783906030',
   },
   putrefyEoc: {
-    scryfallId: '1e355b88-a73d-430b-95eb-8ba646f2e406',
+    printingId: '1e355b88-a73d-430b-95eb-8ba646f2e406',
     oracleId: '9b271430-f53d-42d6-a547-2f286dd9bcb6',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -540,12 +540,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
+      'https://images.example.com/small/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
+      'https://images.example.com/normal/front/1/e/1e355b88-a73d-430b-95eb-8ba646f2e406.jpg?1783906026',
   },
   mayhemDevilEoc: {
-    scryfallId: '674f3a8a-4552-4289-b92a-06ce158f115c',
+    printingId: '674f3a8a-4552-4289-b92a-06ce158f115c',
     oracleId: '4709f11c-aef8-45ac-b2bf-e640c568dfac',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -554,12 +554,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
+      'https://images.example.com/small/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
+      'https://images.example.com/normal/front/6/7/674f3a8a-4552-4289-b92a-06ce158f115c.jpg?1783906026',
   },
   rakdosCharmEoc: {
-    scryfallId: '64b67170-1602-4050-80c0-ade2a6cac211',
+    printingId: '64b67170-1602-4050-80c0-ade2a6cac211',
     oracleId: '5e62b51d-faec-4aa0-9504-cf2c282d08ea',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -568,12 +568,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
+      'https://images.example.com/small/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
+      'https://images.example.com/normal/front/6/4/64b67170-1602-4050-80c0-ade2a6cac211.jpg?1783906024',
   },
   korvoldEoc: {
-    scryfallId: '607c1793-8e5a-4ebf-87c6-7f9c99bbd29a',
+    printingId: '607c1793-8e5a-4ebf-87c6-7f9c99bbd29a',
     oracleId: '9ae669dd-7e60-4649-b96e-35da28be641a',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -582,12 +582,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
+      'https://images.example.com/small/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
+      'https://images.example.com/normal/front/6/0/607c1793-8e5a-4ebf-87c6-7f9c99bbd29a.jpg?1783906027',
   },
   theGitrogMonsterEoc: {
-    scryfallId: '40489e28-878d-44a2-847f-07beef1aa0f8',
+    printingId: '40489e28-878d-44a2-847f-07beef1aa0f8',
     oracleId: 'a5e54d2b-aad8-4ddd-af4b-13668913762b',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -596,12 +596,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
+      'https://images.example.com/small/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
+      'https://images.example.com/normal/front/4/0/40489e28-878d-44a2-847f-07beef1aa0f8.jpg?1783906028',
   },
   oracleOfMulDayaEoc: {
-    scryfallId: 'ab19808f-a5b8-4dfd-800e-2064cd6538c8',
+    printingId: 'ab19808f-a5b8-4dfd-800e-2064cd6538c8',
     oracleId: '6c5b02eb-7829-436a-8555-fea200e4b67f',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -610,12 +610,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
+      'https://images.example.com/small/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
+      'https://images.example.com/normal/front/a/b/ab19808f-a5b8-4dfd-800e-2064cd6538c8.jpg?1783906033',
   },
   titaniaEoc: {
-    scryfallId: '732c208b-cd9e-48a9-9b9d-aba63066ba53',
+    printingId: '732c208b-cd9e-48a9-9b9d-aba63066ba53',
     oracleId: 'd0ade00d-a496-441d-9b7e-7dc033d3292c',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -624,12 +624,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
+      'https://images.example.com/small/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
+      'https://images.example.com/normal/front/7/3/732c208b-cd9e-48a9-9b9d-aba63066ba53.jpg?1783906029',
   },
   solRingEoc: {
-    scryfallId: 'ee6e5a35-fe21-4dee-b0ef-a8f2841511ad',
+    printingId: 'ee6e5a35-fe21-4dee-b0ef-a8f2841511ad',
     oracleId: '6ad8011d-3471-4369-9d68-b264cc027487',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -638,12 +638,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
+      'https://images.example.com/small/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
+      'https://images.example.com/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1783906049',
   },
   commandTowerEoc: {
-    scryfallId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
+    printingId: '85eb4b03-305b-45a4-82e5-5fcd586cc744',
     oracleId: '0895c9b7-ae7d-4bb3-af17-3b75deb50a25',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -652,12 +652,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+      'https://images.example.com/small/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
+      'https://images.example.com/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1783906048',
   },
   beastWithinEoc: {
-    scryfallId: 'ccac70d4-6e04-4802-8bb8-021368a40e14',
+    printingId: 'ccac70d4-6e04-4802-8bb8-021368a40e14',
     oracleId: '7735eeba-693b-47e2-bd51-414379cf1016',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -666,12 +666,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
+      'https://images.example.com/small/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
+      'https://images.example.com/normal/front/c/c/ccac70d4-6e04-4802-8bb8-021368a40e14.jpg?1783906036',
   },
   fabledPassageEoc: {
-    scryfallId: '6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe',
+    printingId: '6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe',
     oracleId: '0c85b8f7-0bd0-4680-9ec5-d4b110460a54',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -680,12 +680,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
+      'https://images.example.com/small/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
+      'https://images.example.com/normal/front/6/a/6a21ecc8-f6fd-4670-91d8-94b9ce94c2fe.jpg?1783906047',
   },
   arcaneSignetEoc: {
-    scryfallId: '3d994115-378d-4685-a5dc-e448831da434',
+    printingId: '3d994115-378d-4685-a5dc-e448831da434',
     oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -694,12 +694,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+      'https://images.example.com/small/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
+      'https://images.example.com/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1783906051',
   },
   soulOfWindgraceEoc: {
-    scryfallId: '5a80f7e1-1d79-4302-a603-73eb060b97a6',
+    printingId: '5a80f7e1-1d79-4302-a603-73eb060b97a6',
     oracleId: '2d73a3bd-f052-4f48-9a72-12db03e27249',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -708,12 +708,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
+      'https://images.example.com/small/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
+      'https://images.example.com/normal/front/5/a/5a80f7e1-1d79-4302-a603-73eb060b97a6.jpg?1783906025',
   },
   omnathEoc: {
-    scryfallId: '777552e5-cc2d-460f-b26f-977c6ebcfc6b',
+    printingId: '777552e5-cc2d-460f-b26f-977c6ebcfc6b',
     oracleId: '1816eede-c5bd-49df-958f-a3af64cb2932',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -722,12 +722,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
+      'https://images.example.com/small/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
+      'https://images.example.com/normal/front/7/7/777552e5-cc2d-460f-b26f-977c6ebcfc6b.jpg?1783906026',
   },
   forestEoe: {
-    scryfallId: '673141ec-826f-4132-8282-d499990495a7',
+    printingId: '673141ec-826f-4132-8282-d499990495a7',
     oracleId: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -736,12 +736,12 @@ export const printings = {
     finishes: ['nonfoil', 'foil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
+      'https://images.example.com/small/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
+      'https://images.example.com/normal/front/6/7/673141ec-826f-4132-8282-d499990495a7.jpg?1783905910',
   },
   mountainEoe: {
-    scryfallId: 'de0ac2b0-175b-4e71-9172-ce2a72234818',
+    printingId: 'de0ac2b0-175b-4e71-9172-ce2a72234818',
     oracleId: 'a3fb7228-e76b-4e96-a40e-20b5fed75685',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -750,12 +750,12 @@ export const printings = {
     finishes: ['nonfoil', 'foil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
+      'https://images.example.com/small/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
+      'https://images.example.com/normal/front/d/e/de0ac2b0-175b-4e71-9172-ce2a72234818.jpg?1783905907',
   },
   swampEoe: {
-    scryfallId: '58496a56-437f-4204-9691-f63795e5cdab',
+    printingId: '58496a56-437f-4204-9691-f63795e5cdab',
     oracleId: '56719f6a-1a6c-4c0a-8d21-18f7d7350b68',
     setCode: 'eoe',
     setName: 'Edge of Eternities',
@@ -764,12 +764,12 @@ export const printings = {
     finishes: ['nonfoil', 'foil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
+      'https://images.example.com/small/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
+      'https://images.example.com/normal/front/5/8/58496a56-437f-4204-9691-f63795e5cdab.jpg?1783905909',
   },
   rampagingBalothsEoc: {
-    scryfallId: '84aa18de-6acc-46cc-8e28-3046790a6751',
+    printingId: '84aa18de-6acc-46cc-8e28-3046790a6751',
     oracleId: '2d3e6549-6cc6-434f-a189-ba3b55e64c34',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -778,12 +778,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
+      'https://images.example.com/small/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
+      'https://images.example.com/normal/front/8/4/84aa18de-6acc-46cc-8e28-3046790a6751.jpg?1783906033',
   },
   blasphemousActEoc: {
-    scryfallId: 'fbeeb7d0-cda8-414b-82d3-a83f1883bdd2',
+    printingId: 'fbeeb7d0-cda8-414b-82d3-a83f1883bdd2',
     oracleId: '7a2484a9-04fd-41a0-8224-610c1c07ed10',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -792,12 +792,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
+      'https://images.example.com/small/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
+      'https://images.example.com/normal/front/f/b/fbeeb7d0-cda8-414b-82d3-a83f1883bdd2.jpg?1783906038',
   },
   worldBreakerEoc: {
-    scryfallId: 'd25856c9-cb3d-44d9-905e-007f1af65c06',
+    printingId: 'd25856c9-cb3d-44d9-905e-007f1af65c06',
     oracleId: 'deeb7e22-b207-42de-b9d4-f790403d52a9',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -806,12 +806,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'mythic',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
+      'https://images.example.com/small/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
+      'https://images.example.com/normal/front/d/2/d25856c9-cb3d-44d9-905e-007f1af65c06.jpg?1783906029',
   },
   uurgEoc: {
-    scryfallId: 'd1974536-9e4f-4808-9e49-a036ec7bf65c',
+    printingId: 'd1974536-9e4f-4808-9e49-a036ec7bf65c',
     oracleId: '0191a93a-f304-4c20-9af4-7cdea82c07cf',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -820,12 +820,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
+      'https://images.example.com/small/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
+      'https://images.example.com/normal/front/d/1/d1974536-9e4f-4808-9e49-a036ec7bf65c.jpg?1783906023',
   },
   farseekEoc: {
-    scryfallId: '95e0760a-d285-493b-88cd-7556d9b10007',
+    printingId: '95e0760a-d285-493b-88cd-7556d9b10007',
     oracleId: '495e52e6-4c2b-4574-9474-eadbdcc8b4ac',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -834,12 +834,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
+      'https://images.example.com/small/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
+      'https://images.example.com/normal/front/9/5/95e0760a-d285-493b-88cd-7556d9b10007.jpg?1783906051',
   },
   naturesLoreEoc: {
-    scryfallId: '5b42a79a-1f08-4e15-b40e-c993307ae066',
+    printingId: '5b42a79a-1f08-4e15-b40e-c993307ae066',
     oracleId: '78826359-fe63-44ad-adc4-a17ffcd710e4',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -848,12 +848,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
+      'https://images.example.com/small/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
+      'https://images.example.com/normal/front/5/b/5b42a79a-1f08-4e15-b40e-c993307ae066.jpg?1783906033',
   },
   nightsWhisperEoc: {
-    scryfallId: '67bdba19-c74a-462d-9e51-4fd7f0a6a2c3',
+    printingId: '67bdba19-c74a-462d-9e51-4fd7f0a6a2c3',
     oracleId: '7ffae8f8-3006-4969-a339-6d30678f87ea',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -862,12 +862,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
+      'https://images.example.com/small/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
+      'https://images.example.com/normal/front/6/7/67bdba19-c74a-462d-9e51-4fd7f0a6a2c3.jpg?1783906041',
   },
   braidsEoc: {
-    scryfallId: 'f96223d0-04c4-40c2-87a9-0c6bc74adddb',
+    printingId: 'f96223d0-04c4-40c2-87a9-0c6bc74adddb',
     oracleId: 'e0445c80-fa53-4c3e-881e-940e9fce7f57',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -876,12 +876,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
+      'https://images.example.com/small/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
+      'https://images.example.com/normal/front/f/9/f96223d0-04c4-40c2-87a9-0c6bc74adddb.jpg?1783906041',
   },
   bojukaBogEoc: {
-    scryfallId: 'b0c6fb5e-07e2-4d22-be19-60592f00584a',
+    printingId: 'b0c6fb5e-07e2-4d22-be19-60592f00584a',
     oracleId: '04b7362d-0490-4cb0-b5d7-2a7732f659ce',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -890,12 +890,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
+      'https://images.example.com/small/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
+      'https://images.example.com/normal/front/b/0/b0c6fb5e-07e2-4d22-be19-60592f00584a.jpg?1783906018',
   },
   cinderGladeEoc: {
-    scryfallId: '7865ae5f-cfd9-4913-bcf5-aadbd6824e65',
+    printingId: '7865ae5f-cfd9-4913-bcf5-aadbd6824e65',
     oracleId: 'dfac0258-e148-4d7d-8ded-fc2466d9caa6',
     setCode: 'eoc',
     setName: 'Edge of Eternities Commander',
@@ -904,12 +904,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'rare',
     imageSmall:
-      'https://cards.scryfall.io/small/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
+      'https://images.example.com/small/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
+      'https://images.example.com/normal/front/7/8/7865ae5f-cfd9-4913-bcf5-aadbd6824e65.jpg?1783906016',
   },
   solRingFdc: {
-    scryfallId: '4f152dd9-2b35-45b2-90fe-8c71d0634226',
+    printingId: '4f152dd9-2b35-45b2-90fe-8c71d0634226',
     oracleId: '6ad8011d-3471-4369-9d68-b264cc027487',
     setCode: 'fdc',
     setName: 'Foundations Commander',
@@ -918,12 +918,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/4/f/4f152dd9-2b35-45b2-90fe-8c71d0634226.jpg?1789753351',
+      'https://images.example.com/small/front/4/f/4f152dd9-2b35-45b2-90fe-8c71d0634226.jpg?1789753351',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/4/f/4f152dd9-2b35-45b2-90fe-8c71d0634226.jpg?1789753351',
+      'https://images.example.com/normal/front/4/f/4f152dd9-2b35-45b2-90fe-8c71d0634226.jpg?1789753351',
   },
   cultivateSoc: {
-    scryfallId: 'f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72',
+    printingId: 'f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72',
     oracleId: '8b755881-a72d-4e21-a369-d2924eb4585a',
     setCode: 'soc',
     setName: 'Secrets of Strixhaven Commander',
@@ -932,12 +932,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'common',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/1/f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72.jpg?1783903767',
+      'https://images.example.com/small/front/f/1/f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72.jpg?1783903767',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/1/f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72.jpg?1783903767',
+      'https://images.example.com/normal/front/f/1/f1cc00f9-ae7b-4f7b-95f2-bc5c00e4bd72.jpg?1783903767',
   },
   infernalGraspSoc: {
-    scryfallId: 'f67b323d-0dda-45f8-84b7-d883ce5045a8',
+    printingId: 'f67b323d-0dda-45f8-84b7-d883ce5045a8',
     oracleId: '94f0a572-e91c-4b56-a5d1-6cbbeabd210d',
     setCode: 'soc',
     setName: 'Secrets of Strixhaven Commander',
@@ -946,12 +946,12 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/f/6/f67b323d-0dda-45f8-84b7-d883ce5045a8.jpg?1783903785',
+      'https://images.example.com/small/front/f/6/f67b323d-0dda-45f8-84b7-d883ce5045a8.jpg?1783903785',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/f/6/f67b323d-0dda-45f8-84b7-d883ce5045a8.jpg?1783903785',
+      'https://images.example.com/normal/front/f/6/f67b323d-0dda-45f8-84b7-d883ce5045a8.jpg?1783903785',
   },
   arcaneSignetFdc: {
-    scryfallId: 'ee7710cf-e73d-479f-bc8d-0e78a0e324d9',
+    printingId: 'ee7710cf-e73d-479f-bc8d-0e78a0e324d9',
     oracleId: '0bc7f093-bef0-4f1a-852c-4b75ebf54838',
     setCode: 'fdc',
     setName: 'Foundations Commander',
@@ -960,9 +960,9 @@ export const printings = {
     finishes: ['nonfoil'],
     rarity: 'uncommon',
     imageSmall:
-      'https://cards.scryfall.io/small/front/e/e/ee7710cf-e73d-479f-bc8d-0e78a0e324d9.jpg?1789753310',
+      'https://images.example.com/small/front/e/e/ee7710cf-e73d-479f-bc8d-0e78a0e324d9.jpg?1789753310',
     imageNormal:
-      'https://cards.scryfall.io/normal/front/e/e/ee7710cf-e73d-479f-bc8d-0e78a0e324d9.jpg?1789753310',
+      'https://images.example.com/normal/front/e/e/ee7710cf-e73d-479f-bc8d-0e78a0e324d9.jpg?1789753310',
   },
 } satisfies Record<string, PrintingSummary>;
 

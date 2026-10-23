@@ -28,7 +28,7 @@ const withNested: CardCopies = {
 };
 
 async function mockApi(page: Page, copies: CardCopies) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

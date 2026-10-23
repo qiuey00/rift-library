@@ -5,7 +5,6 @@ import {
   ArrowUpToLine,
   CircleCheck,
   CircleX,
-  ClipboardPaste,
   History,
   Layers,
   LayoutGrid,
@@ -17,7 +16,6 @@ import {
   PackageOpen,
   Pencil,
   Images as PrintingsIcon,
-  RefreshCw,
   ShoppingCart,
   SquareCheckBig,
   Tag,
@@ -26,8 +24,6 @@ import {
   X,
 } from 'lucide-react';
 import {
-  type ComponentProps,
-  type DragEvent,
   type FormEvent,
   type KeyboardEvent,
   type ReactNode,
@@ -41,15 +37,15 @@ import { Link, useParams } from 'react-router';
 import type { CardSearchResult } from '../../shared/api/cards';
 import { type Board, type CardSummary, ErrorBody, type Id } from '../../shared/api/common';
 import type { DeckChecks } from '../../shared/api/deck-checks';
-import type { CardDrop, DeckSummary, DeckView, SlotChange, SlotRow } from '../../shared/api/decks';
+import type { DeckSummary, DeckView, SlotChange, SlotRow } from '../../shared/api/decks';
 import { api } from '../api';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { CardSearchPicker } from '../components/CardSearchPicker';
 import { ChangePrintingDialog } from '../components/ChangePrintingDialog';
+import { DeckListExportDialog } from '../components/DeckListExportDialog';
 import { DeleteDeckDialog } from '../components/DeleteDeckDialog';
 import { LocationTile } from '../components/LocationTile';
 import { ManaCost } from '../components/ManaCost';
-import { MoxfieldExportDialog } from '../components/MoxfieldExportDialog';
 import { Panel } from '../components/Panel';
 import { ProxyTag } from '../components/ProxyTag';
 import { StatePill } from '../components/StatePill';
@@ -167,8 +163,6 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
   const [changingPrinting, setChangingPrinting] = useState<SlotRow | null>(null);
   const [editingTags, setEditingTags] = useState<SlotRow | null>(null);
   const [commanderDialog, setCommanderDialog] = useState<CommanderDialogMode | null>(null);
-  const dragging = useOutsideDrag();
-  const dropCard = useCardDrop(deck.id);
 
   const previewed =
     slots.find((slot) => slot.id === hoveredId) ?? groups.decklist[0]?.slots[0] ?? slots[0] ?? null;
@@ -203,7 +197,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         <AvailabilityPanel deck={deck} slots={slots} />
         {editing && <EditPanel deck={deck} edits={edits} onDone={() => setEditing(false)} />}
         {!editing && slots.every((slot) => slot.board === 'commander') && (
-          <EmptyDeck deckId={deck.id} onEdit={() => setEditing(true)} />
+          <EmptyDeck onEdit={() => setEditing(true)} />
         )}
 
         <div className="flex flex-wrap items-center gap-3">
@@ -260,38 +254,14 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         <div className="flex flex-wrap items-start gap-6 lg:-mb-36 lg:after:h-30 lg:after:basis-full">
           <SidePane slot={previewed} checks={checks} />
           <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-[18px]">
-            <DropTarget
-              board="main"
-              dragging={dragging}
-              onCardDrop={dropCard}
-              role="region"
-              aria-label="Decklist"
-              className="px-4 py-[18px]"
-            >
+            <Panel role="region" aria-label="Decklist" className="relative px-4 py-[18px]">
               <SlotGroups groups={groups.decklist} listView={listView} rowProps={rowProps} />
-            </DropTarget>
-            {maybeCount === 0 && dragging && (
-              <DropTarget
-                board="maybe"
-                dragging={dragging}
-                onCardDrop={dropCard}
-                role="region"
-                aria-label="Maybe board"
-                className="flex min-h-[140px] items-center justify-center px-4 py-[18px]"
-              >
-                <h2 className="font-serif text-[26px] text-muted-foreground leading-none">
-                  Maybe board
-                </h2>
-              </DropTarget>
-            )}
+            </Panel>
             {maybeCount > 0 && (
-              <DropTarget
-                board="maybe"
-                dragging={dragging}
-                onCardDrop={dropCard}
+              <Panel
                 role="region"
                 aria-label="Maybe board"
-                className="flex flex-col gap-4 px-4 py-[18px]"
+                className="relative flex flex-col gap-4 px-4 py-[18px]"
               >
                 <div className="flex items-baseline justify-between gap-4 px-2">
                   <h2 className="font-serif text-[26px] leading-none">
@@ -310,7 +280,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
                   rowProps={rowProps}
                   level={3}
                 />
-              </DropTarget>
+              </Panel>
             )}
           </div>
         </div>
@@ -362,142 +332,8 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
   );
 }
 
-/** Whether a drag from outside the app (another site's card) is over the window. */
-function useOutsideDrag() {
-  const [dragging, setDragging] = useState(false);
-  useEffect(() => {
-    // Drags that start in the app, such as a card image in the deck, are not drops to add.
-    let inside = false;
-    // dragenter and dragleave fire for every element crossed; count them to know when the
-    // drag has left the window.
-    let depth = 0;
-    const onStart = () => {
-      inside = true;
-    };
-    const onEnd = () => {
-      inside = false;
-    };
-    const onEnter = (event: globalThis.DragEvent) => {
-      if (inside || !carriesCard(event.dataTransfer)) return;
-      depth += 1;
-      setDragging(true);
-    };
-    const onLeave = () => {
-      if (inside || depth === 0) return;
-      depth -= 1;
-      if (depth === 0) setDragging(false);
-    };
-    const onDrop = () => {
-      depth = 0;
-      setDragging(false);
-    };
-    document.addEventListener('dragstart', onStart);
-    document.addEventListener('dragend', onEnd);
-    window.addEventListener('dragenter', onEnter);
-    window.addEventListener('dragleave', onLeave);
-    window.addEventListener('drop', onDrop);
-    return () => {
-      document.removeEventListener('dragstart', onStart);
-      document.removeEventListener('dragend', onEnd);
-      window.removeEventListener('dragenter', onEnter);
-      window.removeEventListener('dragleave', onLeave);
-      window.removeEventListener('drop', onDrop);
-    };
-  }, []);
-  return dragging;
-}
-
-/** Whether a drag carries a link, page or text that may name a card (not only files). */
-function carriesCard(data: DataTransfer | null) {
-  const types = [...(data?.types ?? [])];
-  return ['text/uri-list', 'text/html', 'text/plain'].some((type) => types.includes(type));
-}
-
-/** Sends a card dropped from another site to the deck, and tells Jeff what happened. */
-function useCardDrop(deckId: Id) {
-  const queryClient = useQueryClient();
-  const undoBar = useUndoBar();
-  const drop = useMutation({
-    mutationFn: async (json: CardDrop): Promise<SlotRow> => {
-      const res = await api.decks[':id'].slots.drop.$post({ param: { id: String(deckId) }, json });
-      if (!res.ok) throw await failure(res, "Couldn't add the card to the deck.");
-      return res.json();
-    },
-    onSuccess: (slot) => {
-      const board = slot.board === 'maybe' ? 'maybe board' : 'main board';
-      undoBar.show({ message: `Added ${slot.card.name} to the ${board}.`, batchId: null });
-      return queryClient.invalidateQueries({ queryKey: ['decks'] });
-    },
-    onError: (error) => undoBar.show({ message: error.message, batchId: null, failed: true }),
-  });
-  return (board: CardDrop['board'], data: DataTransfer) =>
-    drop.mutate({
-      board,
-      uriList: data.getData('text/uri-list') || undefined,
-      html: data.getData('text/html') || undefined,
-      text: data.getData('text/plain') || undefined,
-    });
-}
-
-/** A panel that takes a card dragged in from another site while one is over the window. */
-function DropTarget({
-  board,
-  dragging,
-  onCardDrop,
-  className,
-  children,
-  ...props
-}: {
-  board: CardDrop['board'];
-  dragging: boolean;
-  onCardDrop: (board: CardDrop['board'], data: DataTransfer) => void;
-} & ComponentProps<typeof Panel>) {
-  const [over, setOver] = useState(false);
-  const accept = (event: DragEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    setOver(true);
-  };
-  return (
-    <Panel
-      {...props}
-      onDragEnter={accept}
-      onDragOver={accept}
-      onDragLeave={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(false);
-      }}
-      onDrop={(event) => {
-        if (!dragging) return;
-        event.preventDefault();
-        setOver(false);
-        onCardDrop(board, event.dataTransfer);
-      }}
-      className={cn(
-        'relative',
-        className,
-        dragging && 'border-[#9fb5ec] border-dashed outline-2 outline-[#9fb5ec] outline-dashed',
-        over && 'border-primary bg-[#f3f6fe] outline-primary',
-      )}
-    >
-      {dragging && (
-        <span
-          data-slot="drop-label"
-          className={cn(
-            'pointer-events-none absolute top-0 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-3.5 py-1 font-semibold text-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.12)]',
-            over ? 'bg-primary text-white' : 'bg-[#e8eefc] text-[#1b3f9c]',
-          )}
-        >
-          Drop to add to the {board === 'maybe' ? 'maybe board' : 'main board'}
-        </span>
-      )}
-      {children}
-    </Panel>
-  );
-}
-
-/** Shown while the deck holds only its commander: start the list from Moxfield or by hand. */
-function EmptyDeck({ deckId, onEdit }: { deckId: Id; onEdit: () => void }) {
+/** Shown while the deck holds only its commander: start adding cards. */
+function EmptyDeck({ onEdit }: { onEdit: () => void }) {
   return (
     <Panel
       role="region"
@@ -508,13 +344,7 @@ function EmptyDeck({ deckId, onEdit }: { deckId: Id; onEdit: () => void }) {
         This deck has no cards besides its commander yet.
       </p>
       <div className="flex flex-wrap justify-center gap-2.5">
-        <Button asChild>
-          <Link to={`/import/moxfield?deck=${deckId}`}>
-            <ClipboardPaste aria-hidden="true" />
-            Paste a Moxfield list
-          </Link>
-        </Button>
-        <Button variant="outline" onClick={onEdit}>
+        <Button onClick={onEdit}>
           <Pencil aria-hidden="true" />
           Add cards
         </Button>
@@ -583,13 +413,7 @@ function DeckHeader({
           )}
           <Button variant="ghost" className={lightButton} onClick={() => setExporting(true)}>
             <Upload aria-hidden="true" />
-            Export to Moxfield
-          </Button>
-          <Button asChild variant="ghost" className={lightButton}>
-            <Link to={`/import/moxfield?deck=${deck.id}`}>
-              <RefreshCw aria-hidden="true" />
-              Update from Moxfield
-            </Link>
+            Export
           </Button>
           <Button
             variant="ghost"
@@ -632,7 +456,7 @@ function DeckHeader({
         deckName={deck.name}
       />
       {exporting && (
-        <MoxfieldExportDialog
+        <DeckListExportDialog
           open
           onOpenChange={setExporting}
           source={{ kind: 'deck', deckId: deck.id, deckName: deck.name }}
@@ -1646,7 +1470,7 @@ function EditTagsDialog({
           <DialogHeader>
             <DialogTitle>{slot.card.name}</DialogTitle>
             <DialogDescription>
-              Tags group and filter the deck view, and go to Moxfield with the deck.
+              Tags group and filter the deck view, and go with the deck when it is exported.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">

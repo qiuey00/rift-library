@@ -161,7 +161,7 @@ export const historyDaySample: HistoryDay = {
       batch: {
         id: 101,
         kind: 'import',
-        summary: 'Imported manabox-2026-10-18.csv · 7 cards into To sort',
+        summary: 'Imported 7 cards',
         deck: null,
         createdAt: '2026-10-18T19:02:11Z',
         undone: false,

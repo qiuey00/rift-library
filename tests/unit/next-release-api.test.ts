@@ -9,11 +9,7 @@ import type { z } from 'zod';
 import { openDatabase } from '../../src/server/db/database';
 import { createTestDb } from '../../src/server/db/test-db';
 import { DeckView, SlotRow, SlotTags, Tag } from '../../src/shared/api/decks';
-import {
-  COLLECTION_CSV_COLUMNS,
-  DeckExportQuery,
-  MoxfieldExport,
-} from '../../src/shared/api/exports';
+import { COLLECTION_CSV_COLUMNS } from '../../src/shared/api/exports';
 import { LocationNode, UpdateLocationBody } from '../../src/shared/api/locations';
 import { PickListResponse } from '../../src/shared/api/pick-list';
 import { deckViewSample, slotTagsSample } from '../../src/shared/api/samples/decks';
@@ -32,13 +28,6 @@ describe('Next release samples', () => {
     ['pick list', PickListResponse, pickListSample],
     ['deck view', DeckView, deckViewSample],
     ['tagged slot', SlotRow, slotTagsSample],
-    ['Hearthhull export', MoxfieldExport, exportsSamples.hearthhullMoxfieldExportSample],
-    [
-      'Hearthhull export without tags or maybe board',
-      MoxfieldExport,
-      exportsSamples.hearthhullPlainMoxfieldExportSample,
-    ],
-    ['Trade binder export', MoxfieldExport, exportsSamples.tradeBinderMoxfieldExportSample],
   ] as const)('the %s sample parses', (_name, schema, sample) => {
     expect((schema as z.ZodType).parse(sample)).toEqual(sample);
   });
@@ -78,32 +67,6 @@ describe('Next release samples', () => {
     }
   });
 
-  it('counts the cards and lines in each Moxfield export', () => {
-    const exports = [
-      exportsSamples.hearthhullMoxfieldExportSample,
-      exportsSamples.hearthhullPlainMoxfieldExportSample,
-      exportsSamples.tradeBinderMoxfieldExportSample,
-    ];
-    for (const file of exports) {
-      const cardLines = file.text.split('\n').filter((line) => /^\d+ /.test(line));
-      expect(cardLines).toHaveLength(file.lineCount);
-      const quantities = cardLines.map((line) => Number.parseInt(line, 10));
-      expect(quantities.reduce((sum, n) => sum + n, 0)).toBe(file.cardCount + file.maybeCount);
-    }
-    const hearthhull = exportsSamples.hearthhullMoxfieldExportSample.text;
-    expect(hearthhull).toContain('1 Arcane Signet (EOC) 53 #ramp\n');
-    expect(hearthhull).toContain('1 Augur of Autumn (EOC) 92 #card-draw #ramp\n');
-    // Moxfield writes tags in lower case with hyphens for spaces, such as #token-maker.
-    for (const tag of hearthhull.match(/#\S+/g) ?? []) expect(tag).toMatch(/^#[a-z0-9-]+$/);
-    expect(exportsSamples.hearthhullPlainMoxfieldExportSample.text).not.toContain('#');
-    expect(exportsSamples.tradeBinderMoxfieldExportSample.text).toContain(
-      '1 Jeweled Lotus (EOC) 160 *F*\n',
-    );
-    expect(exportsSamples.tradeBinderMoxfieldExportSample.cardCount).toBe(
-      tradeBinderNode.totalCount,
-    );
-  });
-
   it('writes the CSV header and three rows', () => {
     const [header, ...rows] = exportsSamples.collectionCsvSample.trimEnd().split('\n');
     expect(header).toBe(COLLECTION_CSV_COLUMNS.join(','));
@@ -123,10 +86,9 @@ describe('Next release request checks', () => {
     expect(SlotTags.parse({ tags: [] })).toEqual({ tags: [] });
   });
 
-  it('defaults the stacks sort to name and the deck export to tags and maybe board', () => {
+  it('defaults the stacks sort to name', () => {
     expect(StacksQuery.parse({}).sort).toBe('name');
     expect(StacksQuery.safeParse({ sort: 'price' }).success).toBe(false);
-    expect(DeckExportQuery.parse({})).toEqual({ tags: '1', maybe: '1' });
   });
 
   it('takes forTrade alone as a location change', () => {

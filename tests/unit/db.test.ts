@@ -11,7 +11,6 @@ import { createTestDb } from '../../src/server/db/test-db';
 import { startServer } from '../../src/server/server';
 
 const TABLES = [
-  'binder_mappings',
   'buy_list_items',
   'card_data_status',
   'cards',
@@ -20,7 +19,6 @@ const TABLES = [
   'deck_slot_tags',
   'deck_slots',
   'decks',
-  'imports',
   'locations',
   'movement_batches',
   'movements',
@@ -101,7 +99,7 @@ describe('rules in the schema', () => {
       .run();
     db.insert(printings)
       .values({
-        scryfallId: 'printing-sol-ring',
+        printingId: 'printing-sol-ring',
         oracleId: 'oracle-sol-ring',
         setCode: 'cmm',
         setName: 'Commander Masters',
@@ -119,7 +117,7 @@ describe('rules in the schema', () => {
     db
       .insert(copyStacks)
       .values({
-        scryfallId: 'printing-sol-ring',
+        printingId: 'printing-sol-ring',
         quantity: 1,
         finish: 'nonfoil',
         condition: 'near_mint',
@@ -163,7 +161,7 @@ describe('rules in the schema', () => {
   });
 
   it('rejects a stack whose printing or location is missing', () => {
-    expect(() => stack({ scryfallId: 'no-such-printing' })).toThrow(/FOREIGN KEY/);
+    expect(() => stack({ printingId: 'no-such-printing' })).toThrow(/FOREIGN KEY/);
     expect(() => stack({ locationId: 999 })).toThrow(/FOREIGN KEY/);
   });
 

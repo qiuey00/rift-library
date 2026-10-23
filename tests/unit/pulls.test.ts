@@ -52,10 +52,10 @@ function card(oracleId: string, name: string) {
     .run();
 }
 
-function printing(scryfallId: string, oracleId: string, lang = 'en') {
+function printing(printingId: string, oracleId: string, lang = 'en') {
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode: 'cmm',
       setName: 'Commander Masters',
@@ -72,10 +72,10 @@ function deck(name: string, deckBoxId: number) {
   return db.insert(decks).values({ name, deckBoxId }).returning({ id: decks.id }).get().id;
 }
 
-function slot(deckId: number, oracleId: string, pickedScryfallId: string | null = null) {
+function slot(deckId: number, oracleId: string, pickedPrintingId: string | null = null) {
   return db
     .insert(deckSlots)
-    .values({ deckId, oracleId, board: 'main', quantity: 1, pickedScryfallId })
+    .values({ deckId, oracleId, board: 'main', quantity: 1, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
@@ -84,7 +84,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId: SIGNET,
+      printingId: SIGNET,
       quantity: 1,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -111,7 +111,7 @@ function pull(
   });
 }
 
-function proxy(deckId: number, json: { slotId: number; scryfallId: string; batchId?: number }) {
+function proxy(deckId: number, json: { slotId: number; printingId: string; batchId?: number }) {
   return client.decks[':id'].proxies.$post({
     param: { id: String(deckId) },
     json: { quantity: 1, ...json },
@@ -162,7 +162,7 @@ describe('POST /api/decks/:id/pulls', () => {
         cameFromLocationId: binder,
       }),
     ]);
-    expect(getSlot(signetSlot)?.pickedScryfallId).toBe(SIGNET);
+    expect(getSlot(signetSlot)?.pickedPrintingId).toBe(SIGNET);
 
     const [movement] = allMovements();
     expect(allMovements()).toHaveLength(1);
@@ -218,7 +218,7 @@ describe('POST /api/decks/:id/pulls', () => {
       'stale_copy',
     );
     expect(stacks()).toEqual([expect.objectContaining({ id: source, locationId: binder })]);
-    expect(getSlot(signetSlot)?.pickedScryfallId).toBe(SIGNET_OTHER);
+    expect(getSlot(signetSlot)?.pickedPrintingId).toBe(SIGNET_OTHER);
     expect(allMovements()).toEqual([]);
     expect(db.select().from(movementBatches).all()).toEqual([]);
   });
@@ -305,14 +305,14 @@ describe('POST /api/decks/:id/pulls', () => {
 
 describe('POST /api/decks/:id/proxies', () => {
   it('adds a proxy to the deck box with no came-from and fills the slot', async () => {
-    const res = await proxy(hearthhull, { slotId: soulSlot, scryfallId: SOUL_JA });
+    const res = await proxy(hearthhull, { slotId: soulSlot, printingId: SOUL_JA });
     expect(res.status).toBe(200);
     const result = ProxyResult.parse(await res.json());
     expect(result.message).toBe('Added a proxy of Soul of Windgrace to Hearthhull deck box');
 
     expect(stacks()).toEqual([
       expect.objectContaining({
-        scryfallId: SOUL_JA,
+        printingId: SOUL_JA,
         quantity: 1,
         isProxy: true,
         condition: 'near_mint',
@@ -321,7 +321,7 @@ describe('POST /api/decks/:id/proxies', () => {
         cameFromLocationId: null,
       }),
     ]);
-    expect(getSlot(soulSlot)?.pickedScryfallId).toBe(SOUL_JA);
+    expect(getSlot(soulSlot)?.pickedPrintingId).toBe(SOUL_JA);
     expect(allMovements()).toEqual([
       expect.objectContaining({
         id: result.movementId,
@@ -343,7 +343,7 @@ describe('POST /api/decks/:id/proxies', () => {
     );
     const res = await proxy(hearthhull, {
       slotId: soulSlot,
-      scryfallId: SOUL,
+      printingId: SOUL,
       batchId: pulled.batchId,
     });
     expect(ProxyResult.parse(await res.json()).batchId).toBe(pulled.batchId);
@@ -351,12 +351,12 @@ describe('POST /api/decks/:id/proxies', () => {
 
   it('refuses a printing of another card or one not in the card data', async () => {
     await expectError(
-      await proxy(hearthhull, { slotId: soulSlot, scryfallId: SIGNET }),
+      await proxy(hearthhull, { slotId: soulSlot, printingId: SIGNET }),
       400,
       'wrong_card',
     );
     await expectError(
-      await proxy(hearthhull, { slotId: soulSlot, scryfallId: 'nope' }),
+      await proxy(hearthhull, { slotId: soulSlot, printingId: 'nope' }),
       404,
       'printing_not_found',
     );

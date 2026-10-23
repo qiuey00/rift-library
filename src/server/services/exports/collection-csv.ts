@@ -5,13 +5,12 @@ import type { Db } from '../../db/database';
 import { cards, copyStacks, printings } from '../../db/schema';
 import { locationPaths } from '../../queries/locations';
 
-// The whole collection as a CSV backup in ManaBox's columns (PLAT-7), one row per copy stack,
-// so the ManaBox import with binder mapping can rebuild it. Each location's path is its Binder
-// Name. Rows are written a location at a time, so the whole file is never held in memory.
+// The whole collection as a CSV backup (PLAT-7), one row per copy stack, with each location's
+// path. Rows are written a location at a time, so the whole file is never held in memory.
 
 type Column = (typeof COLLECTION_CSV_COLUMNS)[number];
 
-/** Finishes as ManaBox writes them. */
+/** Finishes as the file writes them. */
 const FOIL: Record<Finish, string> = { nonfoil: 'normal', foil: 'foil', etched: 'etched' };
 
 /** The header, then each location's copy stacks in tree order, each by name. */
@@ -28,7 +27,7 @@ export function* collectionCsv(db: Db): Generator<string> {
         stack: copyStacks,
       })
       .from(copyStacks)
-      .innerJoin(printings, eq(printings.scryfallId, copyStacks.scryfallId))
+      .innerJoin(printings, eq(printings.printingId, copyStacks.printingId))
       .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
       .where(eq(copyStacks.locationId, locationId))
       .orderBy(
@@ -49,16 +48,14 @@ export function* collectionCsv(db: Db): Generator<string> {
           Foil: FOIL[stack.finish],
           Rarity: card.rarity,
           Quantity: String(stack.quantity),
-          'ManaBox ID': '',
-          'Scryfall ID': stack.scryfallId,
+          'Printing ID': stack.printingId,
           'Purchase price': stack.purchasePrice === null ? '' : String(stack.purchasePrice),
           Misprint: String(stack.misprint),
           Altered: String(stack.altered),
           Condition: stack.condition,
           Language: stack.language,
           'Purchase price currency': stack.purchaseCurrency ?? '',
-          'Binder Name': path,
-          'Binder Type': 'binder',
+          Location: path,
           Proxy: String(stack.isProxy),
         };
         return csvLine(COLLECTION_CSV_COLUMNS.map((column) => row[column]));

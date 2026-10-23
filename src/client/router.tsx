@@ -7,7 +7,6 @@ import { Deck } from './routes/Deck';
 import { DecksHome } from './routes/DecksHome';
 import { History } from './routes/History';
 import { Locations } from './routes/Locations';
-import { MoxfieldImport } from './routes/MoxfieldImport';
 import { NewDeck } from './routes/NewDeck';
 import { NotFound } from './routes/NotFound';
 import { PickList } from './routes/PickList';
@@ -35,7 +34,6 @@ export const routes: RouteObject[] = [
       { path: 'decks/:id/assemble', element: <PickList /> },
       { path: 'decks/:id/take-apart', element: <PutAway /> },
       { path: 'decks/:id/swap', element: <SwapList /> },
-      { path: 'import/moxfield', element: <MoxfieldImport /> },
       { path: '*', element: <NotFound /> },
     ],
   },

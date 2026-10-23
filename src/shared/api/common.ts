@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Schemas every area's API uses. Each schema has a type of the same name.
 
-/** App row ids are whole numbers. Scryfall ids (oracle ids, printing ids) are strings. */
+/** App row ids are whole numbers. Card data ids (oracle ids, printing ids) are strings. */
 export const Id = z.number().int().positive();
 export type Id = z.infer<typeof Id>;
 
@@ -37,7 +37,7 @@ export const ErrorBody = z.object({
 });
 export type ErrorBody = z.infer<typeof ErrorBody>;
 
-/** One card (all its printings), from Scryfall's card data. */
+/** One card (all its printings), from the card data. */
 export const CardSummary = z.object({
   oracleId: z.string(),
   /** The full "Front // Back" name for double-faced cards. */
@@ -55,9 +55,9 @@ export const CardSummary = z.object({
 });
 export type CardSummary = z.infer<typeof CardSummary>;
 
-/** One printing of a card, from Scryfall's card data. */
+/** One printing of a card, from the card data. */
 export const PrintingSummary = z.object({
-  scryfallId: z.string(),
+  printingId: z.string(),
   oracleId: z.string(),
   setCode: z.string(),
   setName: z.string(),
@@ -107,7 +107,7 @@ export const StackRow = z.object({
   /** Where copies in a deck box go back to; null outside deck boxes and for added proxies. */
   cameFrom: LocationRef.nullable(),
   inDeck: z.object({ deckId: Id, deckName: z.string() }).nullable(),
-  /** Scryfall's price for one copy in the stack's finish; null when it has none. */
+  /** The price of one copy in the stack's finish; null when there is none. */
   unitPrice: Cents.nullable(),
   /** quantity × unitPrice; 0 for proxies and stacks with no price. */
   value: Cents,

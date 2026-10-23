@@ -10,14 +10,14 @@ import {
   harmonizedTrioDetails,
 } from '../../src/shared/api/samples/cards';
 
-// A 1×1 PNG stands in for Scryfall's card images; tests never reach the network.
+// A 1×1 PNG stands in for the card images; tests never reach the network.
 const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
   'base64',
 );
 
 async function mockApi(page: Page, status: CardDataStatus = cardDataStatusSamples.ready) {
-  await page.route('https://cards.scryfall.io/**', (route) =>
+  await page.route('https://images.example.com/**', (route) =>
     route.fulfill({ contentType: 'image/png', body: pixel }),
   );
   await page.route('**/api/card-data/status', (route) => route.fulfill({ json: status }));

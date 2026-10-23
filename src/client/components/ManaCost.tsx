@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { cn } from '../lib/utils';
 
 /**
- * The Mana font class for one symbol from Scryfall's cost text, such as `{2}` → `ms-2`,
+ * The Mana font class for one symbol from the cost text, such as `{2}` → `ms-2`,
  * `{G/U}` → `ms-gu`, `{2/W}` → `ms-2w`, `{T}` → `ms-tap`.
  */
 export function manaSymbolClass(symbol: string): string {
@@ -20,7 +20,7 @@ export function parseManaCost(cost: string): string[][] {
   return cost.split(' // ').map((face) => [...face.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]));
 }
 
-/** Mana font class names for a Scryfall mana cost, such as "{2}{W/U}{G/P}" → ["2", "wu", "gp"]. */
+/** Mana font class names for a mana cost, such as "{2}{W/U}{G/P}" → ["2", "wu", "gp"]. */
 export function manaSymbols(cost: string): string[] {
   return parseManaCost(cost)
     .flat()

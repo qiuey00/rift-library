@@ -19,7 +19,7 @@ const arcaneSignetOracleId = arcaneSignetDetails.card.oracleId;
 
 async function mockHistory(page: Page, { undoStatus = 200 }: { undoStatus?: number } = {}) {
   await page.clock.setFixedTime(new Date('2026-10-18T23:00:00-07:00'));
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

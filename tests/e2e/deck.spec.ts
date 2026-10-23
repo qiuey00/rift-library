@@ -9,7 +9,7 @@ import { deckViewSample, hearthhull, slotSample } from '../../src/shared/api/sam
 // The deck view with the API mocked from the samples: the Hearthhull deck (id 1).
 
 async function mockDeck(page: Page, deck: Partial<DeckSummary> = {}) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),
@@ -43,10 +43,6 @@ test('the header shows the deck, its state and its actions', async ({ page }) =>
   await expect(header.getByRole('link', { name: 'Take apart' })).toHaveAttribute(
     'href',
     '/decks/1/take-apart',
-  );
-  await expect(header.getByRole('link', { name: 'Update from Moxfield' })).toHaveAttribute(
-    'href',
-    '/import/moxfield?deck=1',
   );
   await expect(header.getByRole('link', { name: 'History' })).toHaveAttribute(
     'href',
@@ -190,7 +186,7 @@ test('rows show each status, with location paths and the other decks', async ({ 
   await expect(page).toHaveURL(/\/cards\/[0-9a-f-]+$/);
 });
 
-test('Group by Type puts cards in Moxfield order, with basics in Lands', async ({ page }) => {
+test('Group by Type puts cards in deck list order, with basics in Lands', async ({ page }) => {
   await page.goto('/decks/1');
   await expect(groupNames(page)).toHaveText([
     /^Commander1$/,
@@ -347,6 +343,8 @@ test('Change printing lists the printings and saves the one picked, with foil', 
   const changes = await captureSlotChanges(page, 118);
   await page.goto('/decks/1');
 
+  // Mid-screen, so the menu opens below the pointer rather than up over it.
+  await row(page, 118).evaluate((li) => li.scrollIntoView({ block: 'center' }));
   await row(page, 118).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Change printing…' }).click();
   const dialog = page.getByRole('dialog', { name: 'Change printing' });
@@ -362,7 +360,7 @@ test('Change printing lists the printings and saves the one picked, with foil', 
   await dialog.getByLabel('Foil').check();
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
-  expect(changes).toEqual([{ printing: { scryfallId: cmm?.scryfallId, foil: true } }]);
+  expect(changes).toEqual([{ printing: { printingId: cmm?.printingId, foil: true } }]);
 });
 
 test('Change printing says a copy in the deck box stays', async ({ page }) => {
@@ -377,6 +375,8 @@ test('Change printing says a copy in the deck box stays', async ({ page }) => {
   );
   await page.goto('/decks/1');
 
+  // Mid-screen, so the menu opens below the pointer rather than up over it.
+  await row(page, 118).evaluate((li) => li.scrollIntoView({ block: 'center' }));
   await row(page, 118).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Change printing…' }).click();
   const dialog = page.getByRole('dialog', { name: 'Change printing' });
@@ -471,7 +471,7 @@ test('the deck view keeps its own rows / images choice', async ({ page }) => {
   expect(stored).toEqual(['images', null]);
 });
 
-test('a deck with only its commander offers Paste a Moxfield list', async ({ page }) => {
+test('a deck with only its commander offers Add cards', async ({ page }) => {
   await page.route('**/api/decks/1', (route) =>
     route.fulfill({
       json: {
@@ -482,10 +482,6 @@ test('a deck with only its commander offers Paste a Moxfield list', async ({ pag
   );
   await page.goto('/decks/1');
   const empty = page.getByRole('region', { name: 'Empty deck' });
-  await expect(empty.getByRole('link', { name: 'Paste a Moxfield list' })).toHaveAttribute(
-    'href',
-    '/import/moxfield?deck=1',
-  );
   await empty.getByRole('button', { name: 'Add cards' }).click();
   await expect(empty).toHaveCount(0);
 });

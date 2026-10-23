@@ -58,10 +58,10 @@ function card(name: string, options: { basic?: boolean; allowsMany?: boolean } =
 }
 
 function printing(oracleId: string, setCode: string, collectorNumber: string) {
-  const scryfallId = `${oracleId}-${setCode}-${collectorNumber}`;
+  const printingId = `${oracleId}-${setCode}-${collectorNumber}`;
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode,
       setName: setCode.toUpperCase(),
@@ -72,18 +72,18 @@ function printing(oracleId: string, setCode: string, collectorNumber: string) {
       releasedAt: '2025-01-01',
     })
     .run();
-  return scryfallId;
+  return printingId;
 }
 
 function stack(
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   options: { quantity?: number; isProxy?: boolean; finish?: Finish; cameFrom?: number } = {},
 ) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       locationId,
       quantity: options.quantity ?? 1,
       finish: options.finish ?? 'nonfoil',
@@ -119,7 +119,7 @@ function slot(
       oracleId,
       board: options.board ?? 'main',
       quantity: options.quantity ?? 1,
-      pickedScryfallId: options.picked,
+      pickedPrintingId: options.picked,
       hintSetCode: options.hint?.[0],
       hintCollectorNumber: options.hint?.[1],
       hintFoil: options.hint?.[2] ?? false,

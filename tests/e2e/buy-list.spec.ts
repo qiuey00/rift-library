@@ -8,7 +8,7 @@ import { buyItemSample, buyListSample } from '../../src/shared/api/samples/buy-l
 type Sent = { method: string; url: string; body: unknown };
 
 async function mockBuyList(page: Page, list: BuyList = buyListSample) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),

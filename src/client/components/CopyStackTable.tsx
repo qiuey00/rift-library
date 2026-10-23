@@ -38,7 +38,7 @@ export type CopyStackView = 'rows' | 'images';
 
 /** Text rows are this tall, so the virtual list knows where each row is without measuring. */
 export const ROW_HEIGHT = 44;
-/** Card images are Scryfall's normal size (488 × 680), scaled to the column width. */
+/** Card images are 488 × 680, scaled to the column width. */
 const IMAGE_MIN_WIDTH = 200;
 const IMAGE_RATIO = 680 / 488;
 const GRID_GAP = 16;
@@ -141,7 +141,7 @@ function LocationLink({ row, className }: { row: StackRow; className?: string })
   );
 }
 
-/** quantity × price; "No price" when Scryfall has none, and empty for proxies, which have no value. */
+/** quantity × price; "No price" when there is none, and empty for proxies, which have no value. */
 function StackValue({ row }: { row: StackRow }) {
   if (row.isProxy) return null;
   if (row.unitPrice === null) return <span className="text-muted-foreground">No price</span>;

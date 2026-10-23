@@ -155,7 +155,7 @@ describe('missingQuantity', () => {
 });
 
 describe('manaSymbols', () => {
-  it('turns a Scryfall cost into Mana font names', () => {
+  it('turns a mana cost into Mana font names', () => {
     expect(manaSymbols('{X}{2}{W/U}{G/P}{2/B}')).toEqual(['x', '2', 'wu', 'gp', '2b']);
     expect(manaSymbols('')).toEqual([]);
   });

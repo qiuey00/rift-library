@@ -1,16 +1,8 @@
-import { ChevronDown, ClipboardPaste, FileSpreadsheet, Settings, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { cn } from '../lib/utils';
 import { InboxBadge } from './InboxBadge';
-import { ManaBoxImportDialog } from './ManaBoxImportDialog';
 import { TopBarSearch } from './TopBarSearch';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 
 /** The five screens in the top bar, in order. Deck pages count as Decks. */
 const screens = [
@@ -33,7 +25,6 @@ const isAt = (path: string, to: string) => path === to || path.startsWith(`${to}
  */
 export function TopBar() {
   const { pathname } = useLocation();
-  const [manaBoxOpen, setManaBoxOpen] = useState(false);
 
   return (
     <header className="flex flex-wrap items-center gap-5 bg-top-bar px-6 py-2.5 text-[#f1f2f5]">
@@ -70,26 +61,6 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 max-xl:ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex h-[38px] items-center gap-2 rounded-lg border border-top-bar-line px-3.5 font-medium hover:bg-top-bar-hover data-[state=open]:bg-top-bar-hover">
-            <Upload aria-hidden="true" className="size-4" />
-            Import
-            <ChevronDown aria-hidden="true" className="size-4 text-top-bar-muted" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-48">
-            <DropdownMenuItem onSelect={() => setManaBoxOpen(true)}>
-              <FileSpreadsheet aria-hidden="true" />
-              ManaBox CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/import/moxfield">
-                <ClipboardPaste aria-hidden="true" />
-                Moxfield deck
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         <Link
           to="/settings"
           aria-label="Settings"
@@ -99,8 +70,6 @@ export function TopBar() {
           <Settings aria-hidden="true" className="size-[18px]" />
         </Link>
       </div>
-
-      <ManaBoxImportDialog open={manaBoxOpen} onOpenChange={setManaBoxOpen} />
     </header>
   );
 }

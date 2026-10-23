@@ -74,7 +74,7 @@ export function ProxyPrintingDialog({
         ) : (
           <ul className="m-0 flex max-h-80 list-none flex-col gap-1 overflow-y-auto p-0">
             {printings.map((printing) => (
-              <li key={printing.scryfallId}>
+              <li key={printing.printingId}>
                 <button
                   type="button"
                   onClick={() => onPick(printing)}

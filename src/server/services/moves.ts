@@ -38,13 +38,13 @@ function deckOfBox(db: Db, locationId: number): number | undefined {
     .get()?.id;
 }
 
-function cardName(db: Db, scryfallId: string): string {
+function cardName(db: Db, printingId: string): string {
   return (
     db
       .select({ name: cards.name })
       .from(printings)
       .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-      .where(eq(printings.scryfallId, scryfallId))
+      .where(eq(printings.printingId, printingId))
       .get()?.name ?? 'card'
   );
 }
@@ -53,9 +53,9 @@ function cardName(db: Db, scryfallId: string): string {
  * "Arcane Signet" for one copy, "3 Arcane Signet" for copies of one card, "12 cards"
  * otherwise.
  */
-export function describeCopies(db: Db, moved: { scryfallId: string; quantity: number }[]): string {
+export function describeCopies(db: Db, moved: { printingId: string; quantity: number }[]): string {
   const total = moved.reduce((sum, m) => sum + m.quantity, 0);
-  const names = new Set(moved.map((m) => cardName(db, m.scryfallId)));
+  const names = new Set(moved.map((m) => cardName(db, m.printingId)));
   if (names.size === 1) {
     const [name] = names;
     return total === 1 ? name : `${total} ${name}`;
@@ -101,7 +101,7 @@ export function moveStacks(db: Db, body: MoveCopiesBody): ActionResult {
     const batchId = moveInBatch(tx, moving, to.id);
     const what = describeCopies(
       tx,
-      moving.map((m) => ({ scryfallId: m.stack.scryfallId, quantity: m.quantity })),
+      moving.map((m) => ({ printingId: m.stack.printingId, quantity: m.quantity })),
     );
     return { message: `Moved ${what} to ${to.name}`, batchId };
   });
@@ -130,7 +130,7 @@ export function moveContents(db: Db, fromLocationId: number, body: MoveContentsB
     const batchId = moveInBatch(tx, moving, to.id);
     const what = describeCopies(
       tx,
-      moving.map((m) => ({ scryfallId: m.stack.scryfallId, quantity: m.quantity })),
+      moving.map((m) => ({ printingId: m.stack.printingId, quantity: m.quantity })),
     );
     return { message: `Moved ${what} from ${from.name} to ${to.name}`, batchId };
   });
@@ -150,12 +150,12 @@ export function markProxy(db: Db, stackIds: number[], isProxy: boolean): ActionR
 export function addToCollection(db: Db, body: AddCopiesBody): ActionResult {
   return db.transaction((tx) => {
     const location = liveLocation(tx, body.locationId);
-    if (!printingExists(tx, body.scryfallId)) {
+    if (!printingExists(tx, body.printingId)) {
       throw new AppError(404, 'printing_not_found', 'That printing is not in the card data');
     }
     const batchId = createBatch(tx, 'add');
     addCopies(tx, { ...body, reason: 'added', batchId, deckId: deckOfBox(tx, location.id) });
-    const name = cardName(tx, body.scryfallId);
+    const name = cardName(tx, body.printingId);
     return { message: `Added ${body.quantity} ${name} to ${location.name}`, batchId };
   });
 }

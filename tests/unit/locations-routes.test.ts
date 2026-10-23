@@ -37,7 +37,7 @@ beforeEach(() => {
     .run();
   db.insert(printings)
     .values({
-      scryfallId: 'print-sol-ring',
+      printingId: 'print-sol-ring',
       oracleId: 'oracle-sol-ring',
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
@@ -80,7 +80,7 @@ async function errorCode(res: Response, status: number) {
 function addCopies(locationId: number, quantity: number, condition = 'near_mint') {
   db.insert(copyStacks)
     .values({
-      scryfallId: 'print-sol-ring',
+      printingId: 'print-sol-ring',
       quantity,
       finish: 'nonfoil',
       condition,

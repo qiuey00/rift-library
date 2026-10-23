@@ -39,12 +39,12 @@ function deckSlot(db: Db, deckId: number, slotId: number) {
 }
 
 /** The printing's card, or undefined when the printing is not in the card data. */
-function printingCard(db: Db, scryfallId: string) {
+function printingCard(db: Db, printingId: string) {
   return db
     .select({ oracleId: cards.oracleId, name: cards.name, lang: printings.lang })
     .from(printings)
     .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-    .where(eq(printings.scryfallId, scryfallId))
+    .where(eq(printings.printingId, printingId))
     .get();
 }
 
@@ -89,7 +89,7 @@ export function pullCopies(db: Db, deckId: number, body: PullRequest): PullResul
     const slot = deckSlot(tx, deckId, body.slotId);
     const stack = tx.select().from(copyStacks).where(eq(copyStacks.id, body.stackId)).get();
     if (!stack || stack.quantity < body.quantity) throw new StaleCopyError();
-    const card = printingCard(tx, stack.scryfallId);
+    const card = printingCard(tx, stack.printingId);
     if (card?.oracleId !== slot.oracleId) throw wrongCard(tx, slot.oracleId, 'copy');
     if (stack.locationId === deck.deckBoxId) {
       throw new AppError(400, 'already_there', `That copy is already in ${deck.boxName}`);
@@ -109,11 +109,11 @@ export function pullCopies(db: Db, deckId: number, body: PullRequest): PullResul
       reason,
       deckId,
       slotId: slot.id,
-      pickedBefore: slot.pickedScryfallId,
+      pickedBefore: slot.pickedPrintingId,
       batchId,
     });
     tx.update(deckSlots)
-      .set({ pickedScryfallId: stack.scryfallId })
+      .set({ pickedPrintingId: stack.printingId })
       .where(eq(deckSlots.id, slot.id))
       .run();
 
@@ -128,7 +128,7 @@ export function addProxy(db: Db, deckId: number, body: ProxyRequest): ProxyResul
   return db.transaction((tx) => {
     const deck = liveDeck(tx, deckId);
     const slot = deckSlot(tx, deckId, body.slotId);
-    const card = printingCard(tx, body.scryfallId);
+    const card = printingCard(tx, body.printingId);
     if (!card) {
       throw new AppError(404, 'printing_not_found', 'That printing is not in the card data');
     }
@@ -136,7 +136,7 @@ export function addProxy(db: Db, deckId: number, body: ProxyRequest): ProxyResul
 
     const batchId = joinOrCreateBatch(tx, deckId, 'pick_list', body.batchId);
     const { movementId } = addCopies(tx, {
-      scryfallId: body.scryfallId,
+      printingId: body.printingId,
       quantity: body.quantity,
       locationId: deck.deckBoxId,
       finish: 'nonfoil',
@@ -151,7 +151,7 @@ export function addProxy(db: Db, deckId: number, body: ProxyRequest): ProxyResul
       batchId,
     });
     tx.update(deckSlots)
-      .set({ pickedScryfallId: body.scryfallId })
+      .set({ pickedPrintingId: body.printingId })
       .where(eq(deckSlots.id, slot.id))
       .run();
 

@@ -6,13 +6,13 @@ import { cardDataStatus } from '../db/schema';
 import { descendantIds } from './locations';
 
 // What copies are worth (VAL-2), always worked out live from copy_stacks and printings and
-// never stored. A stack's unit price is Scryfall's US price for its finish, and its value is
+// never stored. A stack's unit price is the US price for its finish, and its value is
 // quantity × unit price. Proxies are worth 0 and aren't counted as no price; real copies
 // with no price are worth 0 and are counted in `noPriceCount` (by card quantity).
 
 /**
  * The unit price of the stack `s` of printing `p`, in cents, as a SQL expression; NULL when
- * Scryfall has no price for the stack's finish.
+ * there is no price for the stack's finish.
  */
 export const unitPriceSql = sql`(CASE s.finish
   WHEN 'foil' THEN p.price_usd_foil
@@ -34,7 +34,7 @@ export type Prices = {
   priceUsdEtched: number | null;
 };
 
-/** The price of one copy in this finish; null when Scryfall has none. */
+/** The price of one copy in this finish; null when there is none. */
 export function unitPrice(finish: Finish, prices: Prices): Cents | null {
   if (finish === 'foil') return prices.priceUsdFoil;
   if (finish === 'etched') return prices.priceUsdEtched;
@@ -58,7 +58,7 @@ function directWorth(db: Db): Map<number, Worth> {
       sum(${stackValueSql}) AS value,
       sum(${noPriceSql}) AS noPriceCount
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     GROUP BY s.location_id`);
   return new Map(
     rows.map((row) => [row.locationId, { value: row.value, noPriceCount: row.noPriceCount }]),
@@ -94,7 +94,7 @@ export function locationWorth(db: Db, id: number): Worth {
       SELECT coalesce(sum(${stackValueSql}), 0) AS value,
         coalesce(sum(${noPriceSql}), 0) AS noPriceCount
       FROM copy_stacks AS s
-      JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+      JOIN printings AS p ON p.printing_id = s.printing_id
       WHERE s.location_id IN (${sql.join(ids, sql`, `)})`) ?? nothing()
   );
 }
@@ -107,7 +107,7 @@ export function collectionValue(db: Db): CollectionValue {
       coalesce(sum(${noPriceSql}), 0) AS noPriceCount,
       coalesce(sum(CASE WHEN s.is_proxy = 1 THEN s.quantity ELSE 0 END), 0) AS proxies
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id`) ?? {
+    JOIN printings AS p ON p.printing_id = s.printing_id`) ?? {
     value: 0,
     cards: 0,
     noPriceCount: 0,

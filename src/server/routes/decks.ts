@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { IdParam } from '../../shared/api/common';
 import {
-  CardDrop,
   DeckCommanders,
   DeckRename,
   NewDeck,
@@ -13,10 +12,7 @@ import {
 import { getDb } from '../db/database';
 import { AppError } from '../errors';
 import { deckList, deckSummary, deckView, slotRow } from '../queries/decks';
-import { resolveDrop } from '../scryfall/drop';
-import { ScryfallUnavailableError } from '../scryfall/lookup';
 import {
-  addDroppedCard,
   addSlot,
   createDeck,
   deleteDeck,
@@ -76,32 +72,6 @@ export const decksRoutes = new Hono()
     const { id } = c.req.valid('param');
     const db = getDb();
     const slotId = addSlot(db, id, c.req.valid('json'));
-    return c.json(found(slotRow(db, id, slotId)));
-  })
-  .post('/decks/:id/slots/drop', deckParam, validate('json', CardDrop), async (c) => {
-    const { id } = c.req.valid('param');
-    const { board, ...drop } = c.req.valid('json');
-    const db = getDb();
-    found(deckSummary(db, id));
-    let oracleId: string | undefined;
-    try {
-      oracleId = await resolveDrop(db, drop);
-    } catch (err) {
-      if (!(err instanceof ScryfallUnavailableError)) throw err;
-      throw new AppError(
-        503,
-        'scryfall_unavailable',
-        'Couldn’t reach Scryfall to look up this card. Try again when you’re online.',
-      );
-    }
-    if (!oracleId) {
-      throw new AppError(
-        422,
-        'card_not_recognized',
-        'Couldn’t tell which card that is. Drag the card’s image or name.',
-      );
-    }
-    const slotId = addDroppedCard(db, id, oracleId, board);
     return c.json(found(slotRow(db, id, slotId)));
   })
   .patch('/decks/:id/slots/:slotId', slotParam, validate('json', SlotChange), (c) => {

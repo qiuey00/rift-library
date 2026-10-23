@@ -16,7 +16,7 @@ export type SlotGroup = {
   slots: SlotRow[];
 };
 
-/** The type groups after Commander, in Moxfield's order. A card goes in the first its front face matches. */
+/** The type groups after Commander, in deck list order. A card goes in the first its front face matches. */
 const cardTypes = [
   ['Creature', 'Creatures'],
   ['Planeswalker', 'Planeswalkers'],
@@ -84,7 +84,7 @@ function passes(slot: SlotRow, filter: TagFilter): boolean {
 
 const byName = (a: SlotRow, b: SlotRow) => a.card.name.localeCompare(b.card.name);
 
-// Scryfall's mana value already counts X as 0.
+// The mana value already counts X as 0.
 const sorts: Record<SortBy, (a: SlotRow, b: SlotRow) => number> = {
   name: byName,
   mana_value: (a, b) => a.card.manaValue - b.card.manaValue || byName(a, b),

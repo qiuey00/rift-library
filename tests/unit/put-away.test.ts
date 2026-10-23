@@ -53,8 +53,8 @@ function location(
     .get().id;
 }
 
-function card(scryfallId: string, name: string, isBasicLand = false) {
-  const oracleId = `oracle-${scryfallId}`;
+function card(printingId: string, name: string, isBasicLand = false) {
+  const oracleId = `oracle-${printingId}`;
   db.insert(cards)
     .values({
       oracleId,
@@ -67,7 +67,7 @@ function card(scryfallId: string, name: string, isBasicLand = false) {
     .run();
   db.insert(printings)
     .values({
-      scryfallId,
+      printingId,
       oracleId,
       setCode: 'eoc',
       setName: 'Edge of Eternities Commander',
@@ -82,14 +82,14 @@ function card(scryfallId: string, name: string, isBasicLand = false) {
 }
 
 function stack(
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   overrides: Partial<typeof copyStacks.$inferInsert> = {},
 ) {
   return db
     .insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       quantity: 1,
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -112,11 +112,11 @@ function slot(
   deckId: number,
   oracleId: string,
   quantity = 1,
-  pickedScryfallId: string | null = null,
+  pickedPrintingId: string | null = null,
 ) {
   return db
     .insert(deckSlots)
-    .values({ deckId, oracleId, board: 'main', quantity, pickedScryfallId })
+    .values({ deckId, oracleId, board: 'main', quantity, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
@@ -197,7 +197,7 @@ describe('putAwayList', () => {
     expect(list.totals).toEqual({ lines: 4, cards: 5 });
     const farseek = list.groups[1].lines[0];
     expect(farseek.destination).toEqual(farseek.cameFrom);
-    expect(farseek.printing).toMatchObject({ scryfallId: FARSEEK, finishes: ['nonfoil', 'foil'] });
+    expect(farseek.printing).toMatchObject({ printingId: FARSEEK, finishes: ['nonfoil', 'foil'] });
     expect(list.groups[3].lines[0].finish).toBe('foil');
     expect(list.deck).toEqual({ id: hearthhull, name: 'Hearthhull', state: 'not_assembled' });
   });
@@ -234,7 +234,7 @@ describe('putAwayList', () => {
 
     const res = await postReturns(hearthhull, { lines: [{ stackId: inHearthhull, quantity: 1 }] });
     expect(res.status).toBe(200);
-    expect(stacksIn(binder)).toMatchObject([{ scryfallId: SIGNET, cameFromLocationId: null }]);
+    expect(stacksIn(binder)).toMatchObject([{ printingId: SIGNET, cameFromLocationId: null }]);
     expect(stacksIn(atraxaBox)).toEqual([]);
   });
 
@@ -308,7 +308,7 @@ describe('POST /api/decks/:id/returns', () => {
       'Returned Arcane Signet to Long box › Lands',
     );
     expect(stacksIn(binder)).toEqual([]);
-    expect(stacksIn(lands)).toMatchObject([{ scryfallId: SIGNET, cameFromLocationId: null }]);
+    expect(stacksIn(lands)).toMatchObject([{ printingId: SIGNET, cameFromLocationId: null }]);
   });
 
   it('refuses a deck box as Send elsewhere destination and changes nothing', async () => {

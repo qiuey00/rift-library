@@ -49,7 +49,7 @@ export function demandWarnings(db: Db, oracleIds: string[]): Map<string, DemandW
   for (const stack of db
     .select({ oracleId: printings.oracleId, quantity: copyStacks.quantity })
     .from(copyStacks)
-    .innerJoin(printings, eq(printings.scryfallId, copyStacks.scryfallId))
+    .innerJoin(printings, eq(printings.printingId, copyStacks.printingId))
     .where(inArray(printings.oracleId, [...wanted.keys()]))
     .all()) {
     owned.set(stack.oracleId, (owned.get(stack.oracleId) ?? 0) + stack.quantity);

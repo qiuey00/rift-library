@@ -1,6 +1,3 @@
 # Keep LF line endings in the working tree on every system, so Biome's format check
 # gives the same answer on macOS and Windows.
 * text=auto eol=lf
-
-# Jeff's sample exports stay byte for byte as the apps wrote them (the ManaBox CSV uses CRLF).
-tests/fixtures/** -text

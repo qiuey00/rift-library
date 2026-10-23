@@ -28,7 +28,7 @@ test.use({ timezoneId: 'UTC' });
 type Sent = { url: URL; body: unknown };
 
 async function mockApi(page: Page, firstPage: StacksPage = stacksPageSample) {
-  // Card images come from Scryfall; tests never reach it.
+  // Card images come from the internet; tests never reach it.
   await page.route(
     (url) => url.hostname !== '127.0.0.1',
     (route) => route.abort(),
@@ -250,7 +250,7 @@ test('scrolling to the end loads the next page', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Witherbloom Charm' })).toBeVisible();
 });
 
-test('an empty collection offers Create a location and Import ManaBox CSV', async ({ page }) => {
+test('an empty collection offers Create a location and Add cards', async ({ page }) => {
   await mockApi(page, {
     rows: [],
     total: { cards: 0, stacks: 0, proxies: 0, value: 0, noPriceCount: 0 },
@@ -262,8 +262,8 @@ test('an empty collection offers Create a location and Import ManaBox CSV', asyn
     'href',
     '/locations',
   );
-  await page.getByRole('button', { name: 'Import ManaBox CSV' }).click();
-  await expect(page.getByRole('dialog', { name: /ManaBox/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Add cards' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add a card' })).toBeVisible();
 });
 
 test('the header shows the collection value with proxies left out', async ({ page }) => {
@@ -272,7 +272,7 @@ test('the header shows the collection value with proxies left out', async ({ pag
   await page.goto('/collection');
   await expect(page.getByTestId('collection-value')).toHaveText('$3,184.50');
   await expect(page.getByTestId('collection-value-note')).toHaveText(
-    '3,007 cards · 214 with no price · proxies not counted · TCGplayer prices from Scryfall, updated yesterday',
+    '3,007 cards · 214 with no price · proxies not counted · TCGplayer prices, updated yesterday',
   );
 });
 
@@ -339,23 +339,13 @@ test('a stack in a trade location shows a Trade tag after its name', async ({ pa
 test('Export downloads the collection CSV', async ({ page }) => {
   await mockApi(page);
   await page.goto('/collection');
-  const exportLink = page.getByRole('link', { name: 'Export the collection as a ManaBox CSV' });
-  await expect(exportLink).toHaveAttribute(
-    'title',
-    "ManaBox CSV with each card's location. Import it again to restore.",
-  );
+  const exportLink = page.getByRole('link', { name: 'Export the collection as a CSV' });
+  await expect(exportLink).toHaveAttribute('title', "A CSV backup with each card's location.");
   const download = page.waitForEvent('download');
   await exportLink.click();
   // The browser fetches a download itself, past the page's mocked routes, so the real
   // server names the file with today's date.
   expect((await download).suggestedFilename()).toMatch(/^rift-library-\d{4}-\d{2}-\d{2}\.csv$/);
-});
-
-test('Import opens the ManaBox import', async ({ page }) => {
-  await mockApi(page);
-  await page.goto('/collection');
-  await page.getByRole('button', { name: 'Import from ManaBox' }).click();
-  await expect(page.getByRole('dialog', { name: /ManaBox/ })).toBeVisible();
 });
 
 test('the card preview sits left of the list and shows the price', async ({ page }) => {

@@ -2,7 +2,7 @@ import type { CardSummary, LocationRef, PrintingSummary } from '../common';
 import type { DeckList, DeckRef, DeckSummary, DeckView, PrintingHint, SlotRow } from '../decks';
 import { cards, printings } from './deck-cards';
 
-// The Decks home and the Hearthhull deck view (Jeff's Moxfield sample). Location and deck ids
+// The Decks home and the Hearthhull deck view (a made-up sample). Location and deck ids
 // match the assembly samples, so a screen can go from one to the other.
 
 export const locations = {
@@ -126,7 +126,7 @@ function hintedPrinting(card: CardSummary, hint: PrintingHint | null): PrintingS
   );
 }
 
-/** The Moxfield export's printing for the card, as its printing hint. */
+/** The deck list's printing for the card, as its printing hint. */
 function hintFor(printing: PrintingSummary, foil = false): PrintingHint {
   return { setCode: printing.setCode, collectorNumber: printing.collectorNumber, foil };
 }
@@ -219,7 +219,7 @@ export const hearthhullSlots: SlotRow[] = [
 
   // Not owned.
   missing(119, 'soulOfWindgrace'),
-  // Added in the app rather than from Moxfield, so there is no printing hint.
+  // Added in the app rather than from a deck list, so there is no printing hint.
   missing(120, 'omnathLocusOfRage', { hint: null }),
   missing(124, 'splendidReclamation'),
 
@@ -358,7 +358,7 @@ const prosperDeck: DeckSummary = {
   openedAt: '2026-10-02T18:44:00Z',
 };
 
-/** Two partner commanders, imported from Moxfield and never opened. */
+/** Two partner commanders, imported from a deck list and never opened. */
 export const tymnaThrasios: DeckSummary = {
   ...deckRefs.tymnaThrasios,
   deckBoxId: 14,

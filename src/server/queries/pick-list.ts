@@ -33,7 +33,7 @@ type SlotRecord = {
   deckId: number;
   board: 'commander' | 'main' | 'maybe';
   quantity: number;
-  pickedScryfallId: string | null;
+  pickedPrintingId: string | null;
   hintSetCode: string | null;
   hintCollectorNumber: string | null;
   hintFoil: number;
@@ -60,7 +60,7 @@ type StackRecord = {
   locationId: number;
   cameFromLocationId: number | null;
   oracleId: string;
-  scryfallId: string;
+  printingId: string;
   setCode: string;
   setName: string;
   collectorNumber: string;
@@ -143,7 +143,7 @@ function loadWorld(db: Db, deckId: number): World {
   for (const slot of db.all<SlotRecord>(sql`
     SELECT
       s.id, s.deck_id AS deckId, s.board, s.quantity,
-      s.picked_scryfall_id AS pickedScryfallId, s.hint_set_code AS hintSetCode,
+      s.picked_printing_id AS pickedPrintingId, s.hint_set_code AS hintSetCode,
       s.hint_collector_number AS hintCollectorNumber, s.hint_foil AS hintFoil,
       c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
       c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
@@ -166,12 +166,12 @@ function loadWorld(db: Db, deckId: number): World {
       s.id AS stackId, s.quantity, s.finish, s.condition, s.language, s.misprint, s.altered,
       s.is_proxy AS isProxy, s.location_id AS locationId,
       s.came_from_location_id AS cameFromLocationId,
-      p.oracle_id AS oracleId, p.scryfall_id AS scryfallId, p.set_code AS setCode,
+      p.oracle_id AS oracleId, p.printing_id AS printingId, p.set_code AS setCode,
       p.set_name AS setName, p.collector_number AS collectorNumber, p.lang, p.finishes,
       p.rarity, p.image_small AS imageSmall, p.image_normal AS imageNormal,
       ${unitPriceSql} AS unitPrice
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.scryfall_id = s.scryfall_id
+    JOIN printings AS p ON p.printing_id = s.printing_id
     WHERE p.oracle_id IN (SELECT oracle_id FROM deck_slots WHERE deck_id = ${deckId})
       OR s.location_id IN (SELECT id FROM locations WHERE type = 'deck_box')
     ORDER BY s.id`)) {
@@ -225,7 +225,7 @@ function stackRow(stack: StackRecord, card: CardSummary, world: World): StackRow
     quantity: stack.quantity,
     card: { ...card, imageSmall: stack.imageSmall, imageNormal: stack.imageNormal },
     printing: {
-      scryfallId: stack.scryfallId,
+      printingId: stack.printingId,
       oracleId: stack.oracleId,
       setCode: stack.setCode,
       setName: stack.setName,
@@ -263,7 +263,7 @@ function hintOf(slot: SlotRecord): PrintingHint | null {
 
 /** True when the stack is the decklist's printing: the picked printing, otherwise the hint. */
 function isListedPrinting(slot: SlotRecord, stack: StackRecord): boolean {
-  if (slot.pickedScryfallId) return stack.scryfallId === slot.pickedScryfallId;
+  if (slot.pickedPrintingId) return stack.printingId === slot.pickedPrintingId;
   const hint = hintOf(slot);
   if (!hint) return false;
   return (

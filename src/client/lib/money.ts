@@ -8,15 +8,15 @@ export function formatCents(cents: number): string {
 const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 /**
- * Where the prices come from and how fresh they are, such as "TCGplayer prices from Scryfall,
- * updated today". Scryfall's US dollar prices are TCGplayer's market prices.
+ * Where the prices come from and how fresh they are, such as "TCGplayer prices, updated
+ * today". Prices are TCGplayer's US dollar market prices.
  */
 export function pricesUpdated(at: string | null, now = new Date()): string {
   if (at === null) return 'no prices loaded yet';
   const when = new Date(at);
   const daysAgo = Math.round((startOfDay(now) - startOfDay(when)) / 86_400_000);
   const words = daysAgo <= 0 ? 'today' : daysAgo === 1 ? 'yesterday' : day.format(when);
-  return `TCGplayer prices from Scryfall, updated ${words}`;
+  return `TCGplayer prices, updated ${words}`;
 }
 
 function startOfDay(date: Date): number {

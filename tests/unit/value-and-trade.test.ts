@@ -59,7 +59,7 @@ function addCard(n: number, name: string, prints: ({ set: string; number: string
   for (const print of prints) {
     db.insert(printings)
       .values({
-        scryfallId: `${name}-${print.set}-${print.number}`,
+        printingId: `${name}-${print.set}-${print.number}`,
         oracleId: oracle(n),
         setCode: print.set,
         setName: `Set ${print.set.toUpperCase()}`,
@@ -83,7 +83,7 @@ function addLocation(name: string, type: LocationType, parentId?: number) {
 
 let clock = 0;
 function addStack(
-  scryfallId: string,
+  printingId: string,
   locationId: number,
   quantity: number,
   details: { finish?: Finish; isProxy?: boolean; cameFrom?: number } = {},
@@ -92,7 +92,7 @@ function addStack(
   return db
     .insert(copyStacks)
     .values({
-      scryfallId,
+      printingId,
       quantity,
       finish: details.finish ?? 'nonfoil',
       condition: 'near_mint',

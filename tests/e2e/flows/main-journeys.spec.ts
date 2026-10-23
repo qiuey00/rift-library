@@ -1,18 +1,44 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { type APIRequestContext, expect, type Locator, type Page, test } from '@playwright/test';
+import type { LocationTree } from '../../../src/shared/api/locations';
 
 // Jeff's main journeys through the real app and server, with no API mocks: set up storage,
-// import a collection and a deck, assemble it from the pick list, take it apart, undo,
-// update it from Moxfield and delete a deck. The journeys share one database, so they run in
-// order and each starts where the one before stopped.
+// add a collection and a deck, assemble it from the pick list, take it apart, undo, change it
+// through the swap list and delete a deck. The journeys share one database, so they run in
+// order and each starts where the one before stopped. The cards are Magic stand-ins until
+// the Riftbound flows (#26).
 //
-// manabox-for-deck.csv holds the Hearthhull deck's nonbasic cards in two ManaBox binders,
+// flow-collection.json holds the Hearthhull deck's list and its nonbasic cards in two groups,
 // Spells (58 cards) and Lands (25), less Worldsoul's Rage, which is added as a proxy. It has
-// two Sol Rings, a Command Tower in each binder and a proxy Beast Within next to a real one,
+// two Sol Rings, a Command Tower in each group and a proxy Beast Within next to a real one,
 // plus Tymna the Weaver for the second deck and Primeval Titan and Seven Dwarves to swap in.
 
-const fixtures = path.join(import.meta.dirname, '..', '..', 'fixtures');
+type FlowCollection = {
+  copies: {
+    name: string;
+    printingId: string;
+    quantity: number;
+    finish: 'nonfoil' | 'foil' | 'etched';
+    condition: string;
+    language: string;
+    isProxy: boolean;
+    location: 'Spells' | 'Lands';
+  }[];
+  deck: {
+    name: string;
+    oracleId: string;
+    board: 'commander' | 'main' | 'maybe';
+    quantity: number;
+  }[];
+};
+
+const flow: FlowCollection = JSON.parse(
+  readFileSync(
+    path.join(import.meta.dirname, '..', '..', 'fixtures', 'flow-collection.json'),
+    'utf8',
+  ),
+);
 const FRONT_ROW = 'Long box › Front row';
 const BACK_ROW = 'Long box › Back row';
 const LANDS_BINDER = 'Lands binder';
@@ -22,7 +48,7 @@ const LANDS_CARDS = 25;
 test.describe.configure({ mode: 'serial' });
 
 test.beforeEach(async ({ page }) => {
-  // Card images come from Scryfall; the journeys never reach the network.
+  // Card images come from the internet; the journeys never reach the network.
   await page.route(
     (url) => url.hostname !== '127.0.0.1' && url.hostname !== 'localhost',
     (route) => route.abort(),
@@ -34,7 +60,6 @@ test.beforeEach(async ({ page }) => {
 /** The deck ids the journeys create, in the order they are made. */
 const decks = { hearthhull: 0, tymna: 0 };
 
-const undoBar = (page: Page) => page.locator('[data-slot="undo-bar"]');
 const deckHeader = (page: Page) => page.getByRole('region', { name: 'Deck header' });
 /** A deck view row, found by the card's exact name. */
 const deckRow = (page: Page, name: string) =>
@@ -62,13 +87,16 @@ async function newLocation(page: Page, name: string, type: string, inside?: stri
   await expect(dialog).toBeHidden();
 }
 
-async function openManaBoxDialog(page: Page) {
-  await page.goto('/collection');
-  await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'ManaBox CSV' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Import from ManaBox' });
-  await expect(dialog).toBeVisible();
-  return dialog;
+/** Calls the real API, as a screen would, and answers its JSON. */
+async function call<T>(
+  request: APIRequestContext,
+  method: 'get' | 'post',
+  url: string,
+  data?: unknown,
+) {
+  const res = await request[method](url, data === undefined ? undefined : { data });
+  expect(res.ok(), `${method.toUpperCase()} ${url}`).toBe(true);
+  return (await res.json()) as T;
 }
 
 /** Opens a card's page from the deck view and returns its Copies rows. */
@@ -100,34 +128,26 @@ async function tickEveryLine(page: Page, list: Locator, otherDeck?: string) {
   }
 }
 
-test('1. storage is set up and the collection imported, mapping its binders', async ({ page }) => {
+test('1. storage is set up and the collection added to it', async ({ page }) => {
   await page.goto('/locations');
   await newLocation(page, 'Long box', 'box');
   await newLocation(page, 'Front row', 'box', 'Long box');
   await newLocation(page, 'Back row', 'box', 'Long box');
   await newLocation(page, LANDS_BINDER, 'binder');
 
-  const dialog = await openManaBoxDialog(page);
-  await dialog
-    .getByLabel('ManaBox CSV', { exact: true })
-    .setInputFiles(path.join(fixtures, 'manabox-for-deck.csv'));
-  await expect(dialog).toContainText('manabox-for-deck.csv');
-  await dialog.getByRole('button', { name: 'Next: Location' }).click();
-
-  const binder = (name: string) => dialog.getByRole('row', { name: `${name} (Binder)` });
-  await expect(binder('Spells')).toContainText(String(SPELLS_CARDS));
-  await expect(binder('Lands')).toContainText(String(LANDS_CARDS));
-  await binder('Spells').getByRole('combobox', { name: 'Location for Spells' }).click();
-  await page.getByRole('option', { name: 'Front row', exact: true }).click();
-  await binder('Lands').getByRole('combobox', { name: 'Location for Lands' }).click();
-  await page.getByRole('option', { name: LANDS_BINDER, exact: true }).click();
-  await dialog.getByRole('button', { name: 'Next: Preview' }).click();
-
-  const counts = dialog.locator('dl[aria-label="Counts"]');
-  await expect(counts.getByRole('definition')).toHaveText(['82', '83', '0']);
-  await dialog.getByRole('button', { name: 'Add 83 cards to 2 locations' }).click();
-  await expect(dialog).toBeHidden();
-  await expect(undoBar(page)).toBeVisible();
+  const { nodes } = await call<LocationTree>(page.request, 'get', '/api/locations/tree');
+  const where = {
+    Spells: nodes.find((node) => node.name === 'Front row')?.id,
+    Lands: nodes.find((node) => node.name === LANDS_BINDER)?.id,
+  };
+  for (const { name: _name, location, ...copy } of flow.copies) {
+    await call(page.request, 'post', '/api/stacks/add', {
+      ...copy,
+      misprint: false,
+      altered: false,
+      locationId: where[location],
+    });
+  }
 
   await page.goto('/locations');
   await expect(storageCount(page, 'Front row')).toHaveText(String(SPELLS_CARDS));
@@ -135,21 +155,17 @@ test('1. storage is set up and the collection imported, mapping its binders', as
   await expect(storageCount(page, 'Back row')).toHaveText('0');
 });
 
-test('2. the Hearthhull deck is imported from Moxfield with statuses and paths', async ({
-  page,
-}) => {
-  await page.goto('/import/moxfield');
-  await page
-    .getByLabel('Moxfield export')
-    .fill(readFileSync(path.join(fixtures, 'moxfield-deck-sample-with-sets.txt'), 'utf8'));
-  const review = page.getByRole('complementary', { name: 'Review' });
-  await expect(review.getByRole('list', { name: 'Commanders' })).toHaveText(
-    'Hearthhull, the Worldseed',
-  );
-  await review.getByLabel('Deck name').fill('Hearthhull');
-  await review.getByRole('button', { name: 'Create deck' }).click();
-  await expect(page).toHaveURL(/\/decks\/\d+$/);
-  decks.hearthhull = Number(new URL(page.url()).pathname.split('/').at(-1));
+test('2. the Hearthhull deck is added with statuses and paths', async ({ page }) => {
+  const [commander, ...slots] = flow.deck;
+  const deck = await call<{ id: number }>(page.request, 'post', '/api/decks', {
+    name: 'Hearthhull',
+    commanders: [commander?.oracleId],
+  });
+  decks.hearthhull = deck.id;
+  for (const { oracleId, board, quantity } of slots) {
+    await call(page.request, 'post', `/api/decks/${deck.id}/slots`, { oracleId, board, quantity });
+  }
+  await page.goto(`/decks/${decks.hearthhull}`);
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hearthhull');
   await expect(deckHeader(page)).toContainText('Not assembled');
@@ -218,6 +234,11 @@ test('4. Hearthhull is assembled from the pick list, borrowing a copy and adding
 
   const rage = page.locator('[data-missing-line]', { hasText: "Worldsoul's Rage" });
   await rage.getByRole('button', { name: 'Add proxy' }).click();
+  // The deck list has no printing hints, so Jeff picks the proxy's printing.
+  const printing = page.getByRole('dialog', {
+    name: "Pick a printing for the Worldsoul's Rage proxy",
+  });
+  await printing.getByRole('button', { name: /^EOC #130/ }).click();
   await expect(rage).toContainText('Proxy added to the deck box');
 
   await page.getByRole('link', { name: 'Done' }).click();
@@ -312,9 +333,7 @@ test('6. undoing a pull from History puts the copy back and unfills the slot', a
   await expect(cultivate).toContainText(FRONT_ROW);
 });
 
-test('7. after re-assembling, a Moxfield update swaps two cards through the swap list', async ({
-  page,
-}) => {
+test('7. after re-assembling, changing two cards goes through the swap list', async ({ page }) => {
   await page.goto(`/decks/${decks.hearthhull}/assemble`);
   const walk = page.locator('[data-slot="walk-list"]');
   await expect(walk.locator('li[data-walk-line]')).toHaveCount(1);
@@ -322,22 +341,23 @@ test('7. after re-assembling, a Moxfield update swaps two cards through the swap
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(deckHeader(page)).toContainText('Assembled');
 
-  await deckHeader(page).getByRole('link', { name: 'Update from Moxfield' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Update from Moxfield');
-  const plain = readFileSync(path.join(fixtures, 'moxfield-deck-sample-plain.txt'), 'utf8')
-    .replace(/^1 Tireless Tracker(?=\r?$)/m, '1 Primeval Titan')
-    .replace(/^1 Mayhem Devil(?=\r?$)/m, '1 Seven Dwarves');
-  await page.getByLabel('Moxfield export').fill(plain);
-  const review = page.getByRole('complementary', { name: 'Review' });
-  await expect(review.getByRole('region', { name: '2 out' }).getByRole('listitem')).toHaveText([
-    '1 Mayhem Devil',
-    '1 Tireless Tracker',
-  ]);
-  await expect(review.getByRole('region', { name: '2 in' }).getByRole('listitem')).toHaveText([
-    '1 Seven Dwarves',
-    '1 Primeval Titan',
-  ]);
-  await review.getByRole('button', { name: 'Update deck' }).click();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  for (const name of ['Tireless Tracker', 'Mayhem Devil']) {
+    await page.getByRole('button', { name: `Edit ${name}` }).click();
+    await page.getByRole('menuitem', { name: 'Remove' }).click();
+    await expect(deckRow(page, name)).toHaveCount(0);
+  }
+  const panel = page.getByRole('region', { name: 'Edit deck' });
+  for (const name of ['Primeval Titan', 'Seven Dwarves']) {
+    await panel.getByLabel('Add card', { exact: true }).fill(name.toLowerCase());
+    await panel.getByRole('button', { name }).click();
+    await expect(panel.getByRole('status')).toHaveText(`Added ${name} to the main board.`);
+  }
+  await panel.getByRole('button', { name: 'Done editing' }).click();
+  await page
+    .getByRole('status', { name: 'Swap list' })
+    .getByRole('link', { name: 'Open swap list' })
+    .click();
 
   await expect(page).toHaveURL(`/decks/${decks.hearthhull}/swap`);
   const takeOut = page.getByRole('region', { name: 'Take out', exact: true });
@@ -381,26 +401,4 @@ test('8. deleting the second deck puts its cards away first', async ({ page }) =
   const copies = page.getByRole('region', { name: 'Copies' }).locator('tbody tr[data-stack-id]');
   await expect(copies).toHaveCount(1);
   await expect(copies).toContainText(FRONT_ROW);
-});
-
-test('9. Jeff’s real ManaBox export goes into To sort', async ({ page }) => {
-  const dialog = await openManaBoxDialog(page);
-  await dialog
-    .getByLabel('ManaBox CSV', { exact: true })
-    .setInputFiles(path.join(fixtures, 'manabox-sample.csv'));
-  await expect(dialog).toContainText('manabox-sample.csv');
-  await dialog.getByRole('button', { name: 'Next: Location' }).click();
-  await expect(dialog.getByRole('combobox')).toHaveText('To sort');
-  await dialog.getByRole('button', { name: 'Next: Preview' }).click();
-
-  const counts = dialog.locator('dl[aria-label="Counts"]');
-  await expect(counts.getByRole('term')).toHaveText(['rows', 'cards', 'unknown rows']);
-  await expect(counts.getByRole('definition')).toHaveText(['258', '389', '0']);
-  await dialog.getByRole('button', { name: 'Add 389 cards to To sort' }).click();
-  await expect(dialog).toBeHidden();
-
-  await page.goto('/locations');
-  await expect(page.getByRole('list', { name: 'Inbox' }).getByTestId('location-count')).toHaveText(
-    '389',
-  );
 });

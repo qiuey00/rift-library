@@ -34,7 +34,7 @@ export type PullResult = z.infer<typeof PullResult>;
 /** POST /api/decks/:id/proxies: adds a proxy of a missing card straight into the deck box. */
 export const ProxyRequest = z.object({
   slotId: Id,
-  scryfallId: z.string().min(1),
+  printingId: z.string().min(1),
   quantity: Quantity,
   batchId: Id.optional(),
 });
