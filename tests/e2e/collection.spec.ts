@@ -346,7 +346,9 @@ test('Export downloads the collection CSV', async ({ page }) => {
   );
   const download = page.waitForEvent('download');
   await exportLink.click();
-  expect((await download).suggestedFilename()).toBe(collectionCsvFileNameSample);
+  // The browser fetches a download itself, past the page's mocked routes, so the real
+  // server names the file with today's date.
+  expect((await download).suggestedFilename()).toMatch(/^rift-library-\d{4}-\d{2}-\d{2}\.csv$/);
 });
 
 test('Import opens the ManaBox import', async ({ page }) => {
