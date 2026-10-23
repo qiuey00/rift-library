@@ -70,6 +70,7 @@ This hub links every PRD doc, and each doc links back here.
 | [Rift Library: Requirements](requirements.md) | Requirements per feature area, each with priority | Draft v0.1 |
 | [Rift Library: Key Flows](key-flows.md) | The eight MVP flows step by step, with edge cases | Draft v0.1 |
 | [Rift Library: UI Design](ui-design.md) | Screens, layouts and key interactions for the web app | Draft v0.1 |
+| [Rift Library: UI canvas](ui-canvas.md) | The design canvas boards for the changed screens, and when Jeff approved each | Waiting for approval |
 | [Rift Library: Decisions](decisions.md) | Dated log of every settled choice and why | Draft v0.1 |
 | [Rift Library: Open questions](open-questions.md) | Questions waiting on Jeff | Draft v0.1 |
 | [Rift Library: Glossary](glossary.md) | Agreed meaning of every product term | Draft v0.1 |

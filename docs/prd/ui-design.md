@@ -2,7 +2,7 @@
 
 Oct 23, 2026 · @Jeff
 
-Part of the [Rift Library: PRD](README.md). These screens carry out [Rift Library: Key Flows](key-flows.md) and [Rift Library: Requirements](requirements.md); requirement IDs such as ASM-3 point back to them. The screens are Library of Gathering's, described in [Library of Gathering: UI Design](https://github.com/qiuey00/library-of-gathering-v2/blob/main/docs/prd/ui-design.md) and its [design canvas](https://claude.ai/artifact/3cPBiMTicSPBafVKLEVTSi), with the changes below. Anything this doc doesn't change works as it does there. Status: draft v0.1.
+Part of the [Rift Library: PRD](README.md). These screens carry out [Rift Library: Key Flows](key-flows.md) and [Rift Library: Requirements](requirements.md); requirement IDs such as ASM-3 point back to them. The screens are Library of Gathering's, described in [Library of Gathering: UI Design](https://github.com/qiuey00/library-of-gathering-v2/blob/main/docs/prd/ui-design.md) and its [design canvas](https://claude.ai/artifact/3cPBiMTicSPBafVKLEVTSi), with the changes below. Anything this doc doesn't change works as it does there. The changed screens are drawn on the [Rift Library UI canvas](ui-canvas.md); where this doc and the canvas differ, the canvas wins. Status: draft v0.1.
 
 **Design principles** (unchanged)
 
@@ -80,4 +80,4 @@ Unchanged, with two words replaced: Basic land becomes Rune in Slot status (a gr
 ## Open questions
 
 - [ ] Should battlefields show as landscape tiles in a row of three, as above? Default: yes.
-- [ ] Should the design canvas be redrawn for Riftbound before the screens change, as Library of Gathering did for UI changes? Default: yes, one board per changed screen (deck view, add cards, deck list import), before those pull requests.
+- [x] Should the design canvas be redrawn for Riftbound before the screens change, as Library of Gathering did for UI changes? Yes: the [Rift Library UI canvas](ui-canvas.md) has a board each for the deck view, add cards, deck list import, new deck and Decks home, and each is approved before its screen issue starts (#6).
