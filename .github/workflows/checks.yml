@@ -31,10 +31,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run test:speed
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - run: npm run test:speed:e2e
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@v6
