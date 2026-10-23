@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The other Magic-only parts (Commander rules, the Mana and Keyrune fonts, the speed tests and the big seeded collection) still come from the copy. They are being removed and replaced in the issues listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27); until then, the sections below describe them as they work today.
+ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The other Magic-only parts (Commander rules and the Mana and Keyrune fonts) still come from the copy. They are being removed and replaced in the issues listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27); until then, the sections below describe them as they work today.
 
 ## Docs
 
@@ -31,7 +31,6 @@ src/client/components/ui/  shadcn/ui parts
 src/client/styles.css    Tailwind, the look's colors and the fonts
 tests/unit/              Vitest
 tests/e2e/               Playwright
-tests/speed/             the big made-up collection and the speed checks
 tests/fixtures/          made-up card data and a collection for the browser tests
 data/                    the database and downloads (not in git)
 docs/                    technical design, PRD and UI docs (the source)
@@ -43,8 +42,6 @@ docs/                    technical design, PRD and UI docs (the source)
 - `npm start`: build the screens, then serve the app at http://localhost:4300.
 - `npm run build`: build the screens into `dist/client`.
 - `npm test`: unit tests. `npm run test:e2e`: browser tests (it runs `npm start` itself; first run `npx playwright install chromium`).
-- `npm run seed:big`: build a made-up collection the size of Jeff's (about 35,000 cards, 10,000 copies in 7,000 stacks across 40 locations, 15 decks, 50,000 movements) into a new temp folder, or into `DATA_DIR` if it names an empty folder, and print where it is. To try the app with it, run `npm start` with `DATA_DIR` set to that folder (`DATA_DIR=<folder> npm start` on macOS, `$env:DATA_DIR="<folder>"; npm start` in PowerShell). It never writes into a folder that already has a database.
-- `npm run test:speed`: timing tests against that collection, with budgets per action (card search 100 ms, a Collection page 200 ms, deck view and checks 300 ms, pick list 300 ms, a day of History 200 ms, the location tree with values, a Collection page sorted by value and the collection value 200 ms each, the collection CSV export 2 s); it prints the measured times. `npm run test:speed:e2e`: the Collection scrolls through every stack smoothly and a deck view shows within a second, against a seeded server. Fix slow spots with indexes or better queries, never by storing worked-out values.
 - `npm run db:generate`: after changing `src/server/db/schema.ts`, write the migration into `src/server/db/migrations` (commit it). The server applies migrations when it starts.
 - `npm run lint` (`biome check`; `npm run lint:fix` fixes formatting and imports), `npm run typecheck` (`tsc --noEmit`).
 
@@ -86,4 +83,4 @@ Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` 
 - Screens only show what the server returns; they never work out rules themselves.
 - The server listens on 127.0.0.1 only, so no other device can reach it (there is no sign-in).
 - Code uses the product's words: copy stack, location, "to sort" inbox, deck box, came-from location, slot, picked printing, printing hint, pick list, put-away list, swap list, movement, batch.
-- Pull requests must pass lint, typecheck, unit, e2e and speed tests. The Checks workflow (`.github/workflows/checks.yml`) runs all of them on macOS and the unit tests on Windows; a pull request is ready to merge once both jobs pass.
+- Pull requests must pass lint, typecheck, unit and e2e tests. The Checks workflow (`.github/workflows/checks.yml`) runs all of them on macOS and the unit tests on Windows; a pull request is ready to merge once both jobs pass.

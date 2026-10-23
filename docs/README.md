@@ -27,5 +27,6 @@ Unlike Library of Gathering, the files here are the source. Change a doc in the 
 | Doc | What it covers |
 | --- | --- |
 | [UI Design](prd/ui-design.md) | Screens, layouts and interaction rules |
+| [UI canvas](prd/ui-canvas.md) | Links the design canvas, lists its boards and their approval dates |
 
 Library of Gathering's Competitive notes are not carried over: Jeff doesn't want a comparison with other Riftbound apps (D-3).
