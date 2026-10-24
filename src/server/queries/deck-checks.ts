@@ -1,13 +1,13 @@
 import { inArray } from 'drizzle-orm';
 import type { Board, CardSummary } from '../../shared/api/common';
-import type { DeckWarning } from '../../shared/api/deck-checks';
+import type { DeckCheck } from '../../shared/api/deck-checks';
 import type { Db } from '../db/database';
 import { cards } from '../db/schema';
 import { cardImages, cardSummary } from './card-summaries';
 
 // Riftbound deck checks over a list of slots, so they work for a saved deck and an unsaved
-// list alike. They are warnings only: nothing is ever blocked. The maybe board is never
-// checked.
+// list alike. Each rule passes or warns, and a warning never blocks anything. The maybe board
+// is never checked.
 
 type CardRow = typeof cards.$inferSelect;
 
@@ -32,8 +32,8 @@ export function loadCards(db: Db, cardIds: number[]): Map<number, CheckCard> {
   );
 }
 
-/** The deck rule warnings for a list of slots (DECK-6). */
-// STUB until #16: Riftbound's deck checks aren't written yet, so nothing is warned about.
-export function checkList(_db: Db, _slots: CheckSlot[]): DeckWarning[] {
+/** A check per deck rule for a list of slots (DECK-6), in `DeckCheckCode` order. */
+// STUB until #16: Riftbound's deck checks aren't written yet, so there are no checks.
+export function checkList(_db: Db, _slots: CheckSlot[]): DeckCheck[] {
   return [];
 }

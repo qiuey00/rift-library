@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-ManaBox, Moxfield and Scryfall are gone (#3). Card data comes from Riftcodex (#7): the server syncs every card and set when it starts with no cards and once the last sync is 24 hours old, and `RIFTCODEX=off` (set by the unit and browser tests) keeps it from calling Riftcodex at all. The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no warnings until #16. Quick add refuses a finish the printing doesn't come in, and removing copies by hand (COL-13) is in (#10). The rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
+ManaBox, Moxfield and Scryfall are gone (#3). Card data comes from Riftcodex (#7): the server syncs every card and set when it starts with no cards and once the last sync is 24 hours old, and `RIFTCODEX=off` (set by the unit and browser tests) keeps it from calling Riftcodex at all. The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no checks until #16. The decks, deck checks and deck list shapes are in (#14): `DeckView.boards` counts each board, `PUT /api/decks/:id/runes` and the `deck-lists` routes and deck list exports are stubs until #15, #19 and #20. Quick add refuses a finish the printing doesn't come in, and removing copies by hand (COL-13) is in (#10). The rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
 
 ## Docs
 
@@ -62,9 +62,9 @@ Scripts must work on macOS and Windows: no `rm -rf`, no `FOO=bar cmd`, build pat
 
 ## Route modules
 
-Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` in `src/server/app.ts`. All 15 are already registered, so an area issue edits only its own file. Write full paths under `/api` (for example `.get('/locations', ...)` answers `GET /api/locations`) and chain every route onto the instance (`new Hono().get(...).post(...)`) so `AppType` and the typed client in `src/client/api.ts` see it.
+Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` in `src/server/app.ts`. All 16 are already registered, so an area issue edits only its own file. Write full paths under `/api` (for example `.get('/locations', ...)` answers `GET /api/locations`) and chain every route onto the instance (`new Hono().get(...).post(...)`) so `AppType` and the typed client in `src/client/api.ts` see it.
 
-`card-data`, `cards`, `locations`, `copies`, `stacks`, `undo`, `history`, `decks`, `deck-checks`, `buy-list`, `pick-list`, `pulls`, `put-away`, `swap`, `exports`.
+`card-data`, `cards`, `locations`, `copies`, `stacks`, `undo`, `history`, `decks`, `deck-checks`, `deck-lists`, `buy-list`, `pick-list`, `pulls`, `put-away`, `swap`, `exports`.
 
 ## Database
 

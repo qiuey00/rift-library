@@ -54,7 +54,11 @@ test.beforeEach(async ({ page }) => {
 test.describe('New deck', () => {
   test('the Legend search asks only for legends, and Create sends the deck', async ({ page }) => {
     const searches = await mockSearch(page, legendSearch);
-    const newDeckView: DeckView = { deck: newDeckSample, slots: [] };
+    const newDeckView: DeckView = {
+      deck: newDeckSample,
+      slots: [],
+      boards: { legend: 0, champion: 0, main: 0, battlefield: 0, rune: 0, sideboard: 0, maybe: 0 },
+    };
     await page.route('**/api/decks/7', (route) => route.fulfill({ json: newDeckView }));
     const created = await capture(page, 'POST', '/api/decks', newDeckSample, 201);
 

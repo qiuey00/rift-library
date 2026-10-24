@@ -80,7 +80,7 @@ beforeEach(() => {
 
 describe('deck checks', () => {
   // STUB until #16: Riftbound's deck rules come with the deck checks issue.
-  it('answers no warnings until the Riftbound deck rules are in', () => {
+  it('answers no checks until the Riftbound deck rules are in', () => {
     const jinx = legend('Jinx, Loose Cannon');
     const signet = card({ name: 'Ember Signet' });
     expect(
@@ -142,7 +142,7 @@ describe('deck demand', () => {
 });
 
 describe('deck checks routes', () => {
-  it('GET /api/decks/:id/checks gives the warnings and this deck’s demand', async () => {
+  it('GET /api/decks/:id/checks gives the checks and this deck’s demand', async () => {
     const ahri = legend('Ahri, Nine-Tailed Fox');
     const signet = card({ name: 'Ember Signet' });
     const other = card({ name: 'Sun Disc' });
@@ -156,7 +156,7 @@ describe('deck checks routes', () => {
     const res = await api.decks[':id'].checks.$get({ param: { id: String(d.id) } });
     expect(res.status).toBe(200);
     const checks = DeckChecks.parse(await res.json());
-    expect(checks.warnings).toEqual([]);
+    expect(checks.checks).toEqual([]);
     expect(checks.demand.map((w) => w.card.name)).toEqual(['Ember Signet']);
     expect(checks.demand[0].card.imageUrl).toBe('https://img/Ember Signet.webp');
   });
@@ -174,7 +174,7 @@ describe('deck checks routes', () => {
       json: { slots: [{ cardId: rally, board: 'main', quantity: 2 }] },
     });
     expect(res.status).toBe(200);
-    expect(ListChecks.parse(await res.json()).warnings).toEqual([]);
+    expect(ListChecks.parse(await res.json()).checks).toEqual([]);
   });
 
   it('GET /api/cards/:id/decks lists each deck and board with the card, and its demand', async () => {

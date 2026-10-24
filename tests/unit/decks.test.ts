@@ -417,6 +417,27 @@ describe('editing slots', () => {
     });
   });
 
+  it('the deck view counts the cards on each board', () => {
+    const jinx = card('jinx', { legend: true, domains: ['fury', 'chaos'] });
+    const blast = card('blast');
+    const rune = card('fury-rune', { rune: true });
+    const { id } = deck('A', [
+      { cardId: jinx, board: 'legend', quantity: 1 },
+      main(blast, 3),
+      { cardId: rune, board: 'rune', quantity: 12 },
+      { cardId: blast, board: 'maybe', quantity: 1 },
+    ]);
+    expect(view(id).boards).toEqual({
+      legend: 1,
+      champion: 0,
+      main: 3,
+      battlefield: 0,
+      rune: 12,
+      sideboard: 0,
+      maybe: 1,
+    });
+  });
+
   it('setLegend replaces the Legend, leaving the other boards alone', () => {
     const dariusAggro = card('dariusAggro', { legend: true, domains: ['fury', 'order'] });
     const leeSin = card('leeSin', { legend: true, domains: ['calm', 'body'] });
@@ -431,9 +452,10 @@ describe('editing slots', () => {
     expect(summary.legend?.id).toBe(leeSin);
     expect(summary.champion?.id).toBe(champion);
     expect(summary.domains).toEqual(['calm', 'body']);
+    // Board by board, so the new Legend comes first.
     expect(slots.map((s) => [s.card.id, s.board])).toEqual([
-      [champion, 'champion'],
       [leeSin, 'legend'],
+      [champion, 'champion'],
     ]);
     expect(refusal(() => setLegend(db, id, 999))).toEqual({ status: 400, code: 'card_not_found' });
   });
