@@ -15,7 +15,7 @@ import {
 
 const Count = z.number().int().nonnegative();
 const Quantity = z.number().int().positive();
-const DeckName = z.string().trim().min(1, 'Give the deck a name');
+export const DeckName = z.string().trim().min(1, 'Give the deck a name');
 /** UTC, such as "2026-10-18T21:40:00Z". */
 const Time = z.iso.datetime();
 
@@ -104,8 +104,31 @@ export type SlotRow = z.infer<typeof SlotRow>;
 export const DeckList = z.object({ decks: z.array(DeckSummary) });
 export type DeckList = z.infer<typeof DeckList>;
 
-/** GET /api/decks/:id and PUT /api/decks/:id/legend. */
-export const DeckView = z.object({ deck: DeckSummary, slots: z.array(SlotRow) });
+/**
+ * Cards on each board, by slot quantity. `main` counts only the main board: the main deck size
+ * the deck checks use adds the Chosen Champion (DECK-6).
+ */
+export const BoardCounts = z.object({
+  legend: Count,
+  champion: Count,
+  main: Count,
+  battlefield: Count,
+  rune: Count,
+  sideboard: Count,
+  maybe: Count,
+}) satisfies z.ZodType<Record<Board, number>>;
+export type BoardCounts = z.infer<typeof BoardCounts>;
+
+/**
+ * GET /api/decks/:id, PUT /api/decks/:id/legend and PUT /api/decks/:id/runes. The slots come
+ * board by board in `Board` order (legend, champion, main, battlefield, rune, sideboard, maybe),
+ * each with its board, so the deck view shows them grouped.
+ */
+export const DeckView = z.object({
+  deck: DeckSummary,
+  slots: z.array(SlotRow),
+  boards: BoardCounts,
+});
 export type DeckView = z.infer<typeof DeckView>;
 
 /** POST /api/decks: the deck and its Legend. */
@@ -146,6 +169,10 @@ export type SlotTags = z.infer<typeof SlotTags>;
 export const SlotPrinting = z.object({ printingId: z.string().min(1), foil: z.boolean() });
 export type SlotPrinting = z.infer<typeof SlotPrinting>;
 
+/** The boards a slot can move between from its menu (DECK-16). */
+export const MovableBoard = z.enum(['main', 'sideboard', 'maybe']);
+export type MovableBoard = z.infer<typeof MovableBoard>;
+
 /**
  * PATCH /api/decks/:id/slots/:slotId: change the quantity, move it to another board, change
  * its printing, or any of these together. A new printing becomes the slot's printing hint and
@@ -154,7 +181,8 @@ export type SlotPrinting = z.infer<typeof SlotPrinting>;
 export const SlotChange = z
   .object({
     quantity: Quantity.optional(),
-    board: Board.optional(),
+    /** Moving onto a board that already has the card merges the two slots (DECK-16). */
+    board: MovableBoard.optional(),
     printing: SlotPrinting.optional(),
   })
   .refine(
@@ -163,3 +191,21 @@ export const SlotChange = z
     { message: 'Send a quantity, a board, a printing or more than one' },
   );
 export type SlotChange = z.infer<typeof SlotChange>;
+
+/** How many of one rune card the deck has. Zero takes the rune off the deck. */
+export const RuneCount = z.object({ cardId: Id, quantity: Count });
+export type RuneCount = z.infer<typeof RuneCount>;
+
+/**
+ * PUT /api/decks/:id/runes → `DeckView`: sets the count of each rune card named, leaving other
+ * rune slots as they are. Runes are always available, so nothing is pulled (D-15).
+ */
+export const DeckRunes = z.object({
+  runes: z
+    .array(RuneCount)
+    .min(1, 'Send at least one rune')
+    .refine((runes) => new Set(runes.map((rune) => rune.cardId)).size === runes.length, {
+      message: 'Send each rune card once',
+    }),
+});
+export type DeckRunes = z.infer<typeof DeckRunes>;

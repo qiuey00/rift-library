@@ -35,11 +35,11 @@ export const deckChecksRoutes = new Hono()
       db,
       slots.filter((slot) => slot.board !== 'maybe').map((slot) => slot.cardId),
     );
-    const answer: DeckChecks = { warnings: checkList(db, slots), demand: [...demand.values()] };
+    const answer: DeckChecks = { checks: checkList(db, slots), demand: [...demand.values()] };
     return c.json(answer);
   })
   .post('/deck-checks', validate('json', ListToCheck), (c) => {
-    const answer: ListChecks = { warnings: checkList(getDb(), c.req.valid('json').slots) };
+    const answer: ListChecks = { checks: checkList(getDb(), c.req.valid('json').slots) };
     return c.json(answer);
   })
   .get('/cards/:id/decks', validate('param', z.object({ id: IdParam })), (c) => {

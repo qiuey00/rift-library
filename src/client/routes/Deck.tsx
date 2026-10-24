@@ -35,9 +35,15 @@ import {
 } from 'react';
 import { Link, useParams } from 'react-router';
 import type { CardSearchResult } from '../../shared/api/cards';
-import { type Board, type CardSummary, ErrorBody, type Id } from '../../shared/api/common';
+import { type CardSummary, ErrorBody, type Id } from '../../shared/api/common';
 import type { DeckChecks } from '../../shared/api/deck-checks';
-import type { DeckSummary, DeckView, SlotChange, SlotRow } from '../../shared/api/decks';
+import type {
+  DeckSummary,
+  DeckView,
+  MovableBoard,
+  SlotChange,
+  SlotRow,
+} from '../../shared/api/decks';
 import { api } from '../api';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { CardSearchPicker } from '../components/CardSearchPicker';
@@ -898,7 +904,7 @@ type RowProps = {
   /** Opens Edit tags, from the card's right-click menu. */
   onEditTags: () => void;
   /** Moves the card to the other board, from the card's right-click menu. */
-  onMove: (board: Board) => void;
+  onMove: (board: MovableBoard) => void;
   /** A change to the deck is saving. */
   busy: boolean;
   /** The slot's edit menu, while editing. */
@@ -1582,6 +1588,7 @@ function LegendDialog({
 // preview stays pinned at its top; only the deck checks below it scroll when they run past
 // the bottom of the window.
 function SidePane({ slot, checks }: { slot: SlotRow | null; checks: DeckChecks | undefined }) {
+  const warnings = checks?.checks.filter((check) => check.result === 'warn') ?? [];
   return (
     <aside
       aria-label="Card preview and deck checks"
@@ -1597,15 +1604,15 @@ function SidePane({ slot, checks }: { slot: SlotRow | null; checks: DeckChecks |
         </h2>
         {!checks ? (
           <p className="text-[13px] text-muted-foreground">Checking the deck…</p>
-        ) : checks.warnings.length === 0 ? (
+        ) : warnings.length === 0 ? (
           <p className="flex items-center gap-2 text-[13px] text-status-in-box">
             <CircleCheck aria-hidden="true" className="size-4" />
             No deck rule problems.
           </p>
         ) : (
           <ul aria-label="Deck checks" className="flex flex-col gap-2 text-[13px]">
-            {checks.warnings.map((warning) => (
-              <li key={`${warning.kind}-${warning.message}`} className="flex items-start gap-2">
+            {warnings.map((warning) => (
+              <li key={`${warning.code}-${warning.message}`} className="flex items-start gap-2">
                 <TriangleAlert
                   aria-hidden="true"
                   className="mt-px size-4 shrink-0 text-status-other-decks"
@@ -1616,7 +1623,7 @@ function SidePane({ slot, checks }: { slot: SlotRow | null; checks: DeckChecks |
             ))}
           </ul>
         )}
-        {checks && checks.warnings.length > 0 && (
+        {warnings.length > 0 && (
           <p className="text-[12px] text-muted-foreground">Warnings never block assembling.</p>
         )}
         {checks && checks.demand.length > 0 && (

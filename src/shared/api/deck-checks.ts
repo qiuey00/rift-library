@@ -8,11 +8,22 @@ import { DeckRef, SlotInput } from './decks';
 const Count = z.number().int().nonnegative();
 const Quantity = z.number().int().positive();
 
-/** The Riftbound rules the checks look at (DECK-6). The checks come with #16. */
-export const DeckWarningKind = z.enum([
+/**
+ * The Riftbound deck rules the checks look at (DECK-6), one check each:
+ * - `legend`: exactly one Legend.
+ * - `champion`: one Chosen Champion, a champion unit with the Legend's champion tag.
+ * - `main_count`: at least 40 main deck cards, the Chosen Champion included.
+ * - `copies`: at most 3 copies of a card by name, across every printing and board but maybe.
+ * - `signature`: at most 3 signature cards, all with the Legend's champion tag.
+ * - `domains`: every main deck, sideboard and rune card within the Legend's domains.
+ * - `runes`: 12 runes.
+ * - `battlefields`: 3 battlefields, with different names.
+ * - `sideboard`: the sideboard's size, when there is one.
+ */
+export const DeckCheckCode = z.enum([
   'legend',
   'champion',
-  'count',
+  'main_count',
   'copies',
   'signature',
   'domains',
@@ -20,17 +31,25 @@ export const DeckWarningKind = z.enum([
   'battlefields',
   'sideboard',
 ]);
-export type DeckWarningKind = z.infer<typeof DeckWarningKind>;
+export type DeckCheckCode = z.infer<typeof DeckCheckCode>;
 
-/** One deck rule the list breaks. */
-export const DeckWarning = z.object({
-  kind: DeckWarningKind,
-  /** Written for Jeff, such as "The main deck has 38 cards; it needs at least 40." */
+/** Whether the list keeps the rule. A warning never blocks anything (D-17). */
+export const DeckCheckResult = z.enum(['pass', 'warn']);
+export type DeckCheckResult = z.infer<typeof DeckCheckResult>;
+
+/** One deck rule and how the list does against it. */
+export const DeckCheck = z.object({
+  code: DeckCheckCode,
+  result: DeckCheckResult,
+  /**
+   * Written for Jeff, such as "The main deck has 38 cards; it needs at least 40." for a warning
+   * or "The main deck has 40 cards." for a pass.
+   */
   message: z.string(),
-  /** The cards it is about; empty for the card count. */
+  /** The cards a warning is about, such as the ones outside the Legend's domains; empty for a pass. */
   cards: z.array(CardSummary),
 });
-export type DeckWarning = z.infer<typeof DeckWarning>;
+export type DeckCheck = z.infer<typeof DeckCheck>;
 
 /** A card the decks want more copies of than Jeff owns (proxies count as owned). */
 export const DemandWarning = z.object({
@@ -47,9 +66,9 @@ export const DemandWarning = z.object({
 });
 export type DemandWarning = z.infer<typeof DemandWarning>;
 
-/** GET /api/decks/:id/checks: demand covers this deck's cards. */
+/** GET /api/decks/:id/checks: a check per rule in `DeckCheckCode` order; demand covers this deck's cards. */
 export const DeckChecks = z.object({
-  warnings: z.array(DeckWarning),
+  checks: z.array(DeckCheck),
   demand: z.array(DemandWarning),
 });
 export type DeckChecks = z.infer<typeof DeckChecks>;
@@ -59,7 +78,7 @@ export const ListToCheck = z.object({ slots: z.array(SlotInput) });
 export type ListToCheck = z.infer<typeof ListToCheck>;
 
 /** The answer to POST /api/deck-checks. */
-export const ListChecks = z.object({ warnings: z.array(DeckWarning) });
+export const ListChecks = z.object({ checks: z.array(DeckCheck) });
 export type ListChecks = z.infer<typeof ListChecks>;
 
 /** One deck slot holding a card. A deck appears once per board that has the card. */

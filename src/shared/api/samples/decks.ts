@@ -1,4 +1,4 @@
-import type { CardSummary, LocationRef, PrintingSummary } from '../common';
+import { Board, type CardSummary, type LocationRef, type PrintingSummary } from '../common';
 import type { DeckList, DeckRef, DeckSummary, DeckView, PrintingHint, SlotRow } from '../decks';
 import { cards, printings } from './deck-cards';
 
@@ -385,8 +385,14 @@ export const deckListSample: DeckList = {
   decks: [jinxBurn, luxControlDeck, viktorTempoDeck, ahriMidrangeDeck, annieAggroDeck, leeSinCombo],
 };
 
-/** GET /api/decks/1: the Jinx Burn deck view. */
-export const deckViewSample: DeckView = { deck: jinxBurn, slots: jinxBurnSlots };
+/** GET /api/decks/1: the Jinx Burn deck view, board by board. It has no Chosen Champion or sideboard yet. */
+export const deckViewSample: DeckView = {
+  deck: jinxBurn,
+  slots: [...jinxBurnSlots].sort(
+    (a, b) => Board.options.indexOf(a.board) - Board.options.indexOf(b.board),
+  ),
+  boards: { legend: 1, champion: 0, main: 74, battlefield: 3, rune: 17, sideboard: 0, maybe: 5 },
+};
 
 /** POST /api/decks: a new deck holds only its Legend, which is free in storage. */
 export const newDeckSample: DeckSummary = {

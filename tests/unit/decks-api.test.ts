@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { BuyItem, BuyList } from '../../src/shared/api/buy-list';
-import { CardDecks, DeckChecks, ListChecks } from '../../src/shared/api/deck-checks';
+import { Board } from '../../src/shared/api/common';
+import { CardDecks, DeckCheckCode, DeckChecks, ListChecks } from '../../src/shared/api/deck-checks';
 import { DeckList, DeckSummary, DeckView, SlotRow } from '../../src/shared/api/decks';
 import { buyItemSample, buyListSample } from '../../src/shared/api/samples/buy-list';
 import {
@@ -53,13 +54,23 @@ describe('decks, deck checks and buy list samples', () => {
     expect(new Set(slots.map((s) => s.id)).size).toBe(slots.length);
   });
 
-  it('has a warning for several deck rules', () => {
-    expect(deckChecksSample.warnings.map((w) => w.kind).sort()).toEqual([
-      'champion',
-      'copies',
-      'count',
-      'domains',
-      'runes',
-    ]);
+  it('has one check per deck rule, in rule order, with several warnings', () => {
+    expect(deckChecksSample.checks.map((check) => check.code)).toEqual(DeckCheckCode.options);
+    expect(
+      deckChecksSample.checks.filter((check) => check.result === 'warn').map((c) => c.code),
+    ).toEqual(['champion', 'main_count', 'copies', 'domains', 'runes']);
+  });
+
+  it('counts the Jinx Burn cards on each board', () => {
+    const { slots, boards } = deckViewSample;
+    for (const board of Board.options) {
+      const onBoard = slots.filter((s) => s.board === board);
+      expect(boards[board], board).toBe(onBoard.reduce((n, s) => n + s.quantity, 0));
+    }
+  });
+
+  it('lists the Jinx Burn slots board by board', () => {
+    const order = deckViewSample.slots.map((s) => Board.options.indexOf(s.board));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 });

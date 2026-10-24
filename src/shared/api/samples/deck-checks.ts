@@ -2,9 +2,9 @@ import type { CardDecks, DeckChecks, DemandWarning, ListChecks } from '../deck-c
 import { cards } from './deck-cards';
 import { deckRefs } from './decks';
 
-// Deck checks with a warning for several of Riftbound's deck rules, so screens can show them,
-// and the demand warning for Ember Signet. The warnings name cards a messier list would have.
-// The server answers no warnings until #16.
+// Deck checks with a check for each of Riftbound's deck rules, several of them warnings, so
+// screens can show both, and the demand warning for Ember Signet. The warnings name cards a
+// messier list would have. The server answers no checks until #16.
 
 const { jinxBurn, luxControl, ahriMidrange, annieAggro } = deckRefs;
 
@@ -17,41 +17,61 @@ export const emberSignetDemand: DemandWarning = {
   message: '3 decks want Ember Signet, you own 2',
 };
 
-/** GET /api/decks/1/checks. */
+const jinx = cards.jinxLooseCannon;
+
+/** GET /api/decks/1/checks: Jinx Burn keeps four rules and breaks five. */
 export const deckChecksSample: DeckChecks = {
-  warnings: [
+  checks: [
+    { code: 'legend', result: 'pass', message: 'The Legend is Jinx, Loose Cannon.', cards: [] },
     {
-      kind: 'count',
+      code: 'champion',
+      result: 'warn',
+      message: 'The deck has no Chosen Champion. Pick a Jinx champion unit.',
+      cards: [],
+    },
+    {
+      code: 'main_count',
+      result: 'warn',
       message: 'The main deck has 38 cards; it needs at least 40.',
       cards: [],
     },
     {
-      kind: 'copies',
+      code: 'copies',
+      result: 'warn',
       message: 'Scorched Rally is in the deck 4 times. A deck can have at most 3 copies of a card.',
       cards: [cards.scorchedRally],
     },
     {
-      kind: 'domains',
-      message:
-        'Dawn Snare is Order, which is outside Jinx, Loose Cannon’s domains (Fury and Chaos).',
+      code: 'signature',
+      result: 'pass',
+      message: 'The deck has no signature cards.',
+      cards: [],
+    },
+    {
+      code: 'domains',
+      result: 'warn',
+      message: `Dawn Snare is Order, which is outside ${jinx.name}’s domains (Fury and Chaos).`,
       cards: [cards.dawnSnare],
     },
     {
-      kind: 'runes',
+      code: 'runes',
+      result: 'warn',
       message: 'The deck has 10 runes; it needs 12.',
       cards: [],
     },
     {
-      kind: 'champion',
-      message: 'The deck has no Chosen Champion.',
+      code: 'battlefields',
+      result: 'pass',
+      message: 'The deck has 3 battlefields with different names.',
       cards: [],
     },
+    { code: 'sideboard', result: 'pass', message: 'The deck has no sideboard.', cards: [] },
   ],
   demand: [emberSignetDemand],
 };
 
-/** POST /api/deck-checks: the same warnings for an unsaved list. */
-export const listChecksSample: ListChecks = { warnings: deckChecksSample.warnings };
+/** POST /api/deck-checks: the same checks for an unsaved list. */
+export const listChecksSample: ListChecks = { checks: deckChecksSample.checks };
 
 /** GET /api/cards/:id/decks for Ember Signet. Annie Aggro only has it on the maybe board, which demand leaves out. */
 export const cardDecksSample: CardDecks = {

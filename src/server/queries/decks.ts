@@ -1,6 +1,13 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Board, DeckState, LocationRef } from '../../shared/api/common';
-import type { DeckCounts, DeckRef, DeckSummary, DeckView, SlotRow } from '../../shared/api/decks';
+import type {
+  BoardCounts,
+  DeckCounts,
+  DeckRef,
+  DeckSummary,
+  DeckView,
+  SlotRow,
+} from '../../shared/api/decks';
 import type { Db } from '../db/database';
 import {
   cards,
@@ -245,7 +252,7 @@ export function isRune(card: Pick<CardRow, 'type'>): boolean {
   return card.type === 'rune';
 }
 
-/** Every slot of one deck with its status, plus the deck's counts and state. */
+/** Every slot of one deck with its status, in board order, plus the deck's counts and state. */
 function workOut(deck: DeckRow, slots: SlotWithCard[], held: Holdings) {
   const box = held.boxes.get(deck.deckBoxId) ?? new Map<number, Pile>();
   // Copies in the box are shared out among the deck's slots of that card, in board order.
@@ -330,7 +337,7 @@ function workOut(deck: DeckRow, slots: SlotWithCard[], held: Holdings) {
     boxCopyCount: held.boxTotals.get(deck.deckBoxId) ?? 0,
     openedAt: deck.openedAt,
   };
-  return { summary, slots: slots.map((s) => rows.get(s.slot.id) as SlotRow) };
+  return { summary, slots: order.map((s) => rows.get(s.slot.id) as SlotRow) };
 }
 
 function otherDeckCopies(deck: DeckRow, cardId: number, held: Holdings) {
@@ -426,7 +433,22 @@ export function deckView(db: Db, id: number): DeckView | undefined {
   const deck = findDeck(db, id);
   if (!deck) return undefined;
   const [{ summary, slots }] = workOutDecks(db, [deck]);
-  return { deck: summary, slots };
+  return { deck: summary, slots, boards: boardCounts(slots) };
+}
+
+/** Cards on each board, by slot quantity. */
+function boardCounts(slots: SlotRow[]): BoardCounts {
+  const boards: BoardCounts = {
+    legend: 0,
+    champion: 0,
+    main: 0,
+    battlefield: 0,
+    rune: 0,
+    sideboard: 0,
+    maybe: 0,
+  };
+  for (const slot of slots) boards[slot.board] += slot.quantity;
+  return boards;
 }
 
 /** One slot of a live deck, worked out; undefined when it isn't there. */

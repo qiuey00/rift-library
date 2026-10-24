@@ -5,6 +5,7 @@ import { cardDataRoutes } from './routes/card-data';
 import { cardsRoutes } from './routes/cards';
 import { copiesRoutes } from './routes/copies';
 import { deckChecksRoutes } from './routes/deck-checks';
+import { deckListsRoutes } from './routes/deck-lists';
 import { decksRoutes } from './routes/decks';
 import { exportsRoutes } from './routes/exports';
 import { historyRoutes } from './routes/history';
@@ -30,6 +31,7 @@ export const app = new Hono()
   .route('/api', historyRoutes)
   .route('/api', decksRoutes)
   .route('/api', deckChecksRoutes)
+  .route('/api', deckListsRoutes)
   .route('/api', buyListRoutes)
   .route('/api', pickListRoutes)
   .route('/api', pullsRoutes)

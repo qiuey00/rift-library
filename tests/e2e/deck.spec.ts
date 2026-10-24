@@ -396,11 +396,13 @@ test('the card menu opens from the keyboard', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Add to buy list' })).toBeVisible();
 });
 
-test('the side pane lists the deck checks as notes', async ({ page }) => {
+test('the side pane lists the deck checks that warn as notes', async ({ page }) => {
   await page.goto('/decks/1');
   const checks = page.getByRole('list', { name: 'Deck checks' });
   await expect(checks.getByRole('listitem')).toHaveText(
-    deckChecksSample.warnings.map((warning) => warning.message),
+    deckChecksSample.checks
+      .filter((check) => check.result === 'warn')
+      .map((check) => check.message),
   );
 });
 

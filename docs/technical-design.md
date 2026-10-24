@@ -85,24 +85,42 @@ The deck list format waits for Jeff's samples (D-23). Until then the parser in `
 
 ```
 Legend:
-1 <Legend name>
+1 Jinx, Loose Cannon OGN-001 *F*
+
 Champion:
-1 <Chosen Champion name> OGN-123
+1 Jinx, Rebel OGN-202
+
 Main:
-3 <card name>
+3 Fierce Blast OGN-084 #Removal
+3 Sun Disc OGN-057 #energy rock #Ramp
 ...
+
 Battlefields:
-1 <battlefield name>
+1 Eager Steppe OGN-149
 ...
+
 Runes:
 6 Fury Rune
 6 Chaos Rune
+
 Sideboard:
-2 <card name>
+2 Fiora, Guardian OGN-004
+
 Maybe:
-1 <card name>
+1 Senna, Outlaw OGN-089
 ```
-A line is a quantity, a card name and an optional public code. Names match the name key, then fuzzy matching through Riftcodex. Lines with no heading go to the main deck.
+
+A line is a quantity, a card name, an optional public code (the printing hint), an optional `*F*` for foil and any number of tags, each starting with `#` (tags can't contain `#`, so a tag can have spaces). Names match the name key, then fuzzy matching through Riftcodex. Lines with no heading go to the main deck, blank lines are ignored, and repeated names on one board merge into one slot. The export writes the same format, board by board, each line with its picked printing (or printing hint) and tags (EXP-1). `src/shared/api/samples/deck-lists.ts` has a full deck in this format, Jinx Rebels.
+
+The API (shapes in `src/shared/api/deck-lists.ts`, #14):
+
+| Call | What it does |
+| --- | --- |
+| `POST /api/deck-lists/preview` | Takes `{ text, fixes?, skips?, deckId? }` and writes nothing. Answers every line with its kind and board, the matched slots, cards per board, the proposed Legend and Chosen Champion, unmatched lines, the deck checks and, with a deck id, what would change, under a preview id that lasts until the server restarts. |
+| `POST /api/deck-lists/:previewId/create` | Takes the name, Legend and Chosen Champion (or none) Jeff confirmed and makes the deck from the preview (DECK-14, DECK-15). An unknown preview answers 404 `preview_not_found`. |
+| `POST /api/decks/:id/deck-list` | Takes `{ text, fixes?, skips? }` and replaces the deck's slots, keeping the picked printing and tags of unchanged cards (CHG-1). Answers the deck and whether a swap list is needed. |
+| `GET /api/exports/decks/:id/deck-list` | The deck as `{ fileName, text, cardCount, lineCount }` (EXP-1); `.../deck-list.txt` sends the text as a file. |
+| `GET /api/exports/locations/:id/deck-list` | A location and every location inside it, one line per printing and finish with its quantity, proxies left out (EXP-2); `.../deck-list.txt` sends the file. |
 
 ## Core operations
 
@@ -111,8 +129,9 @@ Every core operation keeps Library of Gathering's behavior and code: `moveCopies
 | Action | Change |
 | --- | --- |
 | Pick list | Built from unfilled legend, champion, main, battlefield and sideboard slots. Rune slots close the list as counts per domain, where basic lands were. |
-| Change board | Moves a card between the main deck, sideboard and maybe board (DECK-16). Moving between main and sideboard moves no copies; moving to the maybe board puts the copy on the swap list. |
-| Deck checks | Rewritten in `src/server/queries/deck-checks.ts` for the rules in DECK-6. |
+| Change board | Moves a card between the main deck, sideboard and maybe board (DECK-16); `PATCH /api/decks/:id/slots/:slotId` takes only those three boards. Moving between main and sideboard moves no copies; moving to the maybe board puts the copy on the swap list. |
+| Runes | `PUT /api/decks/:id/runes` sets the count of each rune card; zero takes a rune off. Nothing is pulled (D-15). The deck view answers its slots board by board with the cards on each board. |
+| Deck checks | Rewritten in `src/server/queries/deck-checks.ts` for the rules in DECK-6: one `DeckCheck` per rule, with a code, a pass or warn result and a message for Jeff. |
 | Add and remove | Quick add writes one add batch per card added. Lowering or removing copies writes a remove batch with the reason and no to location (COL-13). |
 | Drag a card in | Removed with `src/server/scryfall/drop.ts` (D-9). |
 
