@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { History, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router';
 import type { CardCounts, CardDetailsResponse } from '../../shared/api/cards';
 import type { Finish, PrintingSummary } from '../../shared/api/common';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
@@ -10,22 +10,27 @@ import { CardDecksSection } from '../components/CardDecksSection';
 import { DomainIcons } from '../components/DomainIcon';
 import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
-import { typeLine } from '../lib/card-text';
+import { isPublicCode, typeLine } from '../lib/card-text';
 import { ApiError, cardDetailsQuery } from '../lib/cards';
+import { cn } from '../lib/utils';
 
 const finishWords: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** One card: its printings, Jeff's copies and the decks that use it (`/cards/:id`). */
+/**
+ * One card: its printings, Jeff's copies and the decks that use it (`/cards/:id`).
+ * `?printing=OGN-042` marks the printing with that public code, as a public code search does.
+ */
 export function Card() {
   const cardId = Number(useParams().id);
   const details = useQuery(cardDetailsQuery(cardId));
+  const typedCode = useSearchParams()[0].get('printing');
 
   return (
     <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 pt-8 pb-12">
       {details.data ? (
-        <CardTop details={details.data} />
+        <CardTop details={details.data} typedCode={typedCode} />
       ) : details.isError ? (
         <div className="flex flex-col gap-3">
           <h1 className="font-serif text-[44px] leading-[1.05]">
@@ -54,9 +59,24 @@ export function Card() {
   );
 }
 
-function CardTop({ details }: { details: CardDetailsResponse }) {
+function CardTop({
+  details,
+  typedCode,
+}: {
+  details: CardDetailsResponse;
+  typedCode: string | null;
+}) {
   const { card, printings, counts } = details;
   const [buyListOpen, setBuyListOpen] = useState(false);
+  const marked = typedCode ? printings.find((p) => isPublicCode(p.publicCode, typedCode)) : null;
+  const imageUrl = marked?.imageUrl ?? card.imageUrl;
+  // Battlefields are printed sideways, so they show in landscape.
+  const landscape = card.type === 'battlefield';
+  const stats: [string, number | null][] = [
+    ['Energy', card.energy],
+    ['Might', card.might],
+    ['Power', card.power],
+  ];
 
   return (
     <div className="flex flex-wrap items-start gap-7">
@@ -64,9 +84,30 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
         <header className="flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
             <h1 className="font-serif text-[48px] leading-none">{card.name}</h1>
-            <DomainIcons domains={card.domains} className="text-lg" />
+            <DomainIcons domains={card.domains} className="self-center text-xl" />
             <span className="text-base text-muted-foreground">{typeLine(card)}</span>
           </div>
+          {stats.some(([, n]) => n !== null) && (
+            <dl aria-label="Stats" className="flex flex-wrap gap-x-5 gap-y-1 text-[15px]">
+              {stats.map(
+                ([label, n]) =>
+                  n !== null && (
+                    <div key={label} data-stat={label.toLowerCase()} className="flex gap-1.5">
+                      <dt className="text-muted-foreground">{label}</dt>
+                      <dd className="font-semibold tabular-nums">{n}</dd>
+                    </div>
+                  ),
+              )}
+            </dl>
+          )}
+          {card.rulesText && (
+            <p
+              data-testid="rules-text"
+              className="max-w-[640px] whitespace-pre-line text-[15px] leading-relaxed"
+            >
+              {card.rulesText}
+            </p>
+          )}
           <Counts counts={counts} />
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setBuyListOpen(true)}>
@@ -81,21 +122,34 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
             </Button>
           </div>
         </header>
-        <Printings printings={printings} />
+        <Printings printings={printings} marked={marked ?? null} />
       </div>
 
-      <figure className="flex-[0_0_312px]">
-        {card.imageUrl ? (
+      <figure
+        data-orientation={landscape ? 'landscape' : 'portrait'}
+        className={landscape ? 'flex-[0_0_436px]' : 'flex-[0_0_312px]'}
+      >
+        {imageUrl ? (
           // Show the whole card, never cropped or covered.
           <img
-            src={card.imageUrl}
+            src={imageUrl}
             alt={card.name}
-            width={488}
-            height={680}
-            className="aspect-[488/680] h-auto w-full rounded-[4.75%/3.5%] object-contain"
+            width={landscape ? 680 : 488}
+            height={landscape ? 488 : 680}
+            className={cn(
+              'h-auto w-full object-contain',
+              landscape
+                ? 'aspect-[680/488] rounded-[3.5%/4.75%]'
+                : 'aspect-[488/680] rounded-[4.75%/3.5%]',
+            )}
           />
         ) : (
-          <div className="flex aspect-[488/680] w-full items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
+          <div
+            className={cn(
+              'flex w-full items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground',
+              landscape ? 'aspect-[680/488]' : 'aspect-[488/680]',
+            )}
+          >
             No image
           </div>
         )}
@@ -130,7 +184,24 @@ function Counts({ counts }: { counts: CardCounts }) {
   );
 }
 
-function Printings({ printings }: { printings: PrintingSummary[] }) {
+/** The small tags a printing can carry, in the order they show. */
+const PRINTING_TAGS = [
+  ['alternateArt', 'Alternate art'],
+  ['overnumbered', 'Overnumbered'],
+  ['signature', 'Signature'],
+] as const;
+
+function Printings({
+  printings,
+  marked,
+}: {
+  printings: PrintingSummary[];
+  marked: PrintingSummary | null;
+}) {
+  const markedRow = useRef<HTMLTableRowElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll once per marked printing
+  useEffect(() => markedRow.current?.scrollIntoView({ block: 'nearest' }), [marked?.printingId]);
+
   return (
     <Panel>
       <h2 className="border-border border-b px-4 py-3.5 font-bold text-[17px]">
@@ -140,23 +211,45 @@ function Printings({ printings }: { printings: PrintingSummary[] }) {
         <thead>
           <tr className="text-left text-muted-foreground text-xs uppercase tracking-[0.04em]">
             <th className="px-4 py-2.5 font-semibold">Set</th>
-            <th className="px-2 py-2.5 font-semibold">Number</th>
+            <th className="px-2 py-2.5 font-semibold">Code</th>
+            <th className="px-2 py-2.5 font-semibold">Rarity</th>
             <th className="px-4 py-2.5 font-semibold">Finishes</th>
           </tr>
         </thead>
         <tbody>
-          {printings.map((p) => (
-            <tr key={p.printingId} className="border-[#eceef2] border-t">
-              <td className="px-4 py-2.5">
-                <span className="flex items-center gap-2.5">
-                  <span className="font-semibold">{p.setName}</span>
-                  <span className="text-muted-foreground text-xs">{p.setCode}</span>
-                </span>
-              </td>
-              <td className="px-2 py-2.5 tabular-nums">{p.publicCode}</td>
-              <td className="px-4 py-2.5">{p.finishes.map((f) => finishWords[f]).join(', ')}</td>
-            </tr>
-          ))}
+          {printings.map((p) => {
+            const isMarked = p.printingId === marked?.printingId;
+            return (
+              <tr
+                key={p.printingId}
+                ref={isMarked ? markedRow : undefined}
+                aria-current={isMarked ? 'true' : undefined}
+                className={cn('border-[#eceef2] border-t', isMarked && 'bg-[#eef3fe]')}
+              >
+                <td className="px-4 py-2.5">
+                  <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span className="font-semibold">{p.setCode}</span>
+                    <span className="text-muted-foreground text-xs">{p.setName}</span>
+                    {PRINTING_TAGS.map(
+                      ([key, label]) =>
+                        p[key] && (
+                          <span
+                            key={key}
+                            data-tag={key}
+                            className="rounded-full bg-status-free-soft px-2 py-0.5 font-semibold text-[11px] text-status-free"
+                          >
+                            {label}
+                          </span>
+                        ),
+                    )}
+                  </span>
+                </td>
+                <td className="px-2 py-2.5 tabular-nums">{p.publicCode}</td>
+                <td className="px-2 py-2.5 capitalize">{p.rarity}</td>
+                <td className="px-4 py-2.5">{p.finishes.map((f) => finishWords[f]).join(', ')}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </Panel>

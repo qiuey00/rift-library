@@ -7,12 +7,22 @@ import { isCardDataBusy, useCardDataStatus, useRefreshCardData } from '../lib/ca
 const checkedAt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 const count = new Intl.NumberFormat();
 
-/** App settings (`/settings`): for now, the card data panel. */
+/** Riot's legal notice for fan projects (PLAT-8), word for word. */
+const RIOT_LEGAL_NOTICE =
+  "Rift Library isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.";
+
+/** App settings (`/settings`): the card data panel and Riot's legal notice. */
 export function Settings() {
   return (
     <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 pt-8 pb-12">
       <h1 className="font-serif text-[44px] leading-[1.05]">Settings</h1>
       <CardDataPanel />
+      <Panel role="region" aria-labelledby="legal-title" className="flex max-w-[720px] flex-col">
+        <h2 id="legal-title" className="border-border border-b px-5 py-4 font-bold text-lg">
+          Legal
+        </h2>
+        <p className="px-5 py-4 text-[15px] text-muted-foreground">{RIOT_LEGAL_NOTICE}</p>
+      </Panel>
     </div>
   );
 }
