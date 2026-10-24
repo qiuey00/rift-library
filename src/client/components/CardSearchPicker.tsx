@@ -13,8 +13,14 @@ export type CardSearchPickerProps = {
   placeholder?: string;
   /** Only cards of this type. */
   type?: CardType;
+  /** Only cards with this supertype, such as 'champion'. */
+  supertype?: string;
+  /** Only cards with this champion tag, such as 'Jinx'. */
+  championTag?: string;
   /** Only cards whose domains all fit inside these; cards with no domain always fit. */
   domains?: Domain[];
+  /** Only cards a deck can hold, leaving out tokens. */
+  deckable?: boolean;
   /** Called with the card Jeff picks; the field clears for the next search. */
   onPick: (card: CardSearchResult) => void;
   /** Disables the results while the pick is being saved. */
@@ -39,7 +45,10 @@ export function CardSearchPicker({
   label,
   placeholder = 'Search by card name',
   type,
+  supertype,
+  championTag,
   domains,
+  deckable = false,
   onPick,
   busy = false,
   autoFocus,
@@ -50,13 +59,16 @@ export function CardSearchPicker({
   const q = useDebounced(text.trim());
 
   const search = useQuery({
-    queryKey: ['cards', 'search', { q, type, domains }],
+    queryKey: ['cards', 'search', { q, type, supertype, championTag, domains, deckable }],
     enabled: q !== '',
     queryFn: async (): Promise<CardSearchResponse> => {
       const res = await api.cards.$get({
         query: {
           q,
           ...(type ? { type } : {}),
+          ...(supertype ? { supertype } : {}),
+          ...(championTag ? { championTag } : {}),
+          ...(deckable ? { deckable: '1' as const } : {}),
           ...(domains !== undefined ? { domains: domains.join(',') } : {}),
         },
       });

@@ -2,19 +2,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownToLine,
   ArrowRight,
+  ArrowRightLeft,
   ArrowUpToLine,
   CircleCheck,
   CircleX,
+  FileText,
   History,
   Layers,
   LayoutGrid,
   List,
   type LucideIcon,
   MapPin,
+  Minus,
   MoreHorizontal,
   Package,
   PackageOpen,
   Pencil,
+  Plus,
   Images as PrintingsIcon,
   ShoppingCart,
   SquareCheckBig,
@@ -35,7 +39,13 @@ import {
 } from 'react';
 import { Link, useParams } from 'react-router';
 import type { CardSearchResult } from '../../shared/api/cards';
-import { type CardSummary, ErrorBody, type Id } from '../../shared/api/common';
+import {
+  type Board,
+  type CardSummary,
+  type Domain,
+  ErrorBody,
+  type Id,
+} from '../../shared/api/common';
 import type { DeckChecks } from '../../shared/api/deck-checks';
 import type {
   DeckSummary,
@@ -46,8 +56,9 @@ import type {
 } from '../../shared/api/decks';
 import { api } from '../api';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
-import { CardSearchPicker } from '../components/CardSearchPicker';
+import { CardSearchPicker, type CardSearchPickerProps } from '../components/CardSearchPicker';
 import { ChangePrintingDialog } from '../components/ChangePrintingDialog';
+import { ComingSoonDialog } from '../components/ComingSoonDialog';
 import { DeckListExportDialog } from '../components/DeckListExportDialog';
 import { DeleteDeckDialog } from '../components/DeleteDeckDialog';
 import { DomainIcons } from '../components/DomainIcon';
@@ -83,7 +94,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { Input } from '../components/ui/input';
 import { NativeSelect, NativeSelectOption } from '../components/ui/native-select';
-import { typeLine } from '../lib/card-text';
+import { BOARD_WORDS, typeLine } from '../lib/card-text';
 import {
   deckTags,
   type GroupBy,
@@ -145,7 +156,7 @@ export function Deck() {
 }
 
 function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | undefined }) {
-  const { deck, slots } = view;
+  const { deck, slots, boards } = view;
   const [listView, setListView] = useRememberedListView();
   const [groupBy, setGroupBy] = useState<GroupBy>('type');
   const [sortBy, setSortBy] = useState<SortBy>('name');
@@ -161,7 +172,9 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
     () => groupSlots(slots, groupBy, sortBy, tagFilter),
     [slots, groupBy, sortBy, tagFilter],
   );
-  const maybeCount = groups.maybe.reduce((sum, group) => sum + group.count, 0);
+  const on = (board: SlotRow['board']) => slots.filter((slot) => slot.board === board);
+  const legend = on('legend')[0] ?? null;
+  const champion = on('champion')[0] ?? null;
   const [hoveredId, setHoveredId] = useState<Id | null>(null);
   const [buying, setBuying] = useState<{ cardId: number; quantity: number } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -169,10 +182,9 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
   const [changingQuantity, setChangingQuantity] = useState<SlotRow | null>(null);
   const [changingPrinting, setChangingPrinting] = useState<SlotRow | null>(null);
   const [editingTags, setEditingTags] = useState<SlotRow | null>(null);
-  const [changingLegend, setChangingLegend] = useState(false);
+  const [replacing, setReplacing] = useState<'legend' | 'champion' | null>(null);
 
-  const previewed =
-    slots.find((slot) => slot.id === hoveredId) ?? groups.decklist[0]?.slots[0] ?? slots[0] ?? null;
+  const previewed = slots.find((slot) => slot.id === hoveredId) ?? legend ?? slots[0] ?? null;
 
   const rowProps = (slot: SlotRow): RowProps => ({
     slot,
@@ -189,11 +201,31 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         slot={slot}
         busy={edits.isPending}
         onChangeQuantity={() => setChangingQuantity(slot)}
-        onChangeLegend={() => setChangingLegend(true)}
         onEdit={edits.mutate}
       />
     ) : undefined,
   });
+
+  const boardPanel = (board: GroupedBoard, note?: string) => (
+    <BoardPanel
+      board={board}
+      count={boards[board]}
+      groups={groups[board]}
+      listView={listView}
+      rowProps={rowProps}
+      note={note}
+      adding={
+        editing ? (
+          <AddToBoard
+            board={board}
+            label={ADD_LABELS[board]}
+            domains={deck.domains}
+            edits={edits}
+          />
+        ) : undefined
+      }
+    />
+  );
 
   return (
     <>
@@ -201,7 +233,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
       <div className="relative mx-auto -mt-10 flex max-w-[1392px] flex-col gap-[18px] px-6 pb-12">
         <SwapBanner deckId={deck.id} />
         <AvailabilityPanel deck={deck} slots={slots} />
-        {editing && <EditPanel deck={deck} edits={edits} onDone={() => setEditing(false)} />}
+        {editing && <EditPanel edits={edits} onDone={() => setEditing(false)} />}
         {!editing && slots.every((slot) => slot.board === 'legend') && (
           <EmptyDeck onEdit={() => setEditing(true)} />
         )}
@@ -224,6 +256,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
             options={[
               { value: 'type', label: 'Type' },
               { value: 'where', label: 'Where it is' },
+              { value: 'domain', label: 'Domain' },
               { value: 'tag', label: 'Tag' },
             ]}
           />
@@ -256,38 +289,40 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
 
         {/* An empty last line stretches the row down over this screen's and the frame's bottom
             padding to the end of the page, so the sticky side pane is never pushed up when the
-            decklist ends. */}
+            deck ends. */}
         <div className="flex flex-wrap items-start gap-6 lg:-mb-36 lg:after:h-30 lg:after:basis-full">
           <SidePane slot={previewed} checks={checks} />
           <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-[18px]">
-            <Panel role="region" aria-label="Decklist" className="relative px-4 py-[18px]">
-              <SlotGroups groups={groups.decklist} listView={listView} rowProps={rowProps} />
-            </Panel>
-            {maybeCount > 0 && (
-              <Panel
-                role="region"
-                aria-label="Maybe board"
-                className="relative flex flex-col gap-4 px-4 py-[18px]"
-              >
-                <div className="flex items-baseline justify-between gap-4 px-2">
-                  <h2 className="font-serif text-[26px] leading-none">
-                    Maybe board
-                    <span className="ml-2.5 font-sans font-semibold text-[15px] text-status-rune tabular-nums">
-                      {maybeCount} {maybeCount === 1 ? 'card' : 'cards'}
-                    </span>
-                  </h2>
-                  <p className="text-[13px] text-muted-foreground">
-                    Not counted, picked or checked with the deck.
-                  </p>
-                </div>
-                <SlotGroups
-                  groups={groups.maybe}
-                  listView={listView}
-                  rowProps={rowProps}
-                  level={3}
-                />
-              </Panel>
-            )}
+            <LeadersPanel
+              deck={deck}
+              legend={legend}
+              champion={champion}
+              runes={on('rune')}
+              runeCount={boards.rune}
+              editing={editing}
+              rowProps={rowProps}
+              onReplace={setReplacing}
+              edits={edits}
+            />
+            <BattlefieldsPanel
+              battlefields={on('battlefield')}
+              count={boards.battlefield}
+              rowProps={rowProps}
+              adding={
+                editing ? (
+                  <AddToBoard
+                    board="battlefield"
+                    label={ADD_LABELS.battlefield}
+                    domains={deck.domains}
+                    edits={edits}
+                  />
+                ) : undefined
+              }
+            />
+            {boardPanel('main')}
+            {(boards.sideboard > 0 || editing) && boardPanel('sideboard')}
+            {(boards.maybe > 0 || editing) &&
+              boardPanel('maybe', 'Not counted, picked or checked with the deck.')}
           </div>
         </div>
       </div>
@@ -326,11 +361,36 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
           onClose={() => setEditingTags(null)}
         />
       )}
-      {changingLegend && (
-        <LegendDialog
-          legend={deck.legend}
-          onSave={(legendId) => edits.mutateAsync({ kind: 'legend', legendId })}
-          onClose={() => setChangingLegend(false)}
+      {replacing === 'legend' && (
+        <ReplaceDialog
+          title="Replace legend"
+          description={
+            deck.legend
+              ? `Pick the Legend that replaces ${deck.legend.name}. Cards outside its domains show as warnings in the deck checks.`
+              : 'Pick the deck’s Legend.'
+          }
+          label="Legend"
+          search={{ type: 'legend' }}
+          onSave={(card) => edits.mutateAsync({ kind: 'legend', legendId: card.id })}
+          onClose={() => setReplacing(null)}
+        />
+      )}
+      {replacing === 'champion' && (
+        <ReplaceDialog
+          title={champion ? 'Replace Chosen Champion' : 'Pick a Chosen Champion'}
+          description={
+            champion
+              ? `Pick the champion unit that replaces ${champion.card.name}.`
+              : 'Pick a champion unit for the deck.'
+          }
+          label="Chosen Champion"
+          search={{
+            type: 'unit',
+            supertype: 'champion',
+            championTag: deck.legend?.championTag ?? undefined,
+          }}
+          onSave={(card) => edits.mutateAsync({ kind: 'champion', card, replacing: champion })}
+          onClose={() => setReplacing(null)}
         />
       )}
     </>
@@ -373,6 +433,7 @@ function DeckHeader({
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const { counts } = deck;
   const cardCount = counts.inBox + counts.free + counts.otherDecks + counts.missing + counts.runes;
   const lightButton =
@@ -420,6 +481,10 @@ function DeckHeader({
               </Link>
             </Button>
           )}
+          <Button variant="ghost" className={lightButton} onClick={() => setUpdating(true)}>
+            <FileText aria-hidden="true" />
+            Update from deck list
+          </Button>
           <Button variant="ghost" className={lightButton} onClick={() => setExporting(true)}>
             <Upload aria-hidden="true" />
             Export
@@ -464,6 +529,8 @@ function DeckHeader({
         deckId={deck.id}
         deckName={deck.name}
       />
+      {/* The deck list import page opens here for this deck once #23 builds it. */}
+      <ComingSoonDialog title="Update from deck list" open={updating} onOpenChange={setUpdating} />
       {exporting && (
         <DeckListExportDialog
           open
@@ -829,21 +896,12 @@ function TagFilterSelect({
 // ---------------------------------------------------------------------------------------
 // Decklist
 
-function GroupHeading({
-  title,
-  count,
-  level = 2,
-}: {
-  title: string;
-  count: number;
-  level?: 2 | 3;
-}) {
-  const Heading = level === 2 ? 'h2' : 'h3';
+function GroupHeading({ title, count }: { title: string; count: number }) {
   return (
-    <Heading className="flex justify-between gap-2.5 break-after-avoid border-border border-b px-2 pb-1.5 font-bold text-[#2b303b] text-xs uppercase tracking-[0.06em]">
+    <h3 className="flex justify-between gap-2.5 break-after-avoid border-border border-b px-2 pb-1.5 font-bold text-[#2b303b] text-xs uppercase tracking-[0.06em]">
       {title}
       <span className="font-semibold text-status-rune">{count}</span>
-    </Heading>
+    </h3>
   );
 }
 
@@ -852,19 +910,17 @@ function SlotGroups({
   groups,
   listView,
   rowProps,
-  level,
 }: {
   groups: SlotGroup[];
   listView: ListView;
   rowProps: (slot: SlotRow) => RowProps;
-  level?: 2 | 3;
 }) {
   if (listView === 'rows') {
     return (
       <div className="[column-gap:26px] [columns:3_290px]">
         {groups.map((group) => (
           <section key={group.key} aria-label={group.title} className="mb-[18px]">
-            <GroupHeading title={group.title} count={group.count} level={level} />
+            <GroupHeading title={group.title} count={group.count} />
             <ul>
               {group.slots.map((slot) => (
                 <SlotListRow key={slot.id} {...rowProps(slot)} />
@@ -879,7 +935,7 @@ function SlotGroups({
     <div className="flex flex-col gap-[22px]">
       {groups.map((group) => (
         <section key={group.key} aria-label={group.title}>
-          <GroupHeading title={group.title} count={group.count} level={level} />
+          <GroupHeading title={group.title} count={group.count} />
           <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-3.5 gap-y-[18px]">
             {group.slots.map((slot) => (
               <SlotImage key={slot.id} {...rowProps(slot)} />
@@ -888,6 +944,333 @@ function SlotGroups({
         </section>
       ))}
     </div>
+  );
+}
+
+/** The boards with grouped cards, each in a panel of its own. */
+type GroupedBoard = 'main' | 'sideboard' | 'maybe';
+
+/** Each board's add-card search label, while editing. */
+const ADD_LABELS = {
+  main: 'Add to main deck',
+  sideboard: 'Add to sideboard',
+  maybe: 'Add to maybe board',
+  battlefield: 'Add battlefield',
+} as const;
+
+/** A panel's title and card count, with a note on the right. */
+function PanelHeading({ title, count, note }: { title: string; count: string; note?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-2">
+      <h2 className="font-serif text-[26px] leading-none">
+        {title}
+        <span className="ml-2.5 font-sans font-semibold text-[15px] text-status-rune tabular-nums">
+          {count}
+        </span>
+      </h2>
+      {note && <p className="text-[13px] text-muted-foreground">{note}</p>}
+    </div>
+  );
+}
+
+const cardsWord = (count: number) => `${count} ${count === 1 ? 'card' : 'cards'}`;
+
+/** The main deck, sideboard or maybe board, grouped as the toolbar says. */
+function BoardPanel({
+  board,
+  count,
+  groups,
+  listView,
+  rowProps,
+  note,
+  adding,
+}: {
+  board: GroupedBoard;
+  /** Cards on the board, whatever the tag filter. */
+  count: number;
+  groups: SlotGroup[];
+  listView: ListView;
+  rowProps: (slot: SlotRow) => RowProps;
+  note?: string;
+  /** The board's add-card search, while editing. */
+  adding?: ReactNode;
+}) {
+  const title = BOARD_WORDS[board];
+  return (
+    <Panel role="region" aria-label={title} className="relative flex flex-col gap-4 px-4 py-[18px]">
+      <PanelHeading title={title} count={cardsWord(count)} note={note} />
+      {adding}
+      {groups.length > 0 ? (
+        <SlotGroups groups={groups} listView={listView} rowProps={rowProps} />
+      ) : (
+        count > 0 && (
+          <p className="px-2 text-[13px] text-muted-foreground">No cards here match the tag.</p>
+        )
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * The Legend and the Chosen Champion side by side as card images, with the rune counts beside
+ * them. While editing, each card offers Replace… and runes can be added.
+ */
+function LeadersPanel({
+  deck,
+  legend,
+  champion,
+  runes,
+  runeCount,
+  editing,
+  rowProps,
+  onReplace,
+  edits,
+}: {
+  deck: DeckSummary;
+  legend: SlotRow | null;
+  champion: SlotRow | null;
+  runes: SlotRow[];
+  runeCount: number;
+  editing: boolean;
+  rowProps: (slot: SlotRow) => RowProps;
+  onReplace: (board: 'legend' | 'champion') => void;
+  edits: DeckEdits;
+}) {
+  const leaders = [
+    { board: 'legend' as const, slot: legend },
+    { board: 'champion' as const, slot: champion },
+  ];
+  return (
+    <Panel
+      role="region"
+      aria-label="Legend, Chosen Champion and runes"
+      className="flex flex-wrap items-start gap-5 px-5 py-[18px]"
+    >
+      {leaders.map(({ board, slot }) => (
+        <div key={board} className="flex w-[190px] flex-col gap-2">
+          <span className="font-bold text-[#2b303b] text-xs uppercase tracking-[0.06em]">
+            {BOARD_WORDS[board]}
+          </span>
+          {slot ? (
+            <ul>
+              <SlotImage {...rowProps(slot)} menu={undefined} />
+            </ul>
+          ) : (
+            <span className="flex aspect-[488/680] items-center justify-center rounded-[4.75%/3.5%] border border-border border-dashed p-4 text-center text-[13px] text-muted-foreground">
+              {board === 'legend' ? 'No Legend yet' : 'No Chosen Champion yet'}
+            </span>
+          )}
+          {editing && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={edits.isPending}
+              aria-label={
+                slot
+                  ? `Replace ${board === 'legend' ? 'the Legend' : 'the Chosen Champion'}`
+                  : `Pick ${board === 'legend' ? 'a Legend' : 'a Chosen Champion'}`
+              }
+              onClick={() => onReplace(board)}
+            >
+              {slot ? 'Replace…' : 'Pick…'}
+            </Button>
+          )}
+        </div>
+      ))}
+      <RunesBox deck={deck} runes={runes} count={runeCount} editing={editing} />
+    </Panel>
+  );
+}
+
+/**
+ * One line of counts per rune card, with plus and minus buttons that set the count on the
+ * server (`PUT /api/decks/:id/runes`). Runes are always available, so they have no status.
+ */
+function RunesBox({
+  deck,
+  runes,
+  count,
+  editing,
+}: {
+  deck: DeckSummary;
+  runes: SlotRow[];
+  count: number;
+  editing: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const setRune = useMutation({
+    mutationFn: async (rune: { cardId: Id; quantity: number }): Promise<DeckView> => {
+      const res = await api.decks[':id'].runes.$put({
+        param: { id: String(deck.id) },
+        json: { runes: [rune] },
+      });
+      if (!res.ok) throw await failure(res, "Couldn't change the runes.");
+      return res.json();
+    },
+    onSuccess: (view) => {
+      queryClient.setQueryData(['decks', deck.id], view);
+      void queryClient.invalidateQueries({ queryKey: ['decks', deck.id, 'checks'] });
+    },
+  });
+  const sorted = [...runes].sort((a, b) => a.card.name.localeCompare(b.card.name));
+  const stepButton =
+    'flex size-8 items-center justify-center rounded-lg border border-input bg-card hover:bg-[#f4f6fa] focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50';
+
+  return (
+    <fieldset
+      aria-label="Runes"
+      className="flex min-w-[240px] flex-1 flex-col gap-2.5 self-stretch rounded-lg bg-muted/60 px-4 py-3"
+    >
+      <span className="font-bold text-[#2b303b] text-xs uppercase tracking-[0.06em]">
+        Runes
+        <span className="ml-2 font-semibold text-status-rune normal-case tracking-normal tabular-nums">
+          {count} of 12
+        </span>
+      </span>
+      {sorted.length === 0 ? (
+        <p className="text-[13px] text-muted-foreground">No runes yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {sorted.map((rune) => (
+            <li key={rune.id} data-slot-id={rune.id} className="flex items-center gap-2.5">
+              <button
+                type="button"
+                aria-label={`One fewer ${rune.card.name}`}
+                disabled={setRune.isPending}
+                onClick={() =>
+                  setRune.mutate({ cardId: rune.card.id, quantity: rune.quantity - 1 })
+                }
+                className={stepButton}
+              >
+                <Minus aria-hidden="true" className="size-4" />
+              </button>
+              <span className="w-6 text-center font-bold text-[17px] tabular-nums">
+                {rune.quantity}
+              </span>
+              <button
+                type="button"
+                aria-label={`One more ${rune.card.name}`}
+                disabled={setRune.isPending}
+                onClick={() =>
+                  setRune.mutate({ cardId: rune.card.id, quantity: rune.quantity + 1 })
+                }
+                className={stepButton}
+              >
+                <Plus aria-hidden="true" className="size-4" />
+              </button>
+              <DomainIcons domains={rune.card.domains} className="text-sm" />
+              <span className="font-medium">{rune.card.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {editing && (
+        <CardSearchPicker
+          label="Add rune"
+          type="rune"
+          domains={deck.domains}
+          busy={setRune.isPending}
+          onPick={(card) =>
+            setRune.mutate({
+              cardId: card.id,
+              quantity: (runes.find((rune) => rune.card.id === card.id)?.quantity ?? 0) + 1,
+            })
+          }
+        />
+      )}
+      {setRune.isError && (
+        <p role="alert" className="text-destructive text-sm">
+          {setRune.error.message}
+        </p>
+      )}
+      <p className="text-[12px] text-muted-foreground">
+        Always available, so no status. The pick list ends with these counts.
+      </p>
+    </fieldset>
+  );
+}
+
+/** The deck's battlefields as a row of small landscape tiles: they are printed sideways. */
+function BattlefieldsPanel({
+  battlefields,
+  count,
+  rowProps,
+  adding,
+}: {
+  battlefields: SlotRow[];
+  count: number;
+  rowProps: (slot: SlotRow) => RowProps;
+  adding?: ReactNode;
+}) {
+  const sorted = [...battlefields].sort((a, b) => a.card.name.localeCompare(b.card.name));
+  return (
+    <Panel
+      role="region"
+      aria-label="Battlefields"
+      className="relative flex flex-col gap-4 px-4 py-[18px]"
+    >
+      <PanelHeading title="Battlefields" count={`${count} of 3`} />
+      {adding}
+      {sorted.length === 0 ? (
+        <p className="px-2 text-[13px] text-muted-foreground">No battlefields yet.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-3.5 px-2">
+          {sorted.map((slot) => (
+            <BattlefieldTile key={slot.id} {...rowProps(slot)} />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+function BattlefieldTile({ slot, hovered, showStatus, onHover, menu, ...actions }: RowProps) {
+  const image = cardImage(slot);
+  return (
+    <SlotContextMenu slot={slot} {...actions}>
+      <li
+        data-slot-id={slot.id}
+        onMouseEnter={onHover}
+        onFocus={onHover}
+        className="relative flex w-[210px] flex-col gap-1.5"
+      >
+        <Link
+          to={`/cards/${slot.card.id}`}
+          className={cn(
+            'block aspect-[680/488] overflow-hidden rounded-[3.5%/4.75%] bg-[#15161a]',
+            hovered && 'ring-2 ring-primary',
+          )}
+        >
+          {image ? (
+            <img
+              src={image}
+              alt={slot.card.name}
+              loading="lazy"
+              className="size-full object-contain"
+            />
+          ) : (
+            <span className="flex size-full items-center justify-center p-3 text-center text-white">
+              {slot.card.name}
+            </span>
+          )}
+        </Link>
+        {menu && <span className="absolute top-2 left-2 rounded-md bg-card shadow">{menu}</span>}
+        <span className="truncate font-medium text-[13px]">{slot.card.name}</span>
+        <TagChips tags={slot.tags} />
+        {showStatus && slot.inBoxProxy && <ProxyTag className="self-start" />}
+        {showStatus && <SlotWhereLine slot={slot} />}
+      </li>
+    </SlotContextMenu>
+  );
+}
+
+/** A small mark on signature cards. */
+function SignatureMark({ card }: { card: CardSummary }) {
+  if (card.supertype?.toLowerCase() !== 'signature') return null;
+  return (
+    <span className="w-fit shrink-0 rounded bg-[#efe7fa] px-1.5 py-px font-semibold text-[#5b3a99] text-[11px] leading-4">
+      Signature
+    </span>
   );
 }
 
@@ -933,6 +1316,7 @@ function SlotListRow({ slot, hovered, showStatus, onHover, menu, ...actions }: R
             >
               {slot.card.name}
             </Link>
+            <SignatureMark card={slot.card} />
             <TagChips tags={slot.tags} />
             {showStatus && slot.inBoxProxy && <ProxyTag />}
           </span>
@@ -962,10 +1346,25 @@ function TagChips({ tags, className }: { tags: string[]; className?: string }) {
   );
 }
 
+const MOVES: { board: MovableBoard; label: string; icon: LucideIcon }[] = [
+  { board: 'main', label: 'Move to main deck', icon: ArrowUpToLine },
+  { board: 'sideboard', label: 'Move to sideboard', icon: ArrowRightLeft },
+  { board: 'maybe', label: 'Move to maybe board', icon: ArrowDownToLine },
+];
+
+/**
+ * The boards a card can move to from its menu (DECK-16): the main deck, sideboard and maybe
+ * board, other than its own. Legend, champion, battlefield and rune cards have no move.
+ */
+function movesFor(slot: SlotRow) {
+  const movable = slot.board === 'main' || slot.board === 'sideboard' || slot.board === 'maybe';
+  return movable ? MOVES.filter((move) => move.board !== slot.board) : [];
+}
+
 /**
  * Right-clicking a card, or the Menu key or Shift+F10 while it has focus, offers Change
- * printing, a move between the main and maybe boards (not for the Legend), Edit tags and Add
- * to buy list. The buy list quantity starts at how many copies are missing, or 1.
+ * printing, the board moves, Edit tags and Add to buy list. The buy list quantity starts at
+ * how many copies are missing, or 1.
  */
 function SlotContextMenu({
   slot,
@@ -988,18 +1387,12 @@ function SlotContextMenu({
           <PrintingsIcon aria-hidden="true" />
           Change printing…
         </ContextMenuItem>
-        {slot.board === 'main' && (
-          <ContextMenuItem disabled={busy} onSelect={() => onMove('maybe')}>
-            <ArrowDownToLine aria-hidden="true" />
-            Move to maybe board
+        {movesFor(slot).map(({ board, label, icon: Icon }) => (
+          <ContextMenuItem key={board} disabled={busy} onSelect={() => onMove(board)}>
+            <Icon aria-hidden="true" />
+            {label}
           </ContextMenuItem>
-        )}
-        {slot.board === 'maybe' && (
-          <ContextMenuItem disabled={busy} onSelect={() => onMove('main')}>
-            <ArrowUpToLine aria-hidden="true" />
-            Move to main board
-          </ContextMenuItem>
-        )}
+        ))}
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={onEditTags}>
           <Tag aria-hidden="true" />
@@ -1102,6 +1495,7 @@ function SlotImage({ slot, hovered, showStatus, onHover, menu, ...actions }: Row
           </span>
         )}
         {menu && <span className="absolute top-2 left-2 rounded-md bg-card shadow">{menu}</span>}
+        <SignatureMark card={slot.card} />
         <TagChips tags={slot.tags} />
         {showStatus && slot.inBoxProxy && <ProxyTag className="self-start" />}
         {showStatus && <SlotWhereLine slot={slot} />}
@@ -1114,22 +1508,24 @@ function SlotImage({ slot, hovered, showStatus, onHover, menu, ...actions }: Row
 // Editing
 
 type DeckEdit =
-  | { kind: 'add'; card: CardSearchResult }
+  | { kind: 'add'; card: CardSearchResult; board: Board }
   | { kind: 'change'; slot: SlotRow; change: SlotChange }
   | { kind: 'remove'; slot: SlotRow }
-  | { kind: 'legend'; legendId: Id };
+  | { kind: 'legend'; legendId: Id }
+  | { kind: 'champion'; card: CardSearchResult; replacing: SlotRow | null };
 
-/** Saves one change to the deck's slots or Legend, then reloads the deck and its checks. */
+/** Saves one change to the deck's slots, Legend or Chosen Champion, then reloads the deck and its checks. */
 function useDeckEdits(deckId: Id) {
   const queryClient = useQueryClient();
   const id = String(deckId);
   return useMutation({
     mutationFn: async (edit: DeckEdit): Promise<void> => {
+      const fail = "Couldn't save the change to the deck.";
       let res: Response;
       if (edit.kind === 'add') {
         res = await api.decks[':id'].slots.$post({
           param: { id },
-          json: { cardId: edit.card.id, board: 'main', quantity: 1 },
+          json: { cardId: edit.card.id, board: edit.board, quantity: 1 },
         });
       } else if (edit.kind === 'change') {
         res = await api.decks[':id'].slots[':slotId'].$patch({
@@ -1140,91 +1536,120 @@ function useDeckEdits(deckId: Id) {
         res = await api.decks[':id'].slots[':slotId'].$delete({
           param: { id, slotId: String(edit.slot.id) },
         });
-      } else {
+      } else if (edit.kind === 'legend') {
         res = await api.decks[':id'].legend.$put({
           param: { id },
           json: { legendId: edit.legendId },
         });
+      } else {
+        // The new Chosen Champion goes in first, then the one it replaces comes out.
+        if (edit.replacing?.card.id === edit.card.id) return;
+        res = await api.decks[':id'].slots.$post({
+          param: { id },
+          json: { cardId: edit.card.id, board: 'champion', quantity: 1 },
+        });
+        if (!res.ok) throw await failure(res, fail);
+        if (!edit.replacing) return;
+        res = await api.decks[':id'].slots[':slotId'].$delete({
+          param: { id, slotId: String(edit.replacing.id) },
+        });
       }
-      if (!res.ok) throw await failure(res, "Couldn't save the change to the deck.");
+      if (!res.ok) throw await failure(res, fail);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['decks'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['decks'] }),
   });
 }
 
 type DeckEdits = ReturnType<typeof useDeckEdits>;
 
-/** The Add card search, shown while editing. */
-function EditPanel({
-  deck,
-  edits,
-  onDone,
-}: {
-  deck: DeckSummary;
-  edits: DeckEdits;
-  onDone: () => void;
-}) {
-  const [added, setAdded] = useState<string | null>(null);
-  const add = (card: CardSearchResult) => {
-    setAdded(null);
-    edits.mutate(
-      { kind: 'add', card },
-      { onSuccess: () => setAdded(`Added ${card.name} to the main board.`) },
-    );
-  };
-
+/** Says the deck is being edited, shows failed changes, and ends editing. */
+function EditPanel({ edits, onDone }: { edits: DeckEdits; onDone: () => void }) {
   return (
     <Panel role="region" aria-label="Edit deck" className="flex flex-col gap-3 px-5 py-[18px]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="font-semibold text-[17px]">Edit the decklist</h2>
+          <h2 className="font-semibold text-[17px]">Edit the deck</h2>
           <p className="text-[13px] text-muted-foreground">
-            Search shows only cards in the Legend's domains. Each card's menu changes its quantity
-            or board, and the Legend's menu changes the Legend.
+            Each board has its own search: the main deck, sideboard and runes show only cards in the
+            Legend's domains, and battlefields only battlefields. Each card's menu changes its
+            quantity or board, and Replace… changes the Legend or Chosen Champion.
           </p>
         </div>
         <Button variant="outline" onClick={onDone}>
           Done editing
         </Button>
       </div>
-      <div className="max-w-[560px]">
-        <CardSearchPicker
-          label="Add card"
-          domains={deck.domains}
-          busy={edits.isPending}
-          onPick={add}
-          autoFocus
-        />
-      </div>
-      {edits.isError ? (
+      {edits.isError && (
         <p role="alert" className="text-destructive text-sm">
           {edits.error.message}
         </p>
-      ) : (
-        added && (
-          <p role="status" className="text-[13px] text-status-in-box">
-            {added}
-          </p>
-        )
       )}
     </Panel>
   );
 }
 
-/** The edit menu on one slot: board and quantity for cards, a new Legend on the Legend board. */
+/** One board's add-card search, while editing: each pick adds one copy to that board. */
+function AddToBoard({
+  board,
+  label,
+  domains,
+  edits,
+}: {
+  board: GroupedBoard | 'battlefield';
+  label: string;
+  domains: Domain[];
+  edits: DeckEdits;
+}) {
+  const [added, setAdded] = useState<string | null>(null);
+  const add = (card: CardSearchResult) => {
+    setAdded(null);
+    edits.mutate(
+      { kind: 'add', card, board },
+      { onSuccess: () => setAdded(`Added ${card.name} to the ${ADDED_TO[board]}.`) },
+    );
+  };
+  return (
+    <div className="flex max-w-[560px] flex-col gap-1.5 px-2">
+      <CardSearchPicker
+        label={label}
+        {...(board === 'battlefield'
+          ? { type: 'battlefield' as const }
+          : board === 'maybe'
+            ? {}
+            : { domains })}
+        deckable
+        busy={edits.isPending}
+        onPick={add}
+      />
+      {added && (
+        <p role="status" className="text-[13px] text-status-in-box">
+          {added}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const ADDED_TO = {
+  main: 'main deck',
+  sideboard: 'sideboard',
+  maybe: 'maybe board',
+  battlefield: 'battlefields',
+} as const;
+
+/** The edit menu on one slot: quantity, board moves and Remove; battlefields can only be removed. */
 function SlotMenu({
   slot,
   busy,
   onChangeQuantity,
-  onChangeLegend,
   onEdit,
 }: {
   slot: SlotRow;
   busy: boolean;
   onChangeQuantity: () => void;
-  onChangeLegend: () => void;
   onEdit: (edit: DeckEdit) => void;
 }) {
+  if (slot.board === 'legend' || slot.board === 'champion' || slot.board === 'rune') return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1238,32 +1663,20 @@ function SlotMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
-        {slot.board === 'legend' ? (
-          <DropdownMenuItem onSelect={onChangeLegend}>Change legend</DropdownMenuItem>
-        ) : (
-          <>
-            <DropdownMenuItem onSelect={onChangeQuantity}>Change quantity</DropdownMenuItem>
-            {slot.board === 'main' ? (
-              <DropdownMenuItem
-                onSelect={() => onEdit({ kind: 'change', slot, change: { board: 'maybe' } })}
-              >
-                Move to maybe board
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onSelect={() => onEdit({ kind: 'change', slot, change: { board: 'main' } })}
-              >
-                Move to main board
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => onEdit({ kind: 'remove', slot })}
-            >
-              Remove
-            </DropdownMenuItem>
-          </>
+        {slot.board !== 'battlefield' && (
+          <DropdownMenuItem onSelect={onChangeQuantity}>Change quantity</DropdownMenuItem>
         )}
+        {movesFor(slot).map(({ board, label }) => (
+          <DropdownMenuItem
+            key={board}
+            onSelect={() => onEdit({ kind: 'change', slot, change: { board } })}
+          >
+            {label}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuItem variant="destructive" onSelect={() => onEdit({ kind: 'remove', slot })}>
+          Remove
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -1527,14 +1940,20 @@ function EditTagsDialog({
   );
 }
 
-/** Picks a new Legend from a search limited to Legends. */
-function LegendDialog({
-  legend,
+/** Picks the card that replaces the Legend or Chosen Champion, from a search limited to that kind of card. */
+function ReplaceDialog({
+  title,
+  description,
+  label,
+  search,
   onSave,
   onClose,
 }: {
-  legend: CardSummary | null;
-  onSave: (legendId: Id) => Promise<void>;
+  title: string;
+  description: string;
+  label: string;
+  search: Pick<CardSearchPickerProps, 'type' | 'supertype' | 'championTag'>;
+  onSave: (card: CardSearchResult) => Promise<void>;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -1544,10 +1963,10 @@ function LegendDialog({
     setSaving(true);
     setError(null);
     try {
-      await onSave(card.id);
+      await onSave(card);
       onClose();
     } catch (failed) {
-      setError(failed instanceof Error ? failed.message : "Couldn't save the Legend.");
+      setError(failed instanceof Error ? failed.message : "Couldn't save the change.");
       setSaving(false);
     }
   };
@@ -1556,14 +1975,10 @@ function LegendDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Change legend</DialogTitle>
-          <DialogDescription>
-            {legend
-              ? `Pick the Legend that replaces ${legend.name}. Cards outside its domains show as warnings in the deck checks.`
-              : 'Pick the deck’s Legend.'}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <CardSearchPicker label="Legend" type="legend" busy={saving} onPick={pick} autoFocus />
+        <CardSearchPicker label={label} {...search} busy={saving} onPick={pick} autoFocus />
         {error && (
           <p role="alert" className="text-destructive text-sm">
             {error}

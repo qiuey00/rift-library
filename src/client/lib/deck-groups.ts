@@ -1,9 +1,11 @@
+import { Domain } from '../../shared/api/common';
 import type { SlotRow } from '../../shared/api/decks';
 
-// How the deck view groups and sorts its decklist. Only the layout is worked out here: every
-// status, location and count comes from the server.
+// How the deck view groups and sorts the main deck, sideboard and maybe board. The Legend,
+// Chosen Champion, battlefields and runes have panels of their own. Only the layout is worked
+// out here: every status, location and count comes from the server.
 
-export type GroupBy = 'type' | 'where' | 'tag';
+export type GroupBy = 'type' | 'where' | 'domain' | 'tag';
 export type SortBy = 'name' | 'energy';
 /** Which cards the deck view shows: every card, cards with no tag, or cards with one tag (by tag key). */
 export type TagFilter = { kind: 'any' } | { kind: 'untagged' } | { kind: 'tag'; key: string };
@@ -16,27 +18,19 @@ export type SlotGroup = {
   slots: SlotRow[];
 };
 
-/** The boards that are a group of their own under Type, rather than grouped by card type. */
-const ownGroupBoards = ['legend', 'champion', 'battlefield', 'rune', 'sideboard'] as const;
+/** The boards the deck view groups, each in a panel of its own. */
+export type GroupedBoards = { main: SlotGroup[]; sideboard: SlotGroup[]; maybe: SlotGroup[] };
 
 function typeGroupKey(slot: SlotRow): string {
-  const board = ownGroupBoards.find((b) => b === slot.board);
-  if (board) return board;
   const { type } = slot.card;
   return type === 'unit' || type === 'spell' || type === 'gear' ? type : 'other';
 }
 
-/** The Type groups in deck list order: the Legend and Chosen Champion first, the main deck by card type, then the other boards. */
 const typeGroups: [string, string][] = [
-  ['legend', 'Legend'],
-  ['champion', 'Chosen Champion'],
   ['unit', 'Units'],
   ['spell', 'Spells'],
   ['gear', 'Gear'],
   ['other', 'Other'],
-  ['battlefield', 'Battlefields'],
-  ['rune', 'Runes'],
-  ['sideboard', 'Sideboard'],
 ];
 
 function whereGroupKey(slot: SlotRow): string {
@@ -48,8 +42,32 @@ const whereGroups: [string, string][] = [
   ['free', 'Free in storage'],
   ['other_decks', 'Only in other decks'],
   ['missing', 'Missing'],
-  ['rune', 'Runes'],
 ];
+
+const domainWords = (domain: Domain) => domain[0].toUpperCase() + domain.slice(1);
+
+/** A card's domains in the order the app always lists them, such as "fury-chaos"; "" for none. */
+function domainGroupKey(slot: SlotRow): string {
+  return Domain.options.filter((domain) => slot.card.domains.includes(domain)).join('-');
+}
+
+/** One domain before two, each in domain order, and cards with no domain last. */
+function compareDomainKeys(a: string, b: string): number {
+  const split = (key: string) => (key === '' ? [] : (key.split('-') as Domain[]));
+  const [da, db] = [split(a), split(b)];
+  if (da.length === 0 || db.length === 0) return db.length - da.length;
+  if (da.length !== db.length) return da.length - db.length;
+  for (let i = 0; i < da.length; i++) {
+    const diff = Domain.options.indexOf(da[i]) - Domain.options.indexOf(db[i]);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+function domainTitle(key: string): string {
+  if (key === '') return 'Colorless';
+  return (key.split('-') as Domain[]).map(domainWords).join(' and ');
+}
 
 /** Tags with the same key (lower case, spaces as -) are one tag. */
 export function tagKey(tag: string): string {
@@ -89,28 +107,22 @@ function byLocation(a: SlotRow, b: SlotRow) {
 }
 
 /**
- * The decklist's groups and the maybe board's, in order, leaving out empty ones. The tag
- * filter applies to both boards.
+ * The main deck's, sideboard's and maybe board's groups, in order, leaving out empty ones.
+ * The tag filter applies to all three.
  */
 export function groupSlots(
   allSlots: SlotRow[],
   groupBy: GroupBy,
   sortBy: SortBy,
   tagFilter: TagFilter = { kind: 'any' },
-): { decklist: SlotGroup[]; maybe: SlotGroup[] } {
+): GroupedBoards {
   const slots = allSlots.filter((slot) => passes(slot, tagFilter));
+  const on = (board: SlotRow['board']) => slots.filter((slot) => slot.board === board);
   return {
-    decklist: groupsOf(
-      slots.filter((slot) => slot.board !== 'maybe'),
-      groupBy,
-      sortBy,
-    ),
+    main: groupsOf(on('main'), groupBy, sortBy),
+    sideboard: groupsOf(on('sideboard'), groupBy, sortBy),
     // Maybe cards have no status, so under Where it is the maybe board groups by type.
-    maybe: groupsOf(
-      slots.filter((slot) => slot.board === 'maybe'),
-      groupBy === 'where' ? 'type' : groupBy,
-      sortBy,
-    ),
+    maybe: groupsOf(on('maybe'), groupBy === 'where' ? 'type' : groupBy, sortBy),
   };
 }
 
@@ -126,50 +138,43 @@ function group(key: string, title: string, slots: SlotRow[], compare: Compare): 
 
 type Compare = (a: SlotRow, b: SlotRow) => number;
 
-/**
- * The Legend and Chosen Champion, then one group per tag by name, then Runes (runes with no
- * tag), then Untagged. A card with several tags shows under each of them.
- */
+/** One group per tag by name, then Untagged. A card with several tags shows under each of them. */
 function tagGroups(slots: SlotRow[], sortBy: SortBy): SlotGroup[] {
   const sort = sorts[sortBy];
-  const isTop = (slot: SlotRow) => slot.board === 'legend' || slot.board === 'champion';
-  const cards = slots.filter((slot) => !isTop(slot));
-  const untagged = cards.filter((slot) => slot.tags.length === 0);
-  const isRune = (slot: SlotRow) => slot.card.type === 'rune';
   const groups = [
-    group(
-      'legend',
-      'Legend',
-      slots.filter((slot) => slot.board === 'legend'),
-      sort,
-    ),
-    group(
-      'champion',
-      'Chosen Champion',
-      slots.filter((slot) => slot.board === 'champion'),
-      sort,
-    ),
-    ...deckTags(cards).map(({ key, name }) =>
+    ...deckTags(slots).map(({ key, name }) =>
       group(
         `tag:${key}`,
         name,
-        cards.filter((slot) => slot.tags.some((tag) => tagKey(tag) === key)),
+        slots.filter((slot) => slot.tags.some((tag) => tagKey(tag) === key)),
         sort,
       ),
     ),
-    group('untagged-runes', 'Runes', untagged.filter(isRune), sort),
     group(
       'untagged',
       'Untagged',
-      untagged.filter((slot) => !isRune(slot)),
+      slots.filter((slot) => slot.tags.length === 0),
       sort,
     ),
   ];
   return groups.filter((g) => g.slots.length > 0);
 }
 
+function domainGroups(slots: SlotRow[], sortBy: SortBy): SlotGroup[] {
+  const keys = [...new Set(slots.map(domainGroupKey))].sort(compareDomainKeys);
+  return keys.map((key) =>
+    group(
+      `domain:${key}`,
+      domainTitle(key),
+      slots.filter((slot) => domainGroupKey(slot) === key),
+      sorts[sortBy],
+    ),
+  );
+}
+
 function groupsOf(slots: SlotRow[], groupBy: GroupBy, sortBy: SortBy): SlotGroup[] {
   if (groupBy === 'tag') return tagGroups(slots, sortBy);
+  if (groupBy === 'domain') return domainGroups(slots, sortBy);
   const [order, keyOf] =
     groupBy === 'type' ? [typeGroups, typeGroupKey] : [whereGroups, whereGroupKey];
   const sort = sorts[sortBy];

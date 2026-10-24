@@ -15,12 +15,11 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/decks/1/checks', (route) => route.fulfill({ json: deckChecksSample }));
 });
 
-const row = (page: Page, slotId: number, panel = 'Decklist') =>
-  page.getByRole('region', { name: panel }).locator(`li[data-slot-id="${slotId}"]`);
-const group = (page: Page, name: string, panel = 'Decklist') =>
+const row = (page: Page, slotId: number) => page.locator(`li[data-slot-id="${slotId}"]`);
+const group = (page: Page, name: string, panel = 'Main deck') =>
   page.getByRole('region', { name: panel }).getByRole('region', { name, exact: true });
 const groupNames = (page: Page) =>
-  page.getByRole('region', { name: 'Decklist' }).getByRole('heading', { level: 2 });
+  page.getByRole('region', { name: 'Main deck' }).getByRole('heading', { level: 3 });
 
 test('each card shows its tags as chips, in rows and images', async ({ page }) => {
   await page.goto('/decks/1');
@@ -36,18 +35,10 @@ test('each card shows its tags as chips, in rows and images', async ({ page }) =
 test('Group by Tag puts a card under each of its tags', async ({ page }) => {
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'Tag', exact: true }).click();
-  await expect(groupNames(page)).toHaveText([
-    'Legend1',
-    'Card draw3',
-    'Ramp5',
-    'Removal3',
-    'Runes17',
-    /^Untagged\d+$/,
-  ]);
+  await expect(groupNames(page)).toHaveText(['Card draw3', 'Ramp5', 'Removal3', /^Untagged\d+$/]);
   await expect(group(page, 'Card draw')).toContainText('Copper Mender');
   await expect(group(page, 'Ramp')).toContainText('Copper Mender');
   await expect(group(page, 'Untagged')).not.toContainText('Copper Mender');
-  await expect(group(page, 'Runes')).toContainText('Calm Rune');
   // The deck's count still counts each card once.
   await expect(page.getByRole('region', { name: 'Deck header' })).toContainText('95 cards');
   // The maybe board's cards have no tags.
@@ -58,7 +49,9 @@ test('Group by Tag puts a card under each of its tags', async ({ page }) => {
   ).toHaveText(['Untagged5']);
 });
 
-test('the tag filter shows one tag or the untagged cards, on both boards', async ({ page }) => {
+test('the tag filter shows one tag or the untagged cards, on the main deck and maybe board', async ({
+  page,
+}) => {
   await page.goto('/decks/1');
   const filter = page.getByRole('combobox', { name: 'Tag' });
   await expect(filter.getByRole('option')).toHaveText([
@@ -71,19 +64,24 @@ test('the tag filter shows one tag or the untagged cards, on both boards', async
 
   await filter.selectOption('Ramp');
   await expect(
-    page.getByRole('region', { name: 'Decklist' }).locator('li[data-slot-id]'),
+    page.getByRole('region', { name: 'Main deck' }).locator('li[data-slot-id]'),
   ).toHaveCount(5);
-  await expect(page.getByRole('region', { name: 'Maybe board', exact: true })).toHaveCount(0);
+  // The maybe board panel stays, with no cards matching.
+  await expect(
+    page.getByRole('region', { name: 'Maybe board', exact: true }).locator('li[data-slot-id]'),
+  ).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Where it is' }).click();
   await expect(
-    page.getByRole('region', { name: 'Decklist' }).locator('li[data-slot-id]'),
+    page.getByRole('region', { name: 'Main deck' }).locator('li[data-slot-id]'),
   ).toHaveCount(5);
 
   await filter.selectOption('Untagged');
   await expect(row(page, 130)).toHaveCount(0);
   await expect(row(page, 101)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Maybe board', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Maybe board', exact: true }).locator('li[data-slot-id]'),
+  ).toHaveCount(5);
 
   await filter.selectOption('Any tag');
   await expect(row(page, 130)).toBeVisible();
@@ -100,6 +98,7 @@ test('Edit tags… from the card menu saves the tags and shows the answer', asyn
   const items = page.getByRole('menuitem');
   await expect(items).toHaveText([
     'Change printing…',
+    'Move to sideboard',
     'Move to maybe board',
     'Edit tags…',
     'Add to buy list',
@@ -161,7 +160,8 @@ test('Export opens the deck list export dialog for the deck', async ({ page }) =
   // allTextContents doesn't wait, so wait for the header's actions first.
   await expect(header.getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   const names = await buttons.allTextContents();
-  expect(names.indexOf('Export')).toBe(names.indexOf('Take apart') + 1);
+  expect(names.indexOf('Update from deck list')).toBe(names.indexOf('Take apart') + 1);
+  expect(names.indexOf('Export')).toBe(names.indexOf('Take apart') + 2);
 
   await header.getByRole('button', { name: 'Export', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Jinx Burn');
