@@ -105,8 +105,9 @@ function deckListOf(boards: Record<Board, Entry[]>, misspelled: Partial<Record<K
     for (const { key, quantity, foil = false, tags = [] } of boards[board]) {
       const hint = { publicCode: codeOf(key), foil };
       const typo = misspelled[key];
+      // A misspelled line has no public code, which would match it anyway.
       add(
-        lineFor(typo ?? cards[key].name, quantity, hint, tags),
+        typo ? lineFor(typo, quantity, null, tags) : lineFor(cards[key].name, quantity, hint, tags),
         typo ? 'unmatched' : 'card',
         board,
       );

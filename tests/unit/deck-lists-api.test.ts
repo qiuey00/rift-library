@@ -80,7 +80,7 @@ describe('deck list samples', () => {
       lines.map((_line, i) => i + 1),
     );
     const [typo] = deckListPreviewSample.unmatched;
-    expect(lines[typo.lineNumber - 1]).toMatch(/^2 Hextek Vault /);
+    expect(lines[typo.lineNumber - 1]).toBe('2 Hextek Vault');
     expect(jinxRebelsText).toContain('2 Hextech Vault ');
   });
 
@@ -103,11 +103,16 @@ describe('deck list samples', () => {
 });
 
 describe('deck list routes', () => {
-  // STUB until #19.
-  it('POST /api/deck-lists/preview answers the preview', async () => {
+  // The routes themselves are tested in deck-lists.test.ts.
+  it('POST /api/deck-lists/preview lists every line when the card data is empty', async () => {
     const res = await api['deck-lists'].preview.$post({ json: { text: jinxRebelsTypoText } });
     expect(res.status).toBe(200);
-    expect(DeckListPreview.parse(await res.json()).previewId).toBe('dlp_7f3a9c');
+    const preview = DeckListPreview.parse(await res.json());
+    expect(preview.previewId).toMatch(/^dlp_[a-z0-9]+$/);
+    expect(preview.slots).toEqual([]);
+    expect(preview.unmatched).toHaveLength(
+      preview.lines.filter((line) => line.kind === 'unmatched').length,
+    );
   });
 
   it('POST /api/deck-lists/preview refuses an empty list', async () => {
@@ -115,16 +120,6 @@ describe('deck list routes', () => {
     expect(res.status).toBe(400);
     expect(ErrorBody.parse(await res.json()).error.code).toBe('invalid_request');
     expect(DeckListText.safeParse('1 Sun Disc').success).toBe(true);
-  });
-
-  // STUB until #19.
-  it('POST /api/deck-lists/:previewId/create makes the deck', async () => {
-    const res = await api['deck-lists'][':previewId'].create.$post({
-      param: { previewId: 'dlp_7f3a9c' },
-      json: { name: 'Jinx Rebels', legendId: 124, championId: 341 },
-    });
-    expect(res.status).toBe(201);
-    expect(DeckSummary.parse(await res.json()).name).toBe('Jinx Rebels');
   });
 
   it('POST /api/deck-lists/:previewId/create refuses an id that isn’t a preview', async () => {
@@ -135,14 +130,13 @@ describe('deck list routes', () => {
     expect(res.status).toBe(400);
   });
 
-  // STUB until #19.
-  it('POST /api/decks/:id/deck-list answers whether a swap list is needed', async () => {
+  it('POST /api/decks/:id/deck-list answers 404 for a deck that doesn’t exist', async () => {
     const res = await api.decks[':id']['deck-list'].$post({
       param: { id: '1' },
       json: { text: jinxRebelsText, skips: [3] },
     });
-    expect(res.status).toBe(200);
-    expect(DeckListUpdated.parse(await res.json()).needsSwap).toBe(true);
+    expect(res.status).toBe(404);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_not_found');
   });
 });
 
