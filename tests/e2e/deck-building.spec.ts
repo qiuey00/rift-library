@@ -1,7 +1,7 @@
 import { expect, type Page, type Request, test } from '@playwright/test';
 import type { CardSearchResponse } from '../../src/shared/api/cards';
 import type { DeckView } from '../../src/shared/api/decks';
-import { emberSearch, legendSearch } from '../../src/shared/api/samples/cards';
+import { championSearch, emberSearch, legendSearch } from '../../src/shared/api/samples/cards';
 import { cards } from '../../src/shared/api/samples/deck-cards';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
 import {
@@ -52,13 +52,29 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('New deck', () => {
-  test('the Legend search asks only for legends, and Create sends the deck', async ({ page }) => {
-    const searches = await mockSearch(page, legendSearch);
-    const newDeckView: DeckView = {
-      deck: newDeckSample,
-      slots: [],
-      boards: { legend: 0, champion: 0, main: 0, battlefield: 0, rune: 0, sideboard: 0, maybe: 0 },
-    };
+  const newDeckView: DeckView = {
+    deck: newDeckSample,
+    slots: [],
+    boards: { legend: 0, champion: 0, main: 0, battlefield: 0, rune: 0, sideboard: 0, maybe: 0 },
+  };
+
+  /** Answers Legend searches with the Jinx Legend and every other search with Jinx, Rebel. */
+  async function mockNewDeckSearch(page: Page) {
+    const searches: URLSearchParams[] = [];
+    await page.route(SEARCH, (route) => {
+      const query = new URL(route.request().url()).searchParams;
+      searches.push(query);
+      return route.fulfill({
+        json: query.get('type') === 'legend' ? legendSearch : championSearch,
+      });
+    });
+    return searches;
+  }
+
+  test('Legend, then Chosen Champion filtered to its tag, then a name, then Create', async ({
+    page,
+  }) => {
+    const searches = await mockNewDeckSearch(page);
     await page.route('**/api/decks/7', (route) => route.fulfill({ json: newDeckView }));
     const created = await capture(page, 'POST', '/api/decks', newDeckSample, 201);
 
@@ -66,6 +82,7 @@ test.describe('New deck', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('New deck');
     const create = page.getByRole('button', { name: 'Create' });
     await expect(create).toBeDisabled();
+    await expect(page.getByLabel('Chosen Champion', { exact: true })).toHaveCount(0);
 
     await page.getByLabel('Legend', { exact: true }).fill('jinx');
     await page
@@ -75,16 +92,71 @@ test.describe('New deck', () => {
     expect(searches.at(-1)?.get('q')).toBe('jinx');
     expect(searches.at(-1)?.get('type')).toBe('legend');
     expect(searches.at(-1)?.has('domains')).toBe(false);
+    expect(searches.at(-1)?.has('championTag')).toBe(false);
 
-    await expect(page.getByRole('region', { name: 'Legend' })).toContainText('Jinx, Loose Cannon');
+    const legend = page.getByRole('region', { name: 'Legend' });
+    await expect(legend).toContainText('Jinx, Loose Cannon');
+    await expect(legend.getByRole('img', { name: 'Fury' })).toBeVisible();
+    await expect(legend.getByRole('img', { name: 'Chaos' })).toBeVisible();
     await expect(page.getByLabel('Deck name', { exact: true })).toHaveValue('Jinx, Loose Cannon');
+
+    const championField = page.getByLabel('Chosen Champion', { exact: true });
+    await expect(championField).toBeFocused();
+    await championField.fill('jinx');
+    await page
+      .getByRole('list', { name: 'Chosen Champion results' })
+      .getByRole('button', { name: 'Jinx, Rebel' })
+      .click();
+    expect(searches.at(-1)?.get('q')).toBe('jinx');
+    expect(searches.at(-1)?.get('type')).toBe('unit');
+    expect(searches.at(-1)?.get('supertype')).toBe('champion');
+    expect(searches.at(-1)?.get('championTag')).toBe('Jinx');
+    await expect(page.getByRole('region', { name: 'Chosen Champion' })).toContainText(
+      'Jinx, Rebel',
+    );
 
     await page.getByLabel('Deck name', { exact: true }).fill('Jinx Burn');
     await create.click();
     await expect(page).toHaveURL(/\/decks\/7$/);
     expect(created.map((request) => request.postDataJSON())).toEqual([
-      { name: 'Jinx Burn', legendId: cards.jinxLooseCannon.id },
+      {
+        name: 'Jinx Burn',
+        legendId: cards.jinxLooseCannon.id,
+        championId: championSearch.results[0]?.id,
+      },
     ]);
+  });
+
+  test('changing the Legend clears the Chosen Champion', async ({ page }) => {
+    await mockNewDeckSearch(page);
+    const created = await capture(page, 'POST', '/api/decks', newDeckSample, 201);
+    await page.route('**/api/decks/7', (route) => route.fulfill({ json: newDeckView }));
+
+    await page.goto('/decks/new');
+    await page.getByLabel('Legend', { exact: true }).fill('jinx');
+    await page.getByRole('button', { name: 'Jinx, Loose Cannon' }).click();
+    await page.getByLabel('Chosen Champion', { exact: true }).fill('jinx');
+    await page.getByRole('button', { name: 'Jinx, Rebel' }).click();
+
+    await page.getByRole('button', { name: 'Remove Jinx, Loose Cannon' }).click();
+    await expect(page.getByRole('region', { name: 'Chosen Champion' })).toHaveCount(0);
+    await expect(page.getByLabel('Chosen Champion', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+    // A deck can start without its Chosen Champion; the deck checks point it out.
+    await page.getByLabel('Legend', { exact: true }).fill('jinx');
+    await page.getByRole('button', { name: 'Jinx, Loose Cannon' }).click();
+    await page.getByRole('button', { name: 'Create' }).click();
+    await expect(page).toHaveURL(/\/decks\/7$/);
+    expect(created.map((request) => request.postDataJSON())).toEqual([
+      { name: 'Jinx, Loose Cannon', legendId: cards.jinxLooseCannon.id },
+    ]);
+  });
+
+  test('Paste a deck list is offered as the other way in', async ({ page }) => {
+    await page.goto('/decks/new');
+    await page.getByRole('button', { name: 'Paste a deck list' }).click();
+    await expect(page.getByRole('dialog', { name: 'Paste a deck list' })).toBeVisible();
   });
 });
 

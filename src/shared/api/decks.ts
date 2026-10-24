@@ -131,8 +131,8 @@ export const DeckView = z.object({
 });
 export type DeckView = z.infer<typeof DeckView>;
 
-/** POST /api/decks: the deck and its Legend. */
-export const NewDeck = z.object({ name: DeckName, legendId: Id });
+/** POST /api/decks: the deck, its Legend and, when Jeff picked one, its Chosen Champion. */
+export const NewDeck = z.object({ name: DeckName, legendId: Id, championId: Id.optional() });
 export type NewDeck = z.infer<typeof NewDeck>;
 
 /** PATCH /api/decks/:id. */

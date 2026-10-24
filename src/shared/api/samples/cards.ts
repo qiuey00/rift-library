@@ -147,6 +147,20 @@ export const jinxLooseCannon: CardSummary = {
   imageUrl: 'https://images.example.com/riftbound/6b913e79-a9f6-44d4-bb37-c4f6f66b8151.webp',
 };
 
+/** A champion unit of Jinx: the Chosen Champion of a Jinx deck. */
+export const jinxRebel: CardSummary = {
+  id: 341,
+  name: 'Jinx, Rebel',
+  type: 'unit',
+  supertype: 'champion',
+  domains: ['fury', 'chaos'],
+  energy: 4,
+  might: 4,
+  power: 1,
+  championTag: 'Jinx',
+  imageUrl: 'https://images.example.com/riftbound/0c41d8a2-5e7b-4f0e-9d3a-6a1f2b7c9e10.webp',
+};
+
 /** A card with two faces: the name holds both, and the images show the front. */
 export const gildedWhelp: CardSummary = {
   id: 121,
@@ -230,6 +244,11 @@ export const publicCodeSearch: CardSearchResponse = { results: [emberSignetResul
 /** GET /api/cards?q=jinx&type=legend */
 export const legendSearch: CardSearchResponse = {
   results: [{ ...jinxLooseCannon, owned: 1, free: 0 }],
+};
+
+/** GET /api/cards?q=jinx&type=unit&supertype=champion&championTag=Jinx */
+export const championSearch: CardSearchResponse = {
+  results: [{ ...jinxRebel, owned: 1, free: 1 }],
 };
 
 /** A search that matches nothing. */
