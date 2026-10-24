@@ -1,3 +1,4 @@
+import { nameKey } from '../riftcodex/records';
 import type { Db } from './database';
 import { openDatabase } from './database';
 import { cards, printings } from './schema';
@@ -13,7 +14,7 @@ export type TestCard = Partial<Omit<typeof cards.$inferInsert, 'name'>> & { name
 export function insertCard(db: Db, card: TestCard): number {
   return db
     .insert(cards)
-    .values({ nameKey: card.name.toLowerCase().replace(/\s+/g, ' '), type: 'gear', ...card })
+    .values({ nameKey: nameKey(card.name), type: 'gear', ...card })
     .returning({ id: cards.id })
     .get().id;
 }

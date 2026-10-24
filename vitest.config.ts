@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/unit/**/*.test.{ts,tsx}'],
-    // Unit tests never touch Jeff's real database in data/.
-    env: { DATA_DIR: mkdtempSync(path.join(tmpdir(), 'log-unit-')) },
+    // Unit tests never touch Jeff's real database in data/, and never call Riftcodex: the sync tests stub fetch and turn it on themselves.
+    env: { DATA_DIR: mkdtempSync(path.join(tmpdir(), 'log-unit-')), RIFTCODEX: 'off' },
   },
 });

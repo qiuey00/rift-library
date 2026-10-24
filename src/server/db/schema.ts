@@ -29,8 +29,8 @@ const createdAt = () => text('created_at').notNull().default(now);
 /** A shared Zod enum's values, as the non-empty list a text column's `enum` takes. */
 const values = <T extends string>(options: readonly T[]) => options as [T, ...T[]];
 
-// Card data from Riftcodex. Nothing loads it until the Riftcodex sync (#7), so the tables
-// start empty.
+// Card data from Riftcodex, written by the sync in src/server/riftcodex. The tables start
+// empty and fill on the first start.
 
 /**
  * One card, with all its printings. Riftcodex has no card-level id, so printings are grouped
@@ -41,7 +41,7 @@ export const cards = sqliteTable(
   {
     id: id(),
     name: text('name').notNull(),
-    /** Lower case, each run of spaces collapsed to one; the grouping rule. */
+    /** The grouping rule: `nameKey` in src/server/riftcodex/records.ts, such as "jinx rebel". */
     nameKey: text('name_key').notNull().unique(),
     type: text('type', { enum: values(CardType.options) }).notNull(),
     /** Such as "champion", "signature" or "token". */

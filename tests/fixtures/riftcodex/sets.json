@@ -1,0 +1,47 @@
+{
+  "items": [
+    {
+      "id": "1bf1386ae8ec60705c74cd49",
+      "name": "Origins",
+      "set_id": "OGN",
+      "card_count": 352,
+      "tcgplayer_id": "24344",
+      "published_on": "2025-10-31T00:00:00"
+    },
+    {
+      "id": "f3c61f73fd3d0672f4c495a0",
+      "name": "Spiritforged",
+      "set_id": "SFD",
+      "card_count": 288,
+      "tcgplayer_id": "24519",
+      "published_on": "2026-02-13T00:00:00"
+    },
+    {
+      "id": "22d7d369835711775458be9a",
+      "name": "Vendetta",
+      "set_id": "VEN",
+      "card_count": 358,
+      "published_on": "2026-07-31T00:00:00"
+    },
+    {
+      "id": "47cfbb969b087ed6566bc76e",
+      "name": "Riftbound Organized Play Promotional Cards",
+      "set_id": "OPP",
+      "card_count": 133,
+      "tcgplayer_id": "24343",
+      "cardmarket_id": ["6322", "6483"],
+      "published_on": "2025-10-31T00:00:00"
+    },
+    {
+      "id": "0fe75a5189c2ea3f123621d0",
+      "name": "Riftbound Promotional Cards",
+      "set_id": "PR",
+      "card_count": 13,
+      "published_on": "2025-10-31T00:00:00"
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "size": 100,
+  "pages": 1
+}

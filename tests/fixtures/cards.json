@@ -17,7 +17,7 @@
     {
       "id": 2,
       "name": "Gangplank, Veteran",
-      "nameKey": "gangplank, veteran",
+      "nameKey": "gangplank veteran",
       "type": "unit",
       "supertype": "champion",
       "domains": ["order", "chaos"],
@@ -73,7 +73,7 @@
     {
       "id": 6,
       "name": "Kai'Sa, Protector",
-      "nameKey": "kai'sa, protector",
+      "nameKey": "kai'sa protector",
       "type": "unit",
       "supertype": "champion",
       "domains": ["mind", "calm"],
@@ -199,7 +199,7 @@
     {
       "id": 15,
       "name": "Nasus, Sentinel",
-      "nameKey": "nasus, sentinel",
+      "nameKey": "nasus sentinel",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos"],
@@ -255,7 +255,7 @@
     {
       "id": 19,
       "name": "Gangplank, Vanguard",
-      "nameKey": "gangplank, vanguard",
+      "nameKey": "gangplank vanguard",
       "type": "unit",
       "supertype": "champion",
       "domains": ["order", "fury"],
@@ -311,7 +311,7 @@
     {
       "id": 23,
       "name": "Akali, Survivor",
-      "nameKey": "akali, survivor",
+      "nameKey": "akali survivor",
       "type": "unit",
       "supertype": "champion",
       "domains": ["mind", "calm"],
@@ -395,7 +395,7 @@
     {
       "id": 29,
       "name": "Nasus, Protector",
-      "nameKey": "nasus, protector",
+      "nameKey": "nasus protector",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "calm"],
@@ -451,7 +451,7 @@
     {
       "id": 33,
       "name": "Volibear, Pathfinder",
-      "nameKey": "volibear, pathfinder",
+      "nameKey": "volibear pathfinder",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos"],
@@ -1053,7 +1053,7 @@
     {
       "id": 76,
       "name": "Garen, Exile",
-      "nameKey": "garen, exile",
+      "nameKey": "garen exile",
       "type": "unit",
       "supertype": "champion",
       "domains": ["order"],
@@ -1725,7 +1725,7 @@
     {
       "id": 124,
       "name": "Jinx, Loose Cannon",
-      "nameKey": "jinx, loose cannon",
+      "nameKey": "jinx loose cannon",
       "type": "legend",
       "supertype": null,
       "domains": ["fury", "chaos"],
@@ -1949,7 +1949,7 @@
     {
       "id": 140,
       "name": "Jax, Vanguard",
-      "nameKey": "jax, vanguard",
+      "nameKey": "jax vanguard",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "fury"],
@@ -2005,7 +2005,7 @@
     {
       "id": 144,
       "name": "Darius, Hand of Noxus",
-      "nameKey": "darius, hand of noxus",
+      "nameKey": "darius hand of noxus",
       "type": "legend",
       "supertype": null,
       "domains": ["fury", "order"],
@@ -2089,7 +2089,7 @@
     {
       "id": 150,
       "name": "Teemo, Duelist",
-      "nameKey": "teemo, duelist",
+      "nameKey": "teemo duelist",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "calm"],
@@ -2257,7 +2257,7 @@
     {
       "id": 162,
       "name": "Leona, Veteran",
-      "nameKey": "leona, veteran",
+      "nameKey": "leona veteran",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "calm"],
@@ -2285,7 +2285,7 @@
     {
       "id": 164,
       "name": "Nasus, Prodigy",
-      "nameKey": "nasus, prodigy",
+      "nameKey": "nasus prodigy",
       "type": "unit",
       "supertype": "champion",
       "domains": ["fury"],
@@ -2383,7 +2383,7 @@
     {
       "id": 171,
       "name": "Senna, Outlaw",
-      "nameKey": "senna, outlaw",
+      "nameKey": "senna outlaw",
       "type": "unit",
       "supertype": "champion",
       "domains": ["fury"],
@@ -2425,7 +2425,7 @@
     {
       "id": 174,
       "name": "Heimerdinger, Warden",
-      "nameKey": "heimerdinger, warden",
+      "nameKey": "heimerdinger warden",
       "type": "unit",
       "supertype": "champion",
       "domains": ["calm"],
@@ -2537,7 +2537,7 @@
     {
       "id": 182,
       "name": "Nasus, Trickster",
-      "nameKey": "nasus, trickster",
+      "nameKey": "nasus trickster",
       "type": "unit",
       "supertype": "champion",
       "domains": ["fury", "calm"],
@@ -2579,7 +2579,7 @@
     {
       "id": 185,
       "name": "Kayle, Trickster",
-      "nameKey": "kayle, trickster",
+      "nameKey": "kayle trickster",
       "type": "unit",
       "supertype": "champion",
       "domains": ["mind"],
@@ -2607,7 +2607,7 @@
     {
       "id": 187,
       "name": "Ekko, Rebel",
-      "nameKey": "ekko, rebel",
+      "nameKey": "ekko rebel",
       "type": "unit",
       "supertype": "champion",
       "domains": [],
@@ -3265,7 +3265,7 @@
     {
       "id": 234,
       "name": "Nasus, Pathfinder",
-      "nameKey": "nasus, pathfinder",
+      "nameKey": "nasus pathfinder",
       "type": "unit",
       "supertype": "champion",
       "domains": ["mind", "fury"],
@@ -3979,7 +3979,7 @@
     {
       "id": 285,
       "name": "Fiora, Guardian",
-      "nameKey": "fiora, guardian",
+      "nameKey": "fiora guardian",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "fury"],
@@ -4161,7 +4161,7 @@
     {
       "id": 298,
       "name": "Lee Sin, Centered",
-      "nameKey": "lee sin, centered",
+      "nameKey": "lee sin centered",
       "type": "unit",
       "supertype": "champion",
       "domains": ["mind", "calm"],
@@ -4203,7 +4203,7 @@
     {
       "id": 301,
       "name": "Vi, Outlaw",
-      "nameKey": "vi, outlaw",
+      "nameKey": "vi outlaw",
       "type": "unit",
       "supertype": "champion",
       "domains": ["calm"],
@@ -4287,7 +4287,7 @@
     {
       "id": 307,
       "name": "Lee Sin, Blind Monk",
-      "nameKey": "lee sin, blind monk",
+      "nameKey": "lee sin blind monk",
       "type": "legend",
       "supertype": null,
       "domains": ["calm", "body"],
@@ -4329,7 +4329,7 @@
     {
       "id": 310,
       "name": "Volibear, Vanguard",
-      "nameKey": "volibear, vanguard",
+      "nameKey": "volibear vanguard",
       "type": "unit",
       "supertype": "champion",
       "domains": ["chaos", "calm"],
