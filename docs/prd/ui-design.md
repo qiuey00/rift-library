@@ -72,7 +72,7 @@ Unchanged. A location's menu loses Export to Moxfield and gains Export list (EXP
 
 ## Deck list import
 
-A full page as in Library of Gathering's Moxfield import, with the pasted list on the left, each line tagged by its board, and the review on the right: the proposed Legend and Chosen Champion as cards with Change, a deck name field, counts per board, unmatched names with a search to fix each, and deck checks as amber warnings (DECK-14, DECK-15). Update from deck list uses the same page and ends on the swap list for an assembled deck.
+A full page as in Library of Gathering's Moxfield import, with the pasted list on the left, each line tagged by its board, and the review on the right: the proposed Legend and Chosen Champion as cards with Change, a deck name field, counts per board, unmatched names with a search to fix each, and deck checks as amber warnings (DECK-14, DECK-15). Update from deck list uses the same page and ends on the swap list for an assembled deck. The page is at `/decks/import`, reached from New deck and from an empty deck view's Paste a deck list; Update from deck list in the deck view's header opens it at `/decks/:id/deck-list`, where the review also lists the changes to the deck, the Legend and Chosen Champion come from the list (no Change), and the button reads Update deck and open swap list for an assembled or partly assembled deck.
 
 ## Interaction rules
 

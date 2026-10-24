@@ -5,6 +5,7 @@ import {
   ArrowUpToLine,
   CircleCheck,
   CircleX,
+  ClipboardPaste,
   History,
   Layers,
   LayoutGrid,
@@ -203,7 +204,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         <AvailabilityPanel deck={deck} slots={slots} />
         {editing && <EditPanel deck={deck} edits={edits} onDone={() => setEditing(false)} />}
         {!editing && slots.every((slot) => slot.board === 'legend') && (
-          <EmptyDeck onEdit={() => setEditing(true)} />
+          <EmptyDeck deckId={deck.id} onEdit={() => setEditing(true)} />
         )}
 
         <div className="flex flex-wrap items-center gap-3">
@@ -337,8 +338,8 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
   );
 }
 
-/** Shown while the deck holds only its Legend: start adding cards. */
-function EmptyDeck({ onEdit }: { onEdit: () => void }) {
+/** Shown while the deck holds only its Legend: add cards by hand or paste a deck list. */
+function EmptyDeck({ deckId, onEdit }: { deckId: Id; onEdit: () => void }) {
   return (
     <Panel
       role="region"
@@ -352,6 +353,12 @@ function EmptyDeck({ onEdit }: { onEdit: () => void }) {
         <Button onClick={onEdit}>
           <Pencil aria-hidden="true" />
           Add cards
+        </Button>
+        <Button asChild variant="outline">
+          <Link to={`/decks/${deckId}/deck-list`}>
+            <ClipboardPaste aria-hidden="true" />
+            Paste a deck list
+          </Link>
         </Button>
       </div>
     </Panel>
@@ -420,6 +427,12 @@ function DeckHeader({
               </Link>
             </Button>
           )}
+          <Button asChild variant="ghost" className={lightButton}>
+            <Link to={`/decks/${deck.id}/deck-list`}>
+              <ClipboardPaste aria-hidden="true" />
+              Update from deck list
+            </Link>
+          </Button>
           <Button variant="ghost" className={lightButton} onClick={() => setExporting(true)}>
             <Upload aria-hidden="true" />
             Export
