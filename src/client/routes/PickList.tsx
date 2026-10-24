@@ -410,11 +410,7 @@ export function PickList() {
                 onRemoveProxy={onRemoveProxy}
               />
             )}
-            {runes.length > 0 && (
-              <RunesLine
-                runes={runes.map((rune) => ({ name: rune.card.name, quantity: rune.quantity }))}
-              />
-            )}
+            {runes.length > 0 && <RunesLine runes={runes} />}
           </div>
           <div className="lg:sticky lg:top-5">
             <NowPickingPane

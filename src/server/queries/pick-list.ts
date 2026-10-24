@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm';
-import type {
-  Board,
-  CardSummary,
-  DeckState,
-  Finish,
-  LocationRef,
-  LocationType,
-  StackRow,
+import {
+  type Board,
+  type CardSummary,
+  type DeckState,
+  Domain,
+  type Finish,
+  type LocationRef,
+  type LocationType,
+  type StackRow,
 } from '../../shared/api/common';
 import type { PrintingHint } from '../../shared/api/decks';
 import type {
@@ -25,7 +26,7 @@ import {
   toCardSummary,
   toPrintingSummary,
 } from './card-summaries';
-import { BOARD_ORDER } from './decks';
+import { BOARD_ORDER, isRune as isRuneCard } from './decks';
 import { locationPaths, locationTradeFlags } from './locations';
 import { stackValue, unitPriceSql } from './value';
 
@@ -80,8 +81,16 @@ type World = {
   stacksByCard: Map<number, StackRecord[]>;
 };
 
-/** Runes are always available, as basic lands were in Library of Gathering (D-15). */
-const isRune = (slot: SlotRecord) => slot.type === 'rune';
+const isRune = (slot: SlotRecord) => isRuneCard(slot, slot.board);
+
+/** Runes close the list in domain order (Fury, Calm, Mind, Body, Chaos, Order), then by name. */
+function runeOrder(a: RuneLine, b: RuneLine): number {
+  const domainOf = (line: RuneLine) => {
+    const [domain] = line.card.domains;
+    return domain ? Domain.options.indexOf(domain) : Domain.options.length;
+  };
+  return domainOf(a) - domainOf(b) || a.card.name.localeCompare(b.card.name);
+}
 
 /**
  * Loads what one deck's pick list reads. Stacks are only read for the deck's own
@@ -463,7 +472,7 @@ export function pickList(db: Db, deckId: number): PickList | undefined {
     groups: pickGroups,
     otherDecks,
     missing,
-    runes: [...runes.values()].sort((a, b) => a.card.name.localeCompare(b.card.name)),
+    runes: [...runes.values()].sort(runeOrder),
     totals: { lines: walked.length, cards: walked.reduce((n, line) => n + line.quantity, 0) },
   };
 }

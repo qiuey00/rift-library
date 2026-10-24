@@ -24,6 +24,7 @@ import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { LocationPicker, useLocationTree } from '../components/LocationPicker';
 import { LocationTile } from '../components/LocationTile';
 import { Panel } from '../components/Panel';
+import { RuneCounts } from '../components/pick-list/MissingSection';
 import {
   ApiError,
   fetchSwap,
@@ -540,9 +541,9 @@ export function SwapList() {
                 <MissingPanel lines={missing} onBuy={(line) => setBuying(line)} />
               )}
               {runes.length > 0 && (
-                <Panel className="px-4 py-3 text-sm">
-                  <span className="font-semibold">Runes to add: </span>
-                  {runes.map((rune) => `${rune.quantity} ${rune.card.name}`).join(', ')}
+                <Panel className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
+                  <span className="font-semibold">Runes to add:</span>
+                  <RuneCounts runes={runes} />
                 </Panel>
               )}
             </>

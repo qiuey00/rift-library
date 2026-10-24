@@ -1,8 +1,9 @@
 import { CircleSlash, Ghost, ShoppingCart, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import type { MissingLine } from '../../../shared/api/pick-list';
+import type { MissingLine, RuneLine } from '../../../shared/api/pick-list';
 import { cn } from '../../lib/utils';
 import { AddToBuyListDialog } from '../AddToBuyListDialog';
+import { DomainIcons } from '../DomainIcon';
 import { Panel } from '../Panel';
 import { ProxyTag } from '../ProxyTag';
 import { Button } from '../ui/button';
@@ -131,10 +132,32 @@ export function MissingSection({
   );
 }
 
+/** Rune counts in one line, each with its domain icon, such as "6 Fury Rune · 6 Chaos Rune". */
+export function RuneCounts({ runes }: { runes: RuneLine[] }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+      {runes.map((rune, index) => (
+        <span key={rune.card.id} className="inline-flex items-center gap-x-2">
+          {index > 0 && (
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
+          )}
+          <span data-testid="rune-count" className="inline-flex items-center gap-1.5">
+            <DomainIcons domains={rune.card.domains} />
+            <span>
+              {rune.quantity} {rune.card.name}
+            </span>
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Runes close the list as one line of counts. They aren't tracked, so ticking is only visual. */
-export function RunesLine({ runes }: { runes: { name: string; quantity: number }[] }) {
+export function RunesLine({ runes }: { runes: RuneLine[] }) {
   const [done, setDone] = useState(false);
-  const text = runes.map((rune) => `${rune.quantity} ${rune.name}`).join(', ');
   return (
     <Panel role="region" aria-label="Runes" className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-border border-b bg-[#f6f7f9] px-4 py-3">
@@ -151,7 +174,7 @@ export function RunesLine({ runes }: { runes: { name: string; quantity: number }
           className="m-0 size-5 cursor-pointer accent-status-in-box-fill"
         />
         <span className={cn('font-semibold text-[15px]', done && 'line-through opacity-50')}>
-          {text}
+          <RuneCounts runes={runes} />
         </span>
       </label>
     </Panel>
