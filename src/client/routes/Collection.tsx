@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   ShoppingCart,
+  Trash2,
   X,
 } from 'lucide-react';
 import {
@@ -32,6 +33,7 @@ import { DOMAIN_WORDS, DomainIcon } from '../components/DomainIcon';
 import { LocationPicker, useLocationTree } from '../components/LocationPicker';
 import { MoveToDialog } from '../components/MoveToDialog';
 import { Panel } from '../components/Panel';
+import { RemoveCopiesDialog, removeBlockedReason } from '../components/RemoveCopiesDialog';
 import { Button } from '../components/ui/button';
 import {
   Command,
@@ -159,6 +161,7 @@ export function Collection() {
   const sets = useSeenSets(rows);
 
   const [moving, setMoving] = useState<StackRow[] | null>(null);
+  const [removing, setRemoving] = useState<StackRow | null>(null);
   const [buying, setBuying] = useState<StackRow | null>(null);
   const [adding, setAdding] = useState(false);
   const proxy = useSetProxy();
@@ -180,6 +183,12 @@ export function Collection() {
       icon: ShoppingCart,
       // The buy list takes one card at a time: the first selected one, in its printing.
       onClick: (selected) => setBuying(selected[0] ?? null),
+    },
+    {
+      label: 'Lower or remove…',
+      icon: Trash2,
+      onClick: (selected) => setRemoving(selected[0] ?? null),
+      disabledReason: removeBlockedReason,
     },
   ];
 
@@ -292,6 +301,11 @@ export function Collection() {
         open={moving !== null}
         onOpenChange={(open) => !open && setMoving(null)}
         stacks={moving ?? []}
+      />
+      <RemoveCopiesDialog
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+        stack={removing}
       />
       {buying && (
         <AddToBuyListDialog

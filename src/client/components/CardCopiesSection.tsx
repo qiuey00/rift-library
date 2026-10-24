@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRightLeft, Plus } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { StackRow } from '../../shared/api/common';
 import type { CardCopies, CopyCounts } from '../../shared/api/stacks';
@@ -8,6 +8,7 @@ import { AddCardDialog } from './AddCardDialog';
 import { type CopyStackAction, CopyStackTable } from './CopyStackTable';
 import { MoveToDialog } from './MoveToDialog';
 import { Panel } from './Panel';
+import { RemoveCopiesDialog, removeBlockedReason } from './RemoveCopiesDialog';
 import { Button } from './ui/button';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -27,10 +28,17 @@ export function CardCopiesSection({ cardId }: { cardId: number }) {
     queryFn: () => fetchCardCopies(cardId),
   });
   const [moving, setMoving] = useState<StackRow[] | null>(null);
+  const [removing, setRemoving] = useState<StackRow | null>(null);
   const [adding, setAdding] = useState(false);
 
   const actions: CopyStackAction[] = [
     { label: 'Move to', icon: ArrowRightLeft, onClick: (selected) => setMoving(selected) },
+    {
+      label: 'Lower or remove…',
+      icon: Trash2,
+      onClick: (selected) => setRemoving(selected[0] ?? null),
+      disabledReason: removeBlockedReason,
+    },
   ];
 
   return (
@@ -64,6 +72,11 @@ export function CardCopiesSection({ cardId }: { cardId: number }) {
         open={moving !== null}
         onOpenChange={(open) => !open && setMoving(null)}
         stacks={moving ?? []}
+      />
+      <RemoveCopiesDialog
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+        stack={removing}
       />
       <AddCardDialog open={adding} onOpenChange={setAdding} defaultCardId={cardId} />
     </section>

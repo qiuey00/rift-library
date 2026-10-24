@@ -3,6 +3,7 @@ import { ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUpDown, Undo2 } f
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ErrorBody, type Id, type LocationRef } from '../../shared/api/common';
+import type { RemovalReason } from '../../shared/api/copies';
 import type { DeckList } from '../../shared/api/decks';
 import type {
   BatchKind,
@@ -287,7 +288,7 @@ function MovementEntry({ movement, undo }: { movement: MovementRow; undo: Undo }
         <FromTo from={movement.from} to={movement.to} />
       </Faded>
       <Faded undone={undone}>
-        <ReasonChip reason={movement.reason} />
+        <ReasonChip reason={movement.reason} removalReason={movement.removalReason} />
       </Faded>
       <Faded undone={undone}>
         <DeckLink deck={movement.deck} />
@@ -400,7 +401,7 @@ function BatchEntry({ batch, undo }: { batch: HistoryBatch; undo: Undo }) {
                   <FromTo from={movement.from} to={movement.to} />
                 </Faded>
                 <Faded undone={movementUndone}>
-                  <ReasonChip reason={movement.reason} />
+                  <ReasonChip reason={movement.reason} removalReason={movement.removalReason} />
                 </Faded>
                 <span />
                 <span className="text-right">
@@ -554,15 +555,36 @@ const batchReason: Record<BatchKind, MovementReason | 'swap'> = {
   undo: 'undo',
 };
 
-function ReasonChip({ reason }: { reason: MovementReason | 'swap' }) {
+const removalWords: Record<RemovalReason, string> = {
+  sold: 'Sold',
+  traded: 'Traded',
+  lost: 'Lost',
+  miscounted: 'Miscounted',
+};
+
+function ReasonChip({
+  reason,
+  removalReason = null,
+}: {
+  reason: MovementReason | 'swap';
+  /** Why copies were removed by hand, shown beside a Removed chip. */
+  removalReason?: RemovalReason | null;
+}) {
   return (
-    <span
-      className={cn(
-        'inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 font-bold text-xs',
-        reason === 'swap' ? reasonColors.swapped_in : reasonColors[reason],
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={cn(
+          'inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 font-bold text-xs',
+          reason === 'swap' ? reasonColors.swapped_in : reasonColors[reason],
+        )}
+      >
+        {reason === 'swap' ? 'Swapped' : reasonWords[reason]}
+      </span>
+      {removalReason && (
+        <span data-testid="removal-reason" className="text-muted-foreground text-xs">
+          {removalWords[removalReason]}
+        </span>
       )}
-    >
-      {reason === 'swap' ? 'Swapped' : reasonWords[reason]}
     </span>
   );
 }

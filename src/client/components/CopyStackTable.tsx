@@ -33,6 +33,8 @@ export type CopyStackAction = {
   label: string;
   icon?: LucideIcon;
   onClick: (selected: StackRow[]) => void;
+  /** Why the action can't be used on this selection, shown on the disabled button; null when it can. */
+  disabledReason?: (selected: StackRow[]) => string | null;
 };
 
 export type CopyStackView = 'rows' | 'images';
@@ -662,22 +664,27 @@ export function CopyStackTable({
             className="flex flex-wrap items-center gap-2 rounded-[10px] bg-foreground py-[5px] pr-1.5 pl-3.5 text-white"
           >
             <span className="font-semibold">{selected.length} selected</span>
-            {actions.map(({ label, icon: Icon, onClick }, index) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => onClick(selected)}
-                className={cn(
-                  'inline-flex h-[30px] items-center gap-1.5 rounded-[7px] px-3 font-semibold text-sm',
-                  index === 0
-                    ? 'bg-primary hover:bg-[#1b3f9c]'
-                    : 'border border-[#4a5161] hover:bg-white/10',
-                )}
-              >
-                {Icon && <Icon size={15} aria-hidden="true" />}
-                {label}
-              </button>
-            ))}
+            {actions.map(({ label, icon: Icon, onClick, disabledReason }, index) => {
+              const blocked = disabledReason?.(selected) ?? null;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={blocked !== null}
+                  title={blocked ?? undefined}
+                  onClick={() => onClick(selected)}
+                  className={cn(
+                    'inline-flex h-[30px] items-center gap-1.5 rounded-[7px] px-3 font-semibold text-sm disabled:cursor-not-allowed disabled:opacity-50',
+                    index === 0
+                      ? 'bg-primary enabled:hover:bg-[#1b3f9c]'
+                      : 'border border-[#4a5161] enabled:hover:bg-white/10',
+                  )}
+                >
+                  {Icon && <Icon size={15} aria-hidden="true" />}
+                  {label}
+                </button>
+              );
+            })}
             <button
               type="button"
               aria-label="Clear selection"
