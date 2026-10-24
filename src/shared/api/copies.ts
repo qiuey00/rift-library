@@ -48,3 +48,20 @@ export const AddCopiesBody = z.object({
   locationId: Id,
 });
 export type AddCopiesBody = z.infer<typeof AddCopiesBody>;
+
+/** Why Jeff lowered or removed copies by hand (COL-13). */
+export const RemovalReason = z.enum(['sold', 'traded', 'lost', 'miscounted']);
+export type RemovalReason = z.infer<typeof RemovalReason>;
+
+/**
+ * POST /api/copies/remove → `ActionResult`. Lowers a stack by `quantity`, or removes it when
+ * that is all of it, in one remove batch whose movement has no to location. Errors: 409
+ * `stale_copy` when the stack no longer holds the quantity, 409 `in_deck` "These copies are in a
+ * deck. Take them out first." for a stack in a deck box.
+ */
+export const RemoveCopiesBody = z.object({
+  stackId: Id,
+  quantity: Quantity,
+  reason: RemovalReason,
+});
+export type RemoveCopiesBody = z.infer<typeof RemoveCopiesBody>;

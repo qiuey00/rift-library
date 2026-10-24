@@ -4,12 +4,13 @@ import {
   formatCollectionFilter,
   parseCollectionQuery,
 } from '../../shared/collection-query';
+import { DOMAIN_WORDS } from '../components/DomainIcon';
 
 // The Collection screen's search text and its filter chips stay in step: chips are read from
 // the text, and removing a chip or picking a dropdown filter writes the text again.
 
 /** The filters a dropdown (or the For trade chip) sets. Each holds at most one term of its kind. */
-export type DropdownKind = 'set' | 'color' | 'type' | 'finish' | 'proxy' | 'location' | 'trade';
+export type DropdownKind = 'set' | 'domain' | 'type' | 'finish' | 'proxy' | 'location' | 'trade';
 
 type FilterOf<K extends CollectionFilter['kind']> = Extract<CollectionFilter, { kind: K }>;
 
@@ -41,31 +42,19 @@ export function findFilter<K extends DropdownKind>(
   return terms.find((term): term is CollectionTerm & FilterOf<K> => term.kind === kind);
 }
 
-/** The color filter after toggling one of W U B R G, or C for colorless. */
-export function toggleColor(current: string | undefined, letter: string): string | null {
-  if (letter === 'C') return current === '' ? null : '';
-  const letters = new Set(current ?? '');
-  if (letters.has(letter)) letters.delete(letter);
-  else letters.add(letter);
-  const value = [...'WUBRG'].filter((x) => letters.has(x)).join('');
-  return value === '' ? null : value;
-}
-
-const finishWords = { nonfoil: 'nonfoil', foil: 'foil', etched: 'etched' } as const;
-
-/** What a term's chip says, such as "Type: creature". */
+/** What a term's chip says, such as "Type: unit". */
 export function chipLabel(term: CollectionTerm): string {
   switch (term.kind) {
     case 'name':
       return `Name: ${term.value}`;
     case 'set':
-      return `Set: ${term.value.toUpperCase()}`;
-    case 'color':
-      return term.value === '' ? 'Colorless' : `Colors: ${[...term.value].join(' ')}`;
+      return `Set: ${term.value}`;
+    case 'domain':
+      return `Domain: ${DOMAIN_WORDS[term.value]}`;
     case 'type':
       return `Type: ${term.value}`;
     case 'finish':
-      return `Finish: ${finishWords[term.value]}`;
+      return `Finish: ${term.value}`;
     case 'proxy':
       return term.value ? 'Proxies only' : 'Real only';
     case 'location':

@@ -137,9 +137,9 @@ test('the tree shows tiles, counts, the pinned inbox and the Deck boxes group', 
 
   const deckBoxes = page.getByRole('list', { name: 'Deck boxes' }).getByRole('listitem');
   await expect(deckBoxes).toHaveCount(2);
-  await expect(deckBoxes.nth(0)).toContainText('Hearthhull');
+  await expect(deckBoxes.nth(0)).toContainText('Jinx Burn');
   await expect(deckBoxes.nth(0).locator('span[data-state]')).toHaveText('Partly assembled');
-  await expect(deckBoxes.nth(1)).toContainText('Atraxa');
+  await expect(deckBoxes.nth(1)).toContainText('Lux Control');
   await expect(deckBoxes.nth(1).locator('span[data-state]')).toHaveText('Assembled');
 
   // To sort is shown until something else is picked.
@@ -285,7 +285,7 @@ test('the inbox has no Rename or Delete, and a deck’s box has no Delete', asyn
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0);
   await page.keyboard.press('Escape');
 
-  await openMenu(page, 'Hearthhull deck box');
+  await openMenu(page, 'Jinx Burn deck box');
   await expect(page.getByRole('menuitem', { name: 'Rename' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0);
 });
@@ -349,8 +349,8 @@ test('the selection actions mark proxies and open Move to and Add to buy list', 
 }) => {
   const { sent } = await mockApi(page);
   await page.goto('/locations?selected=6');
-  await page.getByRole('checkbox', { name: /Select Sylvan Library/ }).check();
-  await page.getByRole('checkbox', { name: /Select Triumph of the Hordes/ }).check();
+  await page.getByRole('checkbox', { name: /Select Daring Banner/ }).check();
+  await page.getByRole('checkbox', { name: /Select Sunken Insight/ }).check();
   const bar = page.getByRole('toolbar', { name: 'Selected cards' });
 
   await bar.getByRole('button', { name: 'Mark as proxy' }).click();
@@ -474,7 +474,7 @@ test('the For trade switch sends the request; not offered for the inbox or deck 
     { method: 'PATCH', path: '/api/locations/12', body: { forTrade: false } },
   ]);
 
-  for (const name of ['To sort', 'Hearthhull deck box']) {
+  for (const name of ['To sort', 'Jinx Burn deck box']) {
     await openMenu(page, name);
     await expect(page.getByRole('menuitem', { name: 'History' })).toBeVisible();
     await expect(page.getByRole('menuitemcheckbox', { name: 'For trade' })).toHaveCount(0);
@@ -504,6 +504,6 @@ test('Export list opens the dialog from the header and the menu', async ({ page 
   await expect(page.getByRole('heading', { level: 2, name: 'To sort' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export list' })).toHaveCount(0);
   await page.goto('/locations?selected=9');
-  await expect(page.getByRole('heading', { level: 2, name: 'Hearthhull deck box' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Jinx Burn deck box' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export list' })).toHaveCount(0);
 });

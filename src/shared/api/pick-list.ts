@@ -63,12 +63,12 @@ export const MissingLine = z.object({
 });
 export type MissingLine = z.infer<typeof MissingLine>;
 
-/** Basic lands are always available and never tracked, so they are only counts to add. */
-export const BasicLandLine = z.object({
+/** Runes are always available and never tracked (D-15), so they are only counts to add. */
+export const RuneLine = z.object({
   card: CardSummary,
   quantity: Quantity,
 });
-export type BasicLandLine = z.infer<typeof BasicLandLine>;
+export type RuneLine = z.infer<typeof RuneLine>;
 
 /** Lines and cards in a walk list. */
 export const WalkTotals = z.object({
@@ -83,9 +83,9 @@ export const PickList = z.object({
   /** "Not in storage: in another deck": copies only another deck's box holds. */
   otherDecks: z.array(PickLine),
   missing: z.array(MissingLine),
-  /** At the end, such as "8 Forest, 3 Mountain, 5 Swamp". */
-  basics: z.array(BasicLandLine),
-  /** The lines Jeff can tick: every line in `groups` and `otherDecks`. Missing lines and basic lands are left out. */
+  /** At the end, such as "6 Fury Rune, 6 Chaos Rune". */
+  runes: z.array(RuneLine),
+  /** The lines Jeff can tick: every line in `groups` and `otherDecks`. Missing lines and runes are left out. */
   totals: WalkTotals,
 });
 export type PickList = z.infer<typeof PickList>;

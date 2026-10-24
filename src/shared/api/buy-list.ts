@@ -25,7 +25,7 @@ export type BuyList = z.infer<typeof BuyList>;
 
 /** POST /api/buy-list. The same card and printing again raises that item's quantity. */
 export const NewBuyItem = z.object({
-  oracleId: z.string().min(1),
+  cardId: Id,
   /** Leave out when any printing will do. */
   printingId: z.string().min(1).optional(),
   quantity: Quantity,

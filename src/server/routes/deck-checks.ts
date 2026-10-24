@@ -23,7 +23,7 @@ export const deckChecksRoutes = new Hono()
     }
     const slots = db
       .select({
-        oracleId: deckSlots.oracleId,
+        cardId: deckSlots.cardId,
         board: deckSlots.board,
         quantity: deckSlots.quantity,
       })
@@ -33,7 +33,7 @@ export const deckChecksRoutes = new Hono()
       .all();
     const demand = demandWarnings(
       db,
-      slots.filter((slot) => slot.board !== 'maybe').map((slot) => slot.oracleId),
+      slots.filter((slot) => slot.board !== 'maybe').map((slot) => slot.cardId),
     );
     const answer: DeckChecks = { warnings: checkList(db, slots), demand: [...demand.values()] };
     return c.json(answer);
@@ -42,24 +42,16 @@ export const deckChecksRoutes = new Hono()
     const answer: ListChecks = { warnings: checkList(getDb(), c.req.valid('json').slots) };
     return c.json(answer);
   })
-  .get(
-    '/cards/:oracleId/decks',
-    validate('param', z.object({ oracleId: z.string().min(1) })),
-    (c) => {
-      const db = getDb();
-      const { oracleId } = c.req.valid('param');
-      const card = db
-        .select({ oracleId: cards.oracleId })
-        .from(cards)
-        .where(eq(cards.oracleId, oracleId))
-        .get();
-      if (!card) {
-        throw new AppError(404, 'card_not_found', 'This card isn’t in the card data.');
-      }
-      const answer: CardDecks = {
-        decks: cardDecks(db, oracleId),
-        demand: demandWarnings(db, [oracleId]).get(oracleId) ?? null,
-      };
-      return c.json(answer);
-    },
-  );
+  .get('/cards/:id/decks', validate('param', z.object({ id: IdParam })), (c) => {
+    const db = getDb();
+    const { id } = c.req.valid('param');
+    const card = db.select({ id: cards.id }).from(cards).where(eq(cards.id, id)).get();
+    if (!card) {
+      throw new AppError(404, 'card_not_found', 'This card isn’t in the card data.');
+    }
+    const answer: CardDecks = {
+      decks: cardDecks(db, id),
+      demand: demandWarnings(db, [id]).get(id) ?? null,
+    };
+    return c.json(answer);
+  });

@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The other Magic-only parts (Commander rules and the Mana and Keyrune fonts) still come from the copy. They are being removed and replaced in the issues listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27); until then, the sections below describe them as they work today.
+ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no warnings until #16, and the rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
 
 ## Docs
 
@@ -22,6 +22,7 @@ src/server/server.ts     serves the API and the built screens on 127.0.0.1:4300
 src/server/routes/       one file per area
 src/server/services/     the rules (one database transaction per action)
 src/server/queries/      worked-out values
+src/server/riftcodex/    card data from Riftcodex (the sync arrives with #7)
 src/server/db/           Drizzle schema and migrations
 src/client/api.ts        the typed API client
 src/client/router.tsx    every screen address, inside the app frame
@@ -51,7 +52,9 @@ Scripts must work on macOS and Windows: no `rm -rf`, no `FOO=bar cmd`, build pat
 
 - JSON in and out, all under `/api`.
 - Errors use the HTTP status plus `{ "error": { "code": string, "message": string } }` (`ErrorBody`). The message is written for Jeff, such as "This copy has moved, pick another". Throw `new AppError(status, code, message)` from `src/server/errors.ts`; anything else becomes a 500 `internal_error`.
-- App ids are numbers; card data ids (oracle ids, printing ids) are strings. Path and query ids arrive as text: check them with `IdParam`.
+- App ids are numbers, card ids included (`cards.id`, `cardId`). Printing ids are Riftcodex's ids, as strings (`printings.riftcodex_id`, which `printingId` and `copy_stacks.printing_id` point at). Path and query ids arrive as text: check them with `IdParam`.
+- `Finish` is `normal` or `foil`. `Board` is one of the seven boards: `legend`, `champion` (the Chosen Champion), `main`, `battlefield`, `rune`, `sideboard` and `maybe`. A rune slot's `SlotStatus` is `rune`: runes are always available and never tracked as copies (D-15).
+- `GET /api/cards?q=` searches card names and public codes (such as `OGN-042`); `type` and `domains` narrow it.
 - Every request body, query and path param is checked with Zod through `validate(target, schema)` from `src/server/validate.ts` (a wrapper over `@hono/zod-validator` that answers 400 `invalid_request` in the error shape).
 - Shared schemas used by every area are in `src/shared/api/common.ts`: `Finish`, `LocationType`, `Board`, `SlotStatus`, `DeckState`, `ErrorBody`, `CardSummary`, `PrintingSummary`, `LocationRef`, `CopyDetails`, `StackRow`, `ActionResult`, `Id`, `IdParam`. Each schema has a type of the same name.
 - Area contracts (separate issues) define each area's schemas in `src/shared/api/<area>.ts`, typed samples in `src/shared/api/samples/<area>.ts`, and route handlers that return the samples, each marked `// STUB until #N`. The server issue for that area replaces the stub with real logic.
@@ -72,7 +75,7 @@ Each area is a `new Hono()` in `src/server/routes/<name>.ts`, mounted at `/api` 
 ## Screens
 
 - Tailwind CSS with shadcn/ui parts (Radix underneath), Lucide icons, React Router, TanStack Query. Add shadcn parts with `npx shadcn@latest add <name>` (it reads `components.json` and writes to `src/client/components/ui/`), then point any `cn` import at `@/lib/utils` and re-apply the app's look: buttons and fields are 40 px tall with `rounded-lg`, panels, dialogs and menus use `bg-card`/`bg-popover` with the soft shadow. `@/` means `src/client` (tsconfig, Vite and Vitest). Keep each part's shadcn code otherwise unchanged, so later `add --diff` shows only the look.
-- Colors are Tailwind colors defined in `src/client/styles.css`: `primary` is the accent blue, `background` the page, `card` the panels, `border` the panel border, `top-bar`, and `status-<status>` (text, hyphenated, such as `status-other-decks`), `-fill` (bars, dots) and `-soft` (badge background) for each slot status, and `trade` (with `trade-soft`) for the Trade tag on anything marked for trade. Fonts (`font-sans`, `font-serif` for titles), Mana symbols (`ms ms-g`) and Keyrune set symbols (`ss ss-eoc`) are bundled, so nothing loads from the network.
+- Colors are Tailwind colors defined in `src/client/styles.css`: `primary` is the accent blue, `background` the page, `card` the panels, `border` the panel border, `top-bar`, and `status-<status>` (text, hyphenated, such as `status-other-decks`), `-fill` (bars, dots) and `-soft` (badge background) for each slot status, and `trade` (with `trade-soft`) for the Trade tag on anything marked for trade. Fonts (`font-sans`, `font-serif` for titles) are bundled, so nothing loads from the network. Domains show with `DomainIcon` and `DomainIcons` (a colored dot per domain until #9 draws the icons), and sets show as their code, such as OGN.
 - Shared pieces: `Panel`, `StatusBadge`, `StatePill`, `ProxyTag`, `LocationTile`, and `useUndoBar().show({ message, batchId })` after any action that moves copies.
 - Each screen and placeholder component already exists with its props; an issue replaces its own file's body. Placeholders say "Coming soon".
 - Component tests are Vitest files under `tests/unit/client/` that start with `// @vitest-environment jsdom` and call `cleanup` after each test.

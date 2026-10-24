@@ -19,7 +19,7 @@ import type { StacksPage } from '../../src/shared/api/stacks';
 
 // The Collection screen with the API mocked from the samples: GET /api/stacks answers the
 // first page (13 stacks, with a next page), the next page (2 more), or the `t:creature f:foil`
-// search (Blech and Emeritus of Woe, both foil), or the `trade:yes` search (the Blech in the
+// search (Blech and Wild Duelist, both foil), or the `trade:yes` search (the Blech in the
 // Trade binder). GET /api/collection/value answers the whole collection's value.
 
 // The prices date reads the same wherever the tests run.
@@ -81,8 +81,8 @@ test('lists every copy stack with the totals in the header', async ({ page }) =>
   await expect(page.getByTestId('collection-totals')).toHaveText(
     '22 cards in 16 stacks, 2 proxies.',
   );
-  await expect(page.getByRole('link', { name: 'Sylvan Library' })).toBeVisible();
-  await expect(page.getByRole('row', { name: /Sylvan Library/ })).toContainText('Rares binder');
+  await expect(page.getByRole('link', { name: 'Daring Banner' })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Daring Banner/ })).toContainText('Rares binder');
 });
 
 test('typing t:creature f:foil sends that query and shows two chips', async ({ page }) => {
@@ -121,39 +121,39 @@ test('dropdown filters add chips and the same terms to the text', async ({ page 
 
   await page.getByLabel('Finish', { exact: true }).selectOption('foil');
   await page.getByLabel('Proxy', { exact: true }).selectOption('real');
-  await page.getByLabel('Type', { exact: true }).selectOption('creature');
-  await page.getByRole('button', { name: 'Black' }).click();
-  await page.getByRole('button', { name: 'Green' }).click();
-  await expect(page.getByRole('button', { name: 'Green' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('Type', { exact: true }).selectOption('unit');
+  await page.getByLabel('Domain', { exact: true }).selectOption('calm');
 
   await page.getByRole('combobox', { name: 'Location' }).click();
   await page.getByRole('option', { name: 'Rares binder', exact: true }).click();
 
   await page.getByRole('combobox', { name: 'Set' }).click();
-  await page.getByPlaceholder('Search sets').fill('strix');
-  await page.getByRole('option', { name: /^Secrets of Strixhaven\s*SOS/ }).click();
+  await page.getByPlaceholder('Search sets').fill('spirit');
+  await page.getByRole('option', { name: /^Spiritforged\s*SFD/ }).click();
 
-  const q = 'f:foil is:real t:creature c:bg loc:"Rares binder" set:sos';
+  const q = 'f:foil is:real t:unit domain:calm loc:"Rares binder" set:sfd';
   await expect(searchBox(page)).toHaveValue(q);
   await expect(chips(page)).toHaveText([
     'Finish: foil',
     'Real only',
-    'Type: creature',
-    'Colors: B G',
+    'Type: unit',
+    'Domain: Calm',
     'Location: Rares binder',
-    'Set: SOS',
+    'Set: SFD',
   ]);
   await expect.poll(() => lastQuery(stacks)).toBe(q);
 
   // Changing a dropdown replaces its term rather than adding another.
   await page.getByLabel('Finish', { exact: true }).selectOption('');
-  await expect(searchBox(page)).toHaveValue('is:real t:creature c:bg loc:"Rares binder" set:sos');
+  await expect(searchBox(page)).toHaveValue(
+    'is:real t:unit domain:calm loc:"Rares binder" set:sfd',
+  );
 });
 
 test('a typed term shows as the dropdown value', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/collection?q=f:etched%20is:proxy');
-  await expect(page.getByLabel('Finish', { exact: true })).toHaveValue('etched');
+  await page.goto('/collection?q=f:foil%20is:proxy');
+  await expect(page.getByLabel('Finish', { exact: true })).toHaveValue('foil');
   await expect(page.getByLabel('Proxy', { exact: true })).toHaveValue('proxy');
 });
 
@@ -163,7 +163,7 @@ test('a term the search cannot use says why and is not sent', async ({ page }) =
   await expect(bodyRows(page).first()).toBeVisible();
   const before = stacks.length;
   await searchBox(page).fill('f:shiny');
-  await expect(page.getByRole('alert')).toHaveText('f: takes foil, nonfoil or etched.');
+  await expect(page.getByRole('alert')).toHaveText('f: takes normal or foil.');
   await page.waitForTimeout(500);
   expect(stacks.length).toBe(before);
 });
@@ -172,11 +172,11 @@ test('Mark as proxy and Mark as real send the selected stacks', async ({ page })
   const { posts } = await mockApi(page);
   await page.goto('/collection');
   await page
-    .getByRole('row', { name: /Sylvan Library/ })
+    .getByRole('row', { name: /Daring Banner/ })
     .getByRole('checkbox')
     .check();
   await page
-    .getByRole('row', { name: /Command Tower/ })
+    .getByRole('row', { name: /Targon's Peak/ })
     .getByRole('checkbox')
     .check();
   const toolbar = page.getByRole('toolbar', { name: 'Selected cards' });
@@ -184,7 +184,7 @@ test('Mark as proxy and Mark as real send the selected stacks', async ({ page })
   await toolbar.getByRole('button', { name: 'Mark as proxy' }).click();
   await expect.poll(() => posts).toHaveLength(1);
   expect(posts[0].body).toEqual({
-    stackIds: [sampleStacks.commandTower.stackId, sampleStacks.sylvanLibrary.stackId],
+    stackIds: [sampleStacks.targonsPeak.stackId, sampleStacks.daringBanner.stackId],
     isProxy: true,
   } satisfies SetProxyBody);
   await expect(page.getByText(setProxyResultSample.message)).toBeVisible();
@@ -198,7 +198,7 @@ test('Move to opens the Move to dialog for the selected stacks', async ({ page }
   await mockApi(page);
   await page.goto('/collection');
   await page
-    .getByRole('row', { name: /Sylvan Library/ })
+    .getByRole('row', { name: /Daring Banner/ })
     .getByRole('checkbox')
     .check();
   await page
@@ -206,14 +206,14 @@ test('Move to opens the Move to dialog for the selected stacks', async ({ page }
     .getByRole('button', { name: 'Move to' })
     .click();
   const dialog = page.getByRole('dialog', { name: 'Move to' });
-  await expect(dialog).toContainText('1 copy of Sylvan Library in Rares binder');
+  await expect(dialog).toContainText('1 copy of Daring Banner in Rares binder');
 });
 
 test('Add to buy list opens the dialog for the selected card', async ({ page }) => {
   await mockApi(page);
   await page.goto('/collection');
   await page
-    .getByRole('row', { name: /Sylvan Library/ })
+    .getByRole('row', { name: /Daring Banner/ })
     .getByRole('checkbox')
     .check();
   await page
@@ -233,7 +233,7 @@ test('Add card opens the Add a card dialog', async ({ page }) => {
 test('scrolling to the end loads the next page', async ({ page }) => {
   // A first page long enough that its end starts out of view.
   const many: StackRow[] = Array.from({ length: 60 }, (_, i) => ({
-    ...sampleStacks.commandTower,
+    ...sampleStacks.targonsPeak,
     stackId: 1000 + i,
   }));
   const { stacks } = await mockApi(page, { ...stacksPageSample, rows: many });
@@ -247,7 +247,7 @@ test('scrolling to the end loads the next page', async ({ page }) => {
   const cursorUrl = stacks.find((url) => url.searchParams.has('cursor'));
   expect(cursorUrl?.searchParams.get('cursor')).toBe(stacksPageSample.nextCursor);
   await page.mouse.wheel(0, 20 * 44);
-  await expect(page.getByRole('link', { name: 'Witherbloom Charm' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Whispering Surge' })).toBeVisible();
 });
 
 test('an empty collection offers Create a location and Add cards', async ({ page }) => {
@@ -321,17 +321,19 @@ test("rows show each stack's value, No price, and nothing for proxies", async ({
   await page.goto('/collection');
   await expect(page.getByRole('columnheader', { name: 'Value' })).toBeVisible();
   const valueCell = (stackId: number) => page.locator(`tr[data-stack-id="${stackId}"] td`).nth(8);
-  await expect(valueCell(sampleStacks.sylvanLibrary.stackId)).toHaveText('$34.20');
-  await expect(valueCell(sampleStacks.commandTower.stackId)).toHaveText('$1.05');
-  await expect(valueCell(sampleStacks.harmonizedTrio.stackId)).toHaveText('No price');
-  await expect(valueCell(sampleStacks.gaeasCradleProxy.stackId)).toHaveText('');
+  await expect(valueCell(sampleStacks.daringBanner.stackId)).toHaveText('$34.20');
+  await expect(valueCell(sampleStacks.targonsPeak.stackId)).toHaveText('$1.05');
+  await expect(valueCell(sampleStacks.gildedWhelp.stackId)).toHaveText('No price');
+  await expect(valueCell(sampleStacks.hollowSummitProxy.stackId)).toHaveText('');
 });
 
 test('a stack in a trade location shows a Trade tag after its name', async ({ page }) => {
   await mockApi(page);
   await page.goto('/collection');
-  const inTrade = page.locator(`tr[data-stack-id="${sampleStacks.blechInTradeBinder.stackId}"]`);
-  const notTrade = page.locator(`tr[data-stack-id="${sampleStacks.blechFoil.stackId}"]`);
+  const inTrade = page.locator(
+    `tr[data-stack-id="${sampleStacks.nasusProtectorInTradeBinder.stackId}"]`,
+  );
+  const notTrade = page.locator(`tr[data-stack-id="${sampleStacks.nasusProtectorFoil.stackId}"]`);
   await expect(inTrade.getByText('Trade', { exact: true })).toBeVisible();
   await expect(notTrade.getByText('Trade', { exact: true })).toHaveCount(0);
 });
@@ -357,10 +359,10 @@ test('the card preview sits left of the list and shows the price', async ({ page
   const [paneBox, tableBox] = await Promise.all([preview.boundingBox(), table.boundingBox()]);
   expect((paneBox?.x ?? 0) + (paneBox?.width ?? 0)).toBeLessThanOrEqual(tableBox?.x ?? 0);
 
-  await page.getByRole('row', { name: /Sylvan Library/ }).hover();
-  await expect(preview).toContainText('Sylvan Library');
+  await page.getByRole('row', { name: /Daring Banner/ }).hover();
+  await expect(preview).toContainText('Daring Banner');
   await expect(preview.getByTestId('preview-price')).toHaveText('$34.20 each');
 
-  await page.getByRole('row', { name: /Command Tower/ }).hover();
+  await page.getByRole('row', { name: /Targon's Peak/ }).hover();
   await expect(preview.getByTestId('preview-price')).toHaveText('$0.35 each · $1.05 for 3');
 });

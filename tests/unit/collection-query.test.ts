@@ -16,14 +16,14 @@ describe('parseCollectionQuery', () => {
   });
 
   it('reads plain words as card names, in lower case', () => {
-    expect(filters('Arcane SIGNET')).toEqual([
-      { kind: 'name', value: 'arcane' },
+    expect(filters('Ember SIGNET')).toEqual([
+      { kind: 'name', value: 'ember' },
       { kind: 'name', value: 'signet' },
     ]);
   });
 
   it('reads quoted words as one name', () => {
-    expect(filters('"Sylvan Library"')).toEqual([{ kind: 'name', value: 'sylvan library' }]);
+    expect(filters('"Daring Banner"')).toEqual([{ kind: 'name', value: 'daring banner' }]);
   });
 
   it('keeps a word that ends in a colon as part of a name', () => {
@@ -34,28 +34,25 @@ describe('parseCollectionQuery', () => {
   });
 
   it('reads set:', () => {
-    expect(filters('set:SOS')).toEqual([{ kind: 'set', value: 'sos' }]);
+    expect(filters('set:ogn')).toEqual([{ kind: 'set', value: 'OGN' }]);
   });
 
-  it('reads c: as colors in WUBRG order, and c:c as colorless', () => {
-    expect(filters('c:gb')).toEqual([{ kind: 'color', value: 'BG' }]);
-    expect(filters('c:urw')).toEqual([{ kind: 'color', value: 'WUR' }]);
-    expect(filters('c:c')).toEqual([{ kind: 'color', value: '' }]);
-    expect(filters('c:C')).toEqual([{ kind: 'color', value: '' }]);
-  });
-
-  it('reads t:', () => {
-    expect(filters('t:Creature')).toEqual([{ kind: 'type', value: 'creature' }]);
-    expect(filters('t:"legendary creature"')).toEqual([
-      { kind: 'type', value: 'legendary creature' },
+  it('reads domain: in any case', () => {
+    expect(filters('domain:fury domain:CALM')).toEqual([
+      { kind: 'domain', value: 'fury' },
+      { kind: 'domain', value: 'calm' },
     ]);
   });
 
+  it('reads t:', () => {
+    expect(filters('t:Unit')).toEqual([{ kind: 'type', value: 'unit' }]);
+    expect(filters('t:"champion unit"')).toEqual([{ kind: 'type', value: 'champion unit' }]);
+  });
+
   it('reads f: for each finish', () => {
-    expect(filters('f:foil f:nonfoil f:Etched')).toEqual([
+    expect(filters('f:foil f:Normal')).toEqual([
       { kind: 'finish', value: 'foil' },
-      { kind: 'finish', value: 'nonfoil' },
-      { kind: 'finish', value: 'etched' },
+      { kind: 'finish', value: 'normal' },
     ]);
   });
 
@@ -82,22 +79,22 @@ describe('parseCollectionQuery', () => {
   });
 
   it('reads keys in any case', () => {
-    expect(filters('SET:sos T:land LOC:Lands')).toEqual([
-      { kind: 'set', value: 'sos' },
-      { kind: 'type', value: 'land' },
+    expect(filters('SET:sfd T:rune LOC:Lands')).toEqual([
+      { kind: 'set', value: 'SFD' },
+      { kind: 'type', value: 'rune' },
       { kind: 'location', value: 'Lands' },
     ]);
   });
 
   it('reads a combination in the order written, with where each term sits', () => {
-    const q = 'signet  t:artifact loc:"Staples binder" is:real c:c f:foil set:eoc';
+    const q = 'signet  t:gear loc:"Staples binder" is:real domain:mind f:foil set:ogn';
     const terms = parseCollectionQuery(q);
     expect(terms.map((term) => term.kind)).toEqual([
       'name',
       'type',
       'location',
       'proxy',
-      'color',
+      'domain',
       'finish',
       'set',
     ]);
@@ -106,40 +103,39 @@ describe('parseCollectionQuery', () => {
       kind: 'location',
       value: 'Staples binder',
       text: 'loc:"Staples binder"',
-      start: 19,
-      end: 39,
+      start: 15,
+      end: 35,
     });
   });
 
   it('lets a chip be removed by cutting its text out', () => {
-    const q = 't:creature f:foil';
+    const q = 't:unit f:foil';
     const foil = parseCollectionQuery(q)[1];
     if (!foil) throw new Error('expected two terms');
     expect(filters(`${q.slice(0, foil.start)}${q.slice(foil.end)}`)).toEqual([
-      { kind: 'type', value: 'creature' },
+      { kind: 'type', value: 'unit' },
     ]);
   });
 
   it('reads an unclosed quote to the end of the text', () => {
     expect(filters('loc:"Rares bin')).toEqual([{ kind: 'location', value: 'Rares bin' }]);
-    expect(filters('"sylvan lib')).toEqual([{ kind: 'name', value: 'sylvan lib' }]);
+    expect(filters('"daring ban')).toEqual([{ kind: 'name', value: 'daring ban' }]);
   });
 
   it('marks terms it cannot use as invalid, with a message for Jeff', () => {
-    expect(filters('f:shiny')).toEqual([
-      { kind: 'invalid', message: 'f: takes foil, nonfoil or etched.' },
-    ]);
+    expect(filters('f:shiny')).toEqual([{ kind: 'invalid', message: 'f: takes normal or foil.' }]);
     expect(filters('is:foil')).toEqual([{ kind: 'invalid', message: 'is: takes proxy or real.' }]);
-    expect(filters('c:wx')[0]?.kind).toBe('invalid');
-    expect(filters('c:wc')[0]?.kind).toBe('invalid');
+    expect(filters('domain:green')).toEqual([
+      { kind: 'invalid', message: 'domain: takes fury, calm, mind, body, chaos or order.' },
+    ]);
     expect(filters('set:')).toEqual([
-      { kind: 'invalid', message: 'set: needs a value, such as set:sos.' },
+      { kind: 'invalid', message: 'set: needs a value, such as set:ogn.' },
     ]);
     expect(filters('loc:""')[0]?.kind).toBe('invalid');
     expect(filters('rarity:mythic')).toEqual([
       {
         kind: 'invalid',
-        message: "rarity: isn't a search term. Use set:, c:, t:, f:, is:, loc: or trade:.",
+        message: "rarity: isn't a search term. Use set:, domain:, t:, f:, is:, loc: or trade:.",
       },
     ]);
   });
@@ -151,14 +147,13 @@ describe('parseCollectionQuery', () => {
 
 describe('formatCollectionFilter', () => {
   it('writes each filter as the term a person would type', () => {
-    expect(formatCollectionFilter({ kind: 'name', value: 'sylvan library' })).toBe(
-      '"sylvan library"',
+    expect(formatCollectionFilter({ kind: 'name', value: 'daring banner' })).toBe(
+      '"daring banner"',
     );
-    expect(formatCollectionFilter({ kind: 'set', value: 'sos' })).toBe('set:sos');
-    expect(formatCollectionFilter({ kind: 'color', value: 'WU' })).toBe('c:wu');
-    expect(formatCollectionFilter({ kind: 'color', value: '' })).toBe('c:c');
-    expect(formatCollectionFilter({ kind: 'type', value: 'creature' })).toBe('t:creature');
-    expect(formatCollectionFilter({ kind: 'finish', value: 'etched' })).toBe('f:etched');
+    expect(formatCollectionFilter({ kind: 'set', value: 'OGN' })).toBe('set:ogn');
+    expect(formatCollectionFilter({ kind: 'domain', value: 'fury' })).toBe('domain:fury');
+    expect(formatCollectionFilter({ kind: 'type', value: 'unit' })).toBe('t:unit');
+    expect(formatCollectionFilter({ kind: 'finish', value: 'normal' })).toBe('f:normal');
     expect(formatCollectionFilter({ kind: 'proxy', value: true })).toBe('is:proxy');
     expect(formatCollectionFilter({ kind: 'proxy', value: false })).toBe('is:real');
     expect(formatCollectionFilter({ kind: 'trade', value: true })).toBe('trade:yes');
@@ -171,10 +166,10 @@ describe('formatCollectionFilter', () => {
 
   it('writes text that parses back to the same filter', () => {
     const all: CollectionFilter[] = [
-      { kind: 'name', value: 'arcane' },
-      { kind: 'set', value: 'eoc' },
-      { kind: 'color', value: 'BRG' },
-      { kind: 'type', value: 'legendary creature' },
+      { kind: 'name', value: 'ember' },
+      { kind: 'set', value: 'OGN' },
+      { kind: 'domain', value: 'chaos' },
+      { kind: 'type', value: 'champion unit' },
       { kind: 'finish', value: 'foil' },
       { kind: 'proxy', value: false },
       { kind: 'location', value: 'Long box' },

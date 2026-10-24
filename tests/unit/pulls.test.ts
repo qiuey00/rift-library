@@ -4,16 +4,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
 import {
-  cards,
   copyStacks,
   deckSlots,
   decks,
   locations,
   movementBatches,
   movements,
-  printings,
 } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { ErrorBody } from '../../src/shared/api/common';
 import { ProxyResult, PullResult } from '../../src/shared/api/pulls';
 
@@ -24,58 +22,47 @@ const client = hc<AppType>('http://localhost', {
 let db: OpenDb;
 let inbox: number;
 let binder: number;
-let hearthhullBox: number;
-let atraxaBox: number;
-let hearthhull: number;
-let atraxa: number;
+let jinxBurnBox: number;
+let luxControlBox: number;
+let jinxBurn: number;
+let luxControl: number;
 let signetSlot: number;
 let soulSlot: number;
 
 const SIGNET = 'printing-arcane-signet';
 const SIGNET_OTHER = 'printing-arcane-signet-2';
 const SOUL = 'printing-soul-of-windgrace';
-const SOUL_JA = 'printing-soul-of-windgrace-ja';
+const SOUL_ALT = 'printing-swift-ox-alt';
 
 function location(name: string, type: typeof locations.$inferInsert.type) {
   return db.insert(locations).values({ name, type }).returning({ id: locations.id }).get().id;
 }
 
-function card(oracleId: string, name: string) {
-  db.insert(cards)
-    .values({
-      oracleId,
-      name,
-      frontFaceName: name,
-      typeLine: 'Artifact',
-      commanderLegality: 'legal',
-    })
-    .run();
+const SIGNET_CARD = 1;
+const SOUL_CARD = 2;
+
+function card(id: number, name: string) {
+  insertCard(db, { id, name });
 }
 
-function printing(printingId: string, oracleId: string, lang = 'en') {
-  db.insert(printings)
-    .values({
-      printingId,
-      oracleId,
-      setCode: 'cmm',
-      setName: 'Commander Masters',
-      collectorNumber: '1',
-      lang,
-      finishes: ['nonfoil', 'foil'],
-      rarity: 'uncommon',
-      releasedAt: '2023-08-04',
-    })
-    .run();
+function printing(riftcodexId: string, cardId: number) {
+  insertPrinting(db, {
+    riftcodexId,
+    cardId,
+    setCode: 'VEN',
+    setName: 'Vendetta',
+    rarity: 'uncommon',
+  });
 }
 
 function deck(name: string, deckBoxId: number) {
   return db.insert(decks).values({ name, deckBoxId }).returning({ id: decks.id }).get().id;
 }
 
-function slot(deckId: number, oracleId: string, pickedPrintingId: string | null = null) {
+function slot(deckId: number, cardId: number, pickedPrintingId: string | null = null) {
   return db
     .insert(deckSlots)
-    .values({ deckId, oracleId, board: 'main', quantity: 1, pickedPrintingId })
+    .values({ deckId, cardId, board: 'main', quantity: 1, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
@@ -86,7 +73,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
     .values({
       printingId: SIGNET,
       quantity: 1,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       locationId: binder,
@@ -128,29 +115,29 @@ beforeEach(() => {
   setDb(db);
   inbox = db.select().from(locations).get()?.id ?? 0;
   binder = location('Rares binder', 'binder');
-  hearthhullBox = location('Hearthhull deck box', 'deck_box');
-  atraxaBox = location('Atraxa deck box', 'deck_box');
-  hearthhull = deck('Hearthhull', hearthhullBox);
-  atraxa = deck('Atraxa', atraxaBox);
-  card('oracle-signet', 'Arcane Signet');
-  card('oracle-soul', 'Soul of Windgrace');
-  printing(SIGNET, 'oracle-signet');
-  printing(SIGNET_OTHER, 'oracle-signet');
-  printing(SOUL, 'oracle-soul');
-  printing(SOUL_JA, 'oracle-soul', 'ja');
-  signetSlot = slot(hearthhull, 'oracle-signet', SIGNET_OTHER);
-  soulSlot = slot(hearthhull, 'oracle-soul');
+  jinxBurnBox = location('Jinx Burn deck box', 'deck_box');
+  luxControlBox = location('Lux Control deck box', 'deck_box');
+  jinxBurn = deck('Jinx Burn', jinxBurnBox);
+  luxControl = deck('Lux Control', luxControlBox);
+  card(SIGNET_CARD, 'Ember Signet');
+  card(SOUL_CARD, 'Swift Ox');
+  printing(SIGNET, SIGNET_CARD);
+  printing(SIGNET_OTHER, SIGNET_CARD);
+  printing(SOUL, SOUL_CARD);
+  printing(SOUL_ALT, SOUL_CARD);
+  signetSlot = slot(jinxBurn, SIGNET_CARD, SIGNET_OTHER);
+  soulSlot = slot(jinxBurn, SOUL_CARD);
 });
 afterEach(() => db.$client.close());
 
 describe('POST /api/decks/:id/pulls', () => {
   it('moves the copy into the deck box, sets came-from and the picked printing', async () => {
     const source = stack({ quantity: 3 });
-    const res = await pull(hearthhull, { slotId: signetSlot, stackId: source, quantity: 1 });
+    const res = await pull(jinxBurn, { slotId: signetSlot, stackId: source, quantity: 1 });
     expect(res.status).toBe(200);
     const result = PullResult.parse(await res.json());
     expect(result).toMatchObject({
-      message: 'Pulled Arcane Signet into Hearthhull deck box',
+      message: 'Pulled Ember Signet into Jinx Burn deck box',
       otherDeck: null,
     });
 
@@ -158,7 +145,7 @@ describe('POST /api/decks/:id/pulls', () => {
       expect.objectContaining({ id: source, quantity: 2, locationId: binder }),
       expect.objectContaining({
         quantity: 1,
-        locationId: hearthhullBox,
+        locationId: jinxBurnBox,
         cameFromLocationId: binder,
       }),
     ]);
@@ -171,49 +158,52 @@ describe('POST /api/decks/:id/pulls', () => {
       batchId: result.batchId,
       reason: 'assembled',
       fromLocationId: binder,
-      toLocationId: hearthhullBox,
+      toLocationId: jinxBurnBox,
       cameFromAfter: binder,
-      deckId: hearthhull,
+      deckId: jinxBurn,
       slotId: signetSlot,
       pickedBefore: SIGNET_OTHER,
     });
     const batch = db.select().from(movementBatches).all();
     expect(batch).toEqual([
-      expect.objectContaining({ id: result.batchId, kind: 'pick_list', deckId: hearthhull }),
+      expect.objectContaining({ id: result.batchId, kind: 'pick_list', deckId: jinxBurn }),
     ]);
   });
 
   it('names the quantity when several copies move', async () => {
     const source = stack({ quantity: 3 });
-    const res = await pull(hearthhull, { slotId: signetSlot, stackId: source, quantity: 2 });
+    const res = await pull(jinxBurn, { slotId: signetSlot, stackId: source, quantity: 2 });
     expect(PullResult.parse(await res.json()).message).toBe(
-      'Pulled 2 Arcane Signet into Hearthhull deck box',
+      'Pulled 2 Ember Signet into Jinx Burn deck box',
     );
   });
 
   it('keeps the original came-from when pulling from another deck, and returns that deck', async () => {
-    const borrowed = stack({ locationId: atraxaBox, cameFromLocationId: binder });
-    const res = await pull(hearthhull, { slotId: signetSlot, stackId: borrowed, quantity: 1 });
+    const borrowed = stack({ locationId: luxControlBox, cameFromLocationId: binder });
+    const res = await pull(jinxBurn, { slotId: signetSlot, stackId: borrowed, quantity: 1 });
     const result = PullResult.parse(await res.json());
-    expect(result.otherDeck).toEqual({ id: atraxa, name: 'Atraxa' });
+    expect(result.otherDeck).toEqual({ id: luxControl, name: 'Lux Control' });
     expect(result.message).toBe(
-      'Pulled Arcane Signet into Hearthhull deck box. Atraxa is now partly assembled.',
+      'Pulled Ember Signet into Jinx Burn deck box. Lux Control is now partly assembled.',
     );
     expect(stacks()).toEqual([
-      expect.objectContaining({ locationId: hearthhullBox, cameFromLocationId: binder }),
+      expect.objectContaining({ locationId: jinxBurnBox, cameFromLocationId: binder }),
     ]);
-    expect(allMovements()[0]).toMatchObject({ fromLocationId: atraxaBox, cameFromAfter: binder });
+    expect(allMovements()[0]).toMatchObject({
+      fromLocationId: luxControlBox,
+      cameFromAfter: binder,
+    });
   });
 
   it('answers 409 stale_copy and changes nothing when the stack has moved', async () => {
     const source = stack({ quantity: 1 });
     await expectError(
-      await pull(hearthhull, { slotId: signetSlot, stackId: source, quantity: 2 }),
+      await pull(jinxBurn, { slotId: signetSlot, stackId: source, quantity: 2 }),
       409,
       'stale_copy',
     );
     await expectError(
-      await pull(hearthhull, { slotId: signetSlot, stackId: 999, quantity: 1 }),
+      await pull(jinxBurn, { slotId: signetSlot, stackId: 999, quantity: 1 }),
       409,
       'stale_copy',
     );
@@ -226,11 +216,11 @@ describe('POST /api/decks/:id/pulls', () => {
   it('lets pulls share the batch the first one returned', async () => {
     const first = stack({ quantity: 2 });
     const one = PullResult.parse(
-      await (await pull(hearthhull, { slotId: signetSlot, stackId: first, quantity: 1 })).json(),
+      await (await pull(jinxBurn, { slotId: signetSlot, stackId: first, quantity: 1 })).json(),
     );
     const two = PullResult.parse(
       await (
-        await pull(hearthhull, {
+        await pull(jinxBurn, {
           slotId: signetSlot,
           stackId: first,
           quantity: 1,
@@ -246,7 +236,7 @@ describe('POST /api/decks/:id/pulls', () => {
   it('records a swap batch and reason from the swap list', async () => {
     const source = stack();
     const res = await pull(
-      hearthhull,
+      jinxBurn,
       { slotId: signetSlot, stackId: source, quantity: 1 },
       'swapped_in',
     );
@@ -260,13 +250,15 @@ describe('POST /api/decks/:id/pulls', () => {
 
   it('refuses a batch from another deck, another card, a missing slot or deck', async () => {
     const source = stack({ quantity: 2 });
-    const atraxaSlot = slot(atraxa, 'oracle-signet');
+    const luxControlSlot = slot(luxControl, SIGNET_CARD);
     const theirs = PullResult.parse(
-      await (await pull(atraxa, { slotId: atraxaSlot, stackId: source, quantity: 1 })).json(),
+      await (
+        await pull(luxControl, { slotId: luxControlSlot, stackId: source, quantity: 1 })
+      ).json(),
     );
     const before = allMovements().length;
     await expectError(
-      await pull(hearthhull, {
+      await pull(jinxBurn, {
         slotId: signetSlot,
         stackId: source,
         quantity: 1,
@@ -276,12 +268,12 @@ describe('POST /api/decks/:id/pulls', () => {
       'batch_not_found',
     );
     await expectError(
-      await pull(hearthhull, { slotId: soulSlot, stackId: source, quantity: 1 }),
+      await pull(jinxBurn, { slotId: soulSlot, stackId: source, quantity: 1 }),
       400,
       'wrong_card',
     );
     await expectError(
-      await pull(hearthhull, { slotId: atraxaSlot, stackId: source, quantity: 1 }),
+      await pull(jinxBurn, { slotId: luxControlSlot, stackId: source, quantity: 1 }),
       404,
       'slot_not_found',
     );
@@ -294,9 +286,9 @@ describe('POST /api/decks/:id/pulls', () => {
   });
 
   it('refuses a copy already in this deck box', async () => {
-    const inBox = stack({ locationId: hearthhullBox, cameFromLocationId: binder });
+    const inBox = stack({ locationId: jinxBurnBox, cameFromLocationId: binder });
     await expectError(
-      await pull(hearthhull, { slotId: signetSlot, stackId: inBox, quantity: 1 }),
+      await pull(jinxBurn, { slotId: signetSlot, stackId: inBox, quantity: 1 }),
       400,
       'already_there',
     );
@@ -305,31 +297,31 @@ describe('POST /api/decks/:id/pulls', () => {
 
 describe('POST /api/decks/:id/proxies', () => {
   it('adds a proxy to the deck box with no came-from and fills the slot', async () => {
-    const res = await proxy(hearthhull, { slotId: soulSlot, printingId: SOUL_JA });
+    const res = await proxy(jinxBurn, { slotId: soulSlot, printingId: SOUL_ALT });
     expect(res.status).toBe(200);
     const result = ProxyResult.parse(await res.json());
-    expect(result.message).toBe('Added a proxy of Soul of Windgrace to Hearthhull deck box');
+    expect(result.message).toBe('Added a proxy of Swift Ox to Jinx Burn deck box');
 
     expect(stacks()).toEqual([
       expect.objectContaining({
-        printingId: SOUL_JA,
+        printingId: SOUL_ALT,
         quantity: 1,
         isProxy: true,
         condition: 'near_mint',
-        language: 'ja',
-        locationId: hearthhullBox,
+        language: 'en',
+        locationId: jinxBurnBox,
         cameFromLocationId: null,
       }),
     ]);
-    expect(getSlot(soulSlot)?.pickedPrintingId).toBe(SOUL_JA);
+    expect(getSlot(soulSlot)?.pickedPrintingId).toBe(SOUL_ALT);
     expect(allMovements()).toEqual([
       expect.objectContaining({
         id: result.movementId,
         batchId: result.batchId,
         reason: 'added',
         fromLocationId: null,
-        toLocationId: hearthhullBox,
-        deckId: hearthhull,
+        toLocationId: jinxBurnBox,
+        deckId: jinxBurn,
         slotId: soulSlot,
       }),
     ]);
@@ -339,9 +331,9 @@ describe('POST /api/decks/:id/proxies', () => {
   it('joins the pick list batch', async () => {
     const source = stack();
     const pulled = PullResult.parse(
-      await (await pull(hearthhull, { slotId: signetSlot, stackId: source, quantity: 1 })).json(),
+      await (await pull(jinxBurn, { slotId: signetSlot, stackId: source, quantity: 1 })).json(),
     );
-    const res = await proxy(hearthhull, {
+    const res = await proxy(jinxBurn, {
       slotId: soulSlot,
       printingId: SOUL,
       batchId: pulled.batchId,
@@ -351,12 +343,12 @@ describe('POST /api/decks/:id/proxies', () => {
 
   it('refuses a printing of another card or one not in the card data', async () => {
     await expectError(
-      await proxy(hearthhull, { slotId: soulSlot, printingId: SIGNET }),
+      await proxy(jinxBurn, { slotId: soulSlot, printingId: SIGNET }),
       400,
       'wrong_card',
     );
     await expectError(
-      await proxy(hearthhull, { slotId: soulSlot, printingId: 'nope' }),
+      await proxy(jinxBurn, { slotId: soulSlot, printingId: 'nope' }),
       404,
       'printing_not_found',
     );

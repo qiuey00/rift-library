@@ -30,11 +30,11 @@ export function ChangePrintingDialog({
   onClose: () => void;
 }) {
   const foilId = useId();
-  const oracleId = slot.card.oracleId;
+  const cardId = slot.card.id;
   const details = useQuery({
-    queryKey: ['cards', oracleId],
+    queryKey: ['cards', cardId],
     queryFn: async (): Promise<CardDetailsResponse> => {
-      const res = await api.cards[':oracleId'].$get({ param: { oracleId } });
+      const res = await api.cards[':id'].$get({ param: { id: String(cardId) } });
       if (!res.ok) {
         const body = ErrorBody.safeParse(await res.json().catch(() => null));
         throw new Error(body.success ? body.data.error.message : "Couldn't load the printings.");
@@ -174,13 +174,8 @@ function PrintingTile({
       )}
     >
       <span className="relative block aspect-[488/680] overflow-hidden rounded-[4.75%/3.5%] bg-[#15161a]">
-        {printing.imageSmall ? (
-          <img
-            src={printing.imageSmall}
-            alt=""
-            loading="lazy"
-            className="size-full object-contain"
-          />
+        {printing.imageUrl ? (
+          <img src={printing.imageUrl} alt="" loading="lazy" className="size-full object-contain" />
         ) : (
           <span className="flex size-full items-center justify-center p-2 text-center text-white text-xs">
             {name}
@@ -193,12 +188,9 @@ function PrintingTile({
         )}
       </span>
       <span className="flex min-w-0 items-center gap-1.5 text-xs">
-        <i aria-hidden="true" className={`ss ss-fw ss-${printing.setCode} ss-${printing.rarity}`} />
         <span className="truncate font-medium">{printing.setName}</span>
       </span>
-      <span className="text-muted-foreground text-xs tabular-nums">
-        {printing.setCode.toUpperCase()} #{printing.collectorNumber}
-      </span>
+      <span className="text-muted-foreground text-xs tabular-nums">{printing.publicCode}</span>
     </button>
   );
 }

@@ -4,16 +4,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
 import {
-  cards,
   copyStacks,
   deckSlots,
   decks,
   locations,
   movementBatches,
   movements,
-  printings,
 } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { AppError } from '../../src/server/errors';
 import { addCopies, createBatch, moveCopies, removeCopies } from '../../src/server/services/copies';
 import { undoBatch, undoMovement } from '../../src/server/services/undo';
@@ -37,30 +35,16 @@ function location(name: string, type: typeof locations.$inferInsert.type) {
   return db.insert(locations).values({ name, type }).returning({ id: locations.id }).get().id;
 }
 
-function card(printingId: string, name: string, oracleId = `oracle-${printingId}`) {
-  db.insert(cards)
-    .values({
-      oracleId,
-      name,
-      frontFaceName: name,
-      typeLine: 'Artifact',
-      commanderLegality: 'legal',
-    })
-    .onConflictDoNothing()
-    .run();
-  db.insert(printings)
-    .values({
-      printingId,
-      oracleId,
-      setCode: 'cmm',
-      setName: 'Commander Masters',
-      collectorNumber: '1',
-      lang: 'en',
-      finishes: ['nonfoil', 'foil'],
-      rarity: 'uncommon',
-      releasedAt: '2023-08-04',
-    })
-    .run();
+const SIGNET_CARD = 1;
+
+function card(printingId: string, name: string, cardId?: number) {
+  insertPrinting(db, {
+    riftcodexId: printingId,
+    cardId: cardId ?? insertCard(db, { name }),
+    setCode: 'VEN',
+    setName: 'Vendetta',
+    rarity: 'uncommon',
+  });
 }
 
 function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
@@ -69,7 +53,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
     .values({
       printingId: SIGNET,
       quantity: 1,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       locationId: binder,
@@ -105,15 +89,15 @@ beforeEach(() => {
   setDb(db);
   binder = location('Rares binder', 'binder');
   box = location('Long box', 'box');
-  deckBox = location('Hearthhull deck box', 'deck_box');
+  deckBox = location('Jinx Burn deck box', 'deck_box');
   deck = db
     .insert(decks)
-    .values({ name: 'Hearthhull', deckBoxId: deckBox })
+    .values({ name: 'Jinx Burn', deckBoxId: deckBox })
     .returning({ id: decks.id })
     .get().id;
-  card(SIGNET, 'Arcane Signet');
-  card(SIGNET_FOIL_ART, 'Arcane Signet', `oracle-${SIGNET}`);
-  card(SOL_RING, 'Sol Ring');
+  card(SIGNET, 'Ember Signet');
+  card(SIGNET_FOIL_ART, 'Ember Signet', SIGNET_CARD);
+  card(SOL_RING, 'Sun Disc');
 });
 afterEach(() => db.$client.close());
 
@@ -121,7 +105,7 @@ describe('undoMovement', () => {
   it('moves copies back with a reverse movement in an undo batch', () => {
     const { movementId } = move(stack(), 1, box);
     const result = undoMovement(db, movementId);
-    expect(result).toEqual({ message: 'Undid: moved Arcane Signet to Long box', batchId: null });
+    expect(result).toEqual({ message: 'Undid: moved Ember Signet to Long box', batchId: null });
     expect(where()).toEqual([[binder, 1, null]]);
 
     const [original, reverse] = allMovements();
@@ -149,7 +133,7 @@ describe('undoMovement', () => {
       [binder, 1, null],
       [box, 3, null],
     ]);
-    expect(undoMovement(db, movementId).message).toBe('Undid: moved 3 Arcane Signet to Long box');
+    expect(undoMovement(db, movementId).message).toBe('Undid: moved 3 Ember Signet to Long box');
     expect(where()).toEqual([[binder, 4, null]]);
   });
 
@@ -169,7 +153,7 @@ describe('undoMovement', () => {
       batchId,
     });
     expect(undoMovement(db, movementId).message).toBe(
-      'Undid: added 2 Arcane Signet to Rares binder',
+      'Undid: added 2 Ember Signet to Rares binder',
     );
     expect(stacks()).toEqual([]);
     expect(allMovements()[1]).toMatchObject({
@@ -184,7 +168,7 @@ describe('undoMovement', () => {
     const source = stack({
       locationId: deckBox,
       cameFromLocationId: box,
-      finish: 'etched',
+      finish: 'foil',
       condition: 'lightly_played',
       language: 'ja',
       misprint: true,
@@ -200,7 +184,7 @@ describe('undoMovement', () => {
     });
     expect(stacks()).toEqual([]);
     expect(undoMovement(db, movementId).message).toBe(
-      'Undid: removed Arcane Signet from Hearthhull deck box',
+      'Undid: removed Ember Signet from Jinx Burn deck box',
     );
     const [after] = stacks();
     const { id: _a, createdAt: _b, updatedAt: _c, ...rest } = before;
@@ -216,7 +200,7 @@ describe('undoMovement', () => {
   it('undoes a pull: copy back in storage, came-from cleared, picked printing restored', () => {
     const slot = db
       .insert(deckSlots)
-      .values({ deckId: deck, oracleId: `oracle-${SIGNET}`, board: 'main', quantity: 1 })
+      .values({ deckId: deck, cardId: SIGNET_CARD, board: 'main', quantity: 1 })
       .returning({ id: deckSlots.id })
       .get().id;
     const source = stack({ locationId: box });
@@ -232,7 +216,7 @@ describe('undoMovement', () => {
     expect(where()).toEqual([[deckBox, 1, box]]);
 
     expect(undoMovement(db, movementId).message).toBe(
-      'Undid: pulled Arcane Signet into Hearthhull deck box',
+      'Undid: pulled Ember Signet into Jinx Burn deck box',
     );
     expect(where()).toEqual([[box, 1, null]]);
     const slotRow = db.select().from(deckSlots).where(eq(deckSlots.id, slot)).get();
@@ -245,7 +229,7 @@ describe('undoMovement', () => {
       .insert(deckSlots)
       .values({
         deckId: deck,
-        oracleId: `oracle-${SIGNET}`,
+        cardId: SIGNET_CARD,
         board: 'main',
         quantity: 1,
         pickedPrintingId: SIGNET,
@@ -253,7 +237,7 @@ describe('undoMovement', () => {
       .returning({ id: deckSlots.id })
       .get().id;
     // A borrowed copy in another deck box keeps its came-from; moving it back must keep it.
-    const otherBox = location('Atraxa deck box', 'deck_box');
+    const otherBox = location('Lux Control deck box', 'deck_box');
     const source = stack({
       printingId: SIGNET_FOIL_ART,
       locationId: otherBox,
@@ -280,7 +264,7 @@ describe('undoMovement', () => {
     const before = { stacks: stacks(), movements: allMovements() };
     expectCannotUndo(
       () => undoMovement(db, movementId),
-      'Arcane Signet has moved since. It is now in Hearthhull deck box.',
+      'Ember Signet has moved since. It is now in Jinx Burn deck box.',
     );
     expect({ stacks: stacks(), movements: allMovements() }).toEqual(before);
   });
@@ -290,7 +274,7 @@ describe('undoMovement', () => {
     removeCopies(db, destStackId, 1, { reason: 'moved', batchId: createBatch(db, 'move') });
     expectCannotUndo(
       () => undoMovement(db, movementId),
-      'Arcane Signet has moved since. It is no longer in your collection.',
+      'Ember Signet has moved since. It is no longer in your collection.',
     );
   });
 
@@ -299,7 +283,7 @@ describe('undoMovement', () => {
     db.update(locations).set({ deletedAt: '2026-10-19' }).where(eq(locations.id, binder)).run();
     expectCannotUndo(
       () => undoMovement(db, movementId),
-      'Arcane Signet can’t go back, because Rares binder no longer exists.',
+      'Ember Signet can’t go back, because Rares binder no longer exists.',
     );
     expect(where()).toEqual([[box, 1, null]]);
   });
@@ -332,7 +316,7 @@ describe('undoBatch', () => {
     });
 
     const result = undoBatch(db, batchId);
-    expect(result).toEqual({ message: 'Undid: pick list · Hearthhull · 3 cards', batchId: null });
+    expect(result).toEqual({ message: 'Undid: pick list · Jinx Burn · 3 cards', batchId: null });
     expect(where()).toEqual([
       [binder, 1, null],
       [binder, 1, null],
@@ -347,7 +331,7 @@ describe('undoBatch', () => {
     const a = moveCopies(db, stack(), 1, box, { reason: 'moved', batchId });
     moveCopies(db, stack({ printingId: SOL_RING }), 1, box, { reason: 'moved', batchId });
     undoMovement(db, a.movementId);
-    expect(undoBatch(db, batchId).message).toBe('Undid: moved Sol Ring to Long box');
+    expect(undoBatch(db, batchId).message).toBe('Undid: moved Sun Disc to Long box');
     expect(allMovements().filter((m) => m.reason === 'undo')).toHaveLength(2);
     expectCannotUndo(() => undoBatch(db, batchId), 'This change was already undone');
   });
@@ -363,7 +347,7 @@ describe('undoBatch', () => {
     const before = { stacks: stacks(), movements: allMovements() };
     expectCannotUndo(
       () => undoBatch(db, batchId),
-      'Sol Ring has moved since. It is now in Hearthhull deck box.',
+      'Sun Disc has moved since. It is now in Jinx Burn deck box.',
     );
     expect({ stacks: stacks(), movements: allMovements() }).toEqual(before);
   });
@@ -384,7 +368,7 @@ describe('undo routes', () => {
     const res = await client.movements[':id'].undo.$post({ param: { id: String(movementId) } });
     expect(res.status).toBe(200);
     expect(ActionResult.parse(await res.json())).toEqual({
-      message: 'Undid: moved Arcane Signet to Long box',
+      message: 'Undid: moved Ember Signet to Long box',
       batchId: null,
     });
   });
@@ -396,7 +380,7 @@ describe('undo routes', () => {
     expect(res.status).toBe(409);
     expect(ErrorBody.parse(await res.json()).error).toEqual({
       code: 'cannot_undo',
-      message: 'Arcane Signet has moved since. It is now in Hearthhull deck box.',
+      message: 'Ember Signet has moved since. It is now in Jinx Burn deck box.',
     });
   });
 

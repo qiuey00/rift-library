@@ -32,8 +32,8 @@ function cardName(db: Db, printingId: string): string {
     db
       .select({ name: cards.name })
       .from(printings)
-      .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-      .where(eq(printings.printingId, printingId))
+      .innerJoin(cards, eq(cards.id, printings.cardId))
+      .where(eq(printings.riftcodexId, printingId))
       .get()?.name ?? 'card'
   );
 }
@@ -57,15 +57,13 @@ function isLive(db: Db, locationId: number): boolean {
   );
 }
 
-/** What a movement did, such as "moved Arcane Signet to Rares binder". */
+/** What a movement did, such as "moved Ember Signet to Rares binder". */
 function describeMovement(db: Db, m: Movement): string {
   const what =
     m.quantity === 1 ? cardName(db, m.printingId) : `${m.quantity} ${cardName(db, m.printingId)}`;
   const to = locationName(db, m.toLocationId);
   if (m.toLocationId === null) return `removed ${what} from ${locationName(db, m.fromLocationId)}`;
   switch (m.reason) {
-    case 'imported':
-      return `imported ${what} into ${to}`;
     case 'added':
       return `added ${what} to ${to}`;
     case 'assembled':
@@ -81,8 +79,8 @@ function describeMovement(db: Db, m: Movement): string {
 }
 
 const BATCH_LABELS: Record<BatchKind, string> = {
-  import: 'import',
   add: 'add',
+  remove: 'remove',
   move: 'move',
   pick_list: 'pick list',
   put_away: 'put-away list',
@@ -113,7 +111,7 @@ function stackWhereMovementLeft(db: Db, m: Movement & { toLocationId: number }) 
     .get();
 }
 
-/** "Arcane Signet has moved since. It is now in Rares binder." */
+/** "Ember Signet has moved since. It is now in Rares binder." */
 function movedSinceError(db: Db, m: Movement & { toLocationId: number }): AppError {
   const name = cardName(db, m.printingId);
   const elsewhere = db
@@ -183,7 +181,7 @@ function reverse(db: Db, m: Movement, batchId: number) {
     const stack = stackWhereMovementLeft(db, placed);
     if (!stack) throw movedSinceError(db, placed);
     if (m.fromLocationId === null) {
-      // Added or imported: take those copies out again.
+      // Added: take those copies out again.
       removeCopies(db, stack.id, m.quantity, links);
     } else {
       if (!isLive(db, m.fromLocationId)) {

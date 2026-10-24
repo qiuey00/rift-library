@@ -43,14 +43,14 @@ function cardName(db: Db, printingId: string): string {
     db
       .select({ name: cards.name })
       .from(printings)
-      .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-      .where(eq(printings.printingId, printingId))
+      .innerJoin(cards, eq(cards.id, printings.cardId))
+      .where(eq(printings.riftcodexId, printingId))
       .get()?.name ?? 'card'
   );
 }
 
 /**
- * "Arcane Signet" for one copy, "3 Arcane Signet" for copies of one card, "12 cards"
+ * "Ember Signet" for one copy, "3 Ember Signet" for copies of one card, "12 cards"
  * otherwise.
  */
 export function describeCopies(db: Db, moved: { printingId: string; quantity: number }[]): string {

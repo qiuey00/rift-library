@@ -76,8 +76,8 @@ const longBoxSection = (
     deck: null,
   });
 
-export const blackGreenNode = longBoxSection(3, 'Black & Green', 0, 412, 38420, 41);
-export const redGoldNode = longBoxSection(4, 'Red & Gold', 1, 388, 31275, 37);
+export const chaosCalmNode = longBoxSection(3, 'Chaos & Calm', 0, 412, 38420, 41);
+export const furyOrderNode = longBoxSection(4, 'Fury & Order', 1, 388, 31275, 37);
 export const landsNode = longBoxSection(5, 'Lands', 2, 236, 27690, 18);
 
 export const raresBinderNode = node({
@@ -142,34 +142,34 @@ export const tradeBinderNode = node({
   deck: null,
 });
 
-export const hearthhullDeckBoxNode = node({
+export const jinxBurnDeckBoxNode = node({
   id: 9,
-  name: 'Hearthhull deck box',
+  name: 'Jinx Burn deck box',
   type: 'deck_box',
   parentId: null,
   position: 5,
   color: null,
   effectiveColor: null,
-  path: 'Hearthhull deck box',
+  path: 'Jinx Burn deck box',
   cardCount: 63,
   value: 23810,
   noPriceCount: 3,
-  deck: { id: 1, name: 'Hearthhull' },
+  deck: { id: 1, name: 'Jinx Burn' },
 });
 
-export const atraxaDeckBoxNode = node({
+export const luxControlDeckBoxNode = node({
   id: 10,
-  name: 'Atraxa deck box',
+  name: 'Lux Control deck box',
   type: 'deck_box',
   parentId: null,
   position: 6,
   color: null,
   effectiveColor: null,
-  path: 'Atraxa deck box',
+  path: 'Lux Control deck box',
   cardCount: 64,
   value: 26790,
   noPriceCount: 4,
-  deck: { id: 2, name: 'Atraxa' },
+  deck: { id: 2, name: 'Lux Control' },
 });
 
 /** GET /api/locations/tree. */
@@ -177,15 +177,15 @@ export const locationTreeSample: LocationTree = {
   nodes: [
     toSortNode,
     longBoxNode,
-    blackGreenNode,
-    redGoldNode,
+    chaosCalmNode,
+    furyOrderNode,
     landsNode,
     raresBinderNode,
     staplesBinderNode,
     bulkTrayNode,
     tradeBinderNode,
-    hearthhullDeckBoxNode,
-    atraxaDeckBoxNode,
+    jinxBurnDeckBoxNode,
+    luxControlDeckBoxNode,
   ],
 };
 
@@ -235,7 +235,7 @@ export const markedForTradeSample: LocationNode = tradeBinderNode;
 export const deckBoxNotForTradeErrorSample: ErrorBody = {
   error: {
     code: 'deck_box_not_for_trade',
-    message: 'Hearthhull deck box holds a deck, so it can’t be for trade.',
+    message: 'Jinx Burn deck box holds a deck, so it can’t be for trade.',
   },
 };
 
@@ -251,7 +251,7 @@ export const inboxProtectedErrorSample: ErrorBody = {
 export const deckBoxProtectedErrorSample: ErrorBody = {
   error: {
     code: 'deck_box_protected',
-    message: 'Hearthhull deck box belongs to the Hearthhull deck. Delete the deck to remove it.',
+    message: 'Jinx Burn deck box belongs to the Jinx Burn deck. Delete the deck to remove it.',
   },
 };
 

@@ -3,9 +3,10 @@ import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { CardSearchResult } from '../../shared/api/cards';
 import { useCardDataReady } from '../lib/card-data';
+import { typeLine } from '../lib/card-text';
 import { useCardSearch } from '../lib/cards';
 import { cn } from '../lib/utils';
-import { ManaCost } from './ManaCost';
+import { DomainIcons } from './DomainIcon';
 
 /** How long typing pauses before the box asks for results. */
 const TYPING_PAUSE_MS = 150;
@@ -68,7 +69,7 @@ export function TopBarSearch() {
     setText('');
     setQuery('');
     inputRef.current?.blur();
-    navigate(`/cards/${card.oracleId}`);
+    navigate(`/cards/${card.id}`);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -160,7 +161,7 @@ export function TopBarSearch() {
             {listHasOptions &&
               results.map((card, i) => (
                 <div
-                  key={card.oracleId}
+                  key={card.id}
                   id={optionId(i)}
                   role="option"
                   tabIndex={-1}
@@ -178,9 +179,9 @@ export function TopBarSearch() {
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-semibold">{card.name}</span>
-                      <ManaCost cost={card.manaCost} className="text-xs" />
+                      <DomainIcons domains={card.domains} className="text-xs" />
                     </span>
-                    <span className="truncate text-muted-foreground text-xs">{card.typeLine}</span>
+                    <span className="truncate text-muted-foreground text-xs">{typeLine(card)}</span>
                   </span>
                   <span className="shrink-0 text-right text-xs tabular-nums">
                     <span className="block font-semibold">{card.owned} owned</span>

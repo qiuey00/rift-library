@@ -28,7 +28,7 @@ export const routes: RouteObject[] = [
       { path: 'buy-list', element: <BuyList /> },
       { path: 'history', element: <History /> },
       { path: 'settings', element: <Settings /> },
-      { path: 'cards/:oracleId', element: <Card /> },
+      { path: 'cards/:id', element: <Card /> },
       { path: 'decks/new', element: <NewDeck /> },
       { path: 'decks/:id', element: <Deck /> },
       { path: 'decks/:id/assemble', element: <PickList /> },

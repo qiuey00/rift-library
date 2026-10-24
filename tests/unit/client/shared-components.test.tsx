@@ -21,7 +21,7 @@ describe('StatusBadge', () => {
     free: 'Free',
     other_decks: 'In other deck',
     missing: 'Missing',
-    basic: 'Basic',
+    rune: 'Rune',
   };
 
   it.each(SlotStatus.options)('shows %s as an icon, a word and a color', (status) => {
@@ -115,8 +115,8 @@ describe('placeholder components', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <CardCopiesSection oracleId="o-1" />
-        <CardDecksSection oracleId="o-1" />
+        <CardCopiesSection cardId={1} />
+        <CardDecksSection cardId={1} />
       </QueryClientProvider>,
     );
     expect(screen.getByRole('heading', { name: 'Copies' })).toBeDefined();

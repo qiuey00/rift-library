@@ -339,9 +339,9 @@ function writeMovement(
 export function printingExists(db: Db, printingId: string): boolean {
   return (
     db
-      .select({ id: printings.printingId })
+      .select({ id: printings.riftcodexId })
       .from(printings)
-      .where(eq(printings.printingId, printingId))
+      .where(eq(printings.riftcodexId, printingId))
       .get() !== undefined
   );
 }

@@ -44,7 +44,7 @@ export function NowPickingPane({
   progress: { done: number; total: number; label?: string };
   hints?: KeyHint[];
 }) {
-  const image = line ? (line.card.imageNormal ?? line.card.imageSmall) : null;
+  const image = line ? (line.card.imageUrl ?? line.card.imageUrl) : null;
   return (
     <Panel role="complementary" aria-label={heading} className="flex flex-col gap-3.5 p-4">
       <span className="font-bold text-muted-foreground text-xs uppercase tracking-[0.06em]">

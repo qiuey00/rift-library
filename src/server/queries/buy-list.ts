@@ -1,17 +1,12 @@
-import { desc, eq, inArray, sql } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import type { BuyItem } from '../../shared/api/buy-list';
-import type { CardSummary, PrintingSummary } from '../../shared/api/common';
 import type { Db } from '../db/database';
 import { buyListItems, cards, printings } from '../db/schema';
+import { cardImages, cardSummary, printingSummary } from './card-summaries';
 
 // The buy list as the API shows it: each item with its card and wanted printing.
 
-type CardRow = typeof cards.$inferSelect;
-type PrintingRow = typeof printings.$inferSelect;
 type ItemRow = typeof buyListItems.$inferSelect;
-type Images = Pick<CardSummary, 'imageSmall' | 'imageNormal'>;
-
-const NO_IMAGES: Images = { imageSmall: null, imageNormal: null };
 
 /** GET /api/buy-list: every item, newest first. */
 export function buyList(db: Db): BuyItem[] {
@@ -31,7 +26,7 @@ export function buyItem(db: Db, id: number): BuyItem | undefined {
 
 function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
   if (rows.length === 0) return [];
-  const oracleIds = [...new Set(rows.map((row) => row.oracleId))];
+  const cardIds = [...new Set(rows.map((row) => row.cardId))];
   const printingIds = [
     ...new Set(rows.flatMap((row) => (row.printingId === null ? [] : [row.printingId]))),
   ];
@@ -39,9 +34,9 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
     db
       .select()
       .from(cards)
-      .where(inArray(cards.oracleId, oracleIds))
+      .where(inArray(cards.id, cardIds))
       .all()
-      .map((card) => [card.oracleId, card]),
+      .map((card) => [card.id, card]),
   );
   const printingRows = new Map(
     printingIds.length === 0
@@ -49,14 +44,14 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
       : db
           .select()
           .from(printings)
-          .where(inArray(printings.printingId, printingIds))
+          .where(inArray(printings.riftcodexId, printingIds))
           .all()
-          .map((printing) => [printing.printingId, printing]),
+          .map((printing) => [printing.riftcodexId, printing]),
   );
-  const images = cardImages(db, oracleIds);
+  const images = cardImages(db, cardIds);
 
   return rows.flatMap((row) => {
-    const card = cardRows.get(row.oracleId);
+    const card = cardRows.get(row.cardId);
     // The foreign key keeps the card; a card data reload can't remove one that's in use.
     if (!card) return [];
     const printing = row.printingId === null ? undefined : printingRows.get(row.printingId);
@@ -64,12 +59,7 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
       {
         id: row.id,
         // A wanted printing shows its own picture; otherwise the card's usual one.
-        card: cardSummary(
-          card,
-          printing
-            ? { imageSmall: printing.imageSmall, imageNormal: printing.imageNormal }
-            : images.get(card.oracleId),
-        ),
+        card: cardSummary(card, printing ? printing.imageUrl : (images.get(card.id) ?? null)),
         printing: printing ? printingSummary(printing) : null,
         quantity: row.quantity,
         note: row.note ?? '',
@@ -77,53 +67,6 @@ function toBuyItems(db: Db, rows: ItemRow[]): BuyItem[] {
       },
     ];
   });
-}
-
-function cardSummary(card: CardRow, images: Images = NO_IMAGES): CardSummary {
-  return {
-    oracleId: card.oracleId,
-    name: card.name,
-    frontFaceName: card.frontFaceName,
-    manaCost: card.manaCost,
-    manaValue: card.manaValue,
-    typeLine: card.typeLine,
-    colorIdentity: card.colorIdentity,
-    ...images,
-    canBeCommander: card.canBeCommander,
-    isBasicLand: card.isBasicLand,
-  };
-}
-
-function printingSummary(printing: PrintingRow): PrintingSummary {
-  return {
-    printingId: printing.printingId,
-    oracleId: printing.oracleId,
-    setCode: printing.setCode,
-    setName: printing.setName,
-    collectorNumber: printing.collectorNumber,
-    lang: printing.lang,
-    finishes: printing.finishes,
-    rarity: printing.rarity,
-    imageSmall: printing.imageSmall,
-    imageNormal: printing.imageNormal,
-  };
-}
-
-/** Each card's images from its newest printing, English first. */
-function cardImages(db: Db, oracleIds: string[]): Map<string, Images> {
-  const images = new Map<string, Images>();
-  const rows = db
-    .select()
-    .from(printings)
-    .where(inArray(printings.oracleId, oracleIds))
-    .orderBy(sql`${printings.lang} = 'en' DESC`, desc(printings.releasedAt))
-    .all();
-  for (const row of rows) {
-    if (!images.has(row.oracleId)) {
-      images.set(row.oracleId, { imageSmall: row.imageSmall, imageNormal: row.imageNormal });
-    }
-  }
-  return images;
 }
 
 /** "2026-10-18T21:40:00.123Z" as "2026-10-18T21:40:00Z", the way the API writes times. */

@@ -11,7 +11,7 @@ import { locationPaths } from '../../queries/locations';
 type Column = (typeof COLLECTION_CSV_COLUMNS)[number];
 
 /** Finishes as the file writes them. */
-const FOIL: Record<Finish, string> = { nonfoil: 'normal', foil: 'foil', etched: 'etched' };
+const FOIL: Record<Finish, string> = { normal: 'normal', foil: 'foil' };
 
 /** The header, then each location's copy stacks in tree order, each by name. */
 export function* collectionCsv(db: Db): Generator<string> {
@@ -27,8 +27,8 @@ export function* collectionCsv(db: Db): Generator<string> {
         stack: copyStacks,
       })
       .from(copyStacks)
-      .innerJoin(printings, eq(printings.printingId, copyStacks.printingId))
-      .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
+      .innerJoin(printings, eq(printings.riftcodexId, copyStacks.printingId))
+      .innerJoin(cards, eq(cards.id, printings.cardId))
       .where(eq(copyStacks.locationId, locationId))
       .orderBy(
         sql`${cards.name} COLLATE NOCASE`,

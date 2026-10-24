@@ -14,11 +14,7 @@ import {
   undoMovement,
 } from '../components/pick-list/api';
 import { ConfirmPullDialog, ProxyPrintingDialog } from '../components/pick-list/dialogs';
-import {
-  BasicLandsLine,
-  MissingSection,
-  type ProxyState,
-} from '../components/pick-list/MissingSection';
+import { MissingSection, type ProxyState, RunesLine } from '../components/pick-list/MissingSection';
 import { SwitchCopyPopover } from '../components/pick-list/SwitchCopyPopover';
 import { walkCopy } from '../components/pick-list/walk-copy';
 import { useUndoBar } from '../components/UndoBar';
@@ -242,8 +238,8 @@ export function PickList() {
     let printings: PrintingSummary[];
     try {
       const details = await queryClient.fetchQuery({
-        queryKey: ['cards', line.card.oracleId],
-        queryFn: () => fetchCard(line.card.oracleId),
+        queryKey: ['cards', line.card.id],
+        queryFn: () => fetchCard(line.card.id),
       });
       printings = details.printings;
     } catch (error) {
@@ -254,9 +250,7 @@ export function PickList() {
     const { hint } = line;
     const match = hint
       ? printings.find(
-          (p) =>
-            p.setCode.toLowerCase() === hint.setCode.toLowerCase() &&
-            p.collectorNumber === hint.collectorNumber,
+          (p) => p.publicCode === hint.publicCode || p.publicCode.startsWith(`${hint.publicCode}/`),
         )
       : undefined;
     if (match) {
@@ -359,8 +353,8 @@ export function PickList() {
     );
   }
 
-  const { missing, basics } = data.pickList;
-  const nothingLeft = allLines.length === 0 && missing.length === 0 && basics.length === 0;
+  const { missing, runes } = data.pickList;
+  const nothingLeft = allLines.length === 0 && missing.length === 0 && runes.length === 0;
 
   return (
     <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 pt-8 pb-12">
@@ -416,9 +410,9 @@ export function PickList() {
                 onRemoveProxy={onRemoveProxy}
               />
             )}
-            {basics.length > 0 && (
-              <BasicLandsLine
-                basics={basics.map((land) => ({ name: land.card.name, quantity: land.quantity }))}
+            {runes.length > 0 && (
+              <RunesLine
+                runes={runes.map((rune) => ({ name: rune.card.name, quantity: rune.quantity }))}
               />
             )}
           </div>

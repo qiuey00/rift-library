@@ -485,7 +485,7 @@ export function SwapList() {
     );
   }
 
-  const { missing, basics } = data.pullIn;
+  const { missing, runes } = data.pullIn;
   // Only one list takes the keys: Take out until it is all ticked, then Pull in.
   const keysOnOut = outLines.some((line) => !isDone(line.key));
 
@@ -524,7 +524,7 @@ export function SwapList() {
           icon={<Plus aria-hidden="true" className="size-4" />}
           iconClassName="bg-status-in-box-soft text-status-in-box"
         >
-          {inLines.length === 0 && missing.length === 0 && basics.length === 0 ? (
+          {inLines.length === 0 && missing.length === 0 && runes.length === 0 ? (
             <Panel className="p-5 text-muted-foreground">Nothing to pull in.</Panel>
           ) : (
             <>
@@ -539,10 +539,10 @@ export function SwapList() {
               {missing.length > 0 && (
                 <MissingPanel lines={missing} onBuy={(line) => setBuying(line)} />
               )}
-              {basics.length > 0 && (
+              {runes.length > 0 && (
                 <Panel className="px-4 py-3 text-sm">
-                  <span className="font-semibold">Basic lands to add: </span>
-                  {basics.map((land) => `${land.quantity} ${land.card.name}`).join(', ')}
+                  <span className="font-semibold">Runes to add: </span>
+                  {runes.map((rune) => `${rune.quantity} ${rune.card.name}`).join(', ')}
                 </Panel>
               )}
             </>
@@ -577,7 +577,7 @@ export function SwapList() {
         <AddToBuyListDialog
           open
           onOpenChange={(open) => !open && setBuying(null)}
-          oracleId={buying.card.oracleId}
+          cardId={buying.card.id}
           quantity={buying.quantity}
         />
       )}

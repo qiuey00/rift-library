@@ -2,9 +2,15 @@ import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import { cards, copyStacks, decks, locations, printings } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
-import { ErrorBody, type Finish, type LocationType } from '../../src/shared/api/common';
+import { copyStacks, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
+import {
+  type CardType,
+  type Domain,
+  ErrorBody,
+  type Finish,
+  type LocationType,
+} from '../../src/shared/api/common';
 import { CardCopies, LocationStacks, StacksPage } from '../../src/shared/api/stacks';
 
 // The copy stack lists against a fresh in-memory database, with rows inserted directly.
@@ -23,39 +29,23 @@ beforeEach(() => {
 });
 afterEach(() => db.$client.close());
 
-const oracle = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-
 function addCard(
-  n: number,
+  id: number,
   name: string,
-  typeLine: string,
-  colorIdentity: string,
+  type: CardType,
+  domains: Domain[],
   prints: { set: string; number: string }[],
 ) {
-  db.insert(cards)
-    .values({
-      oracleId: oracle(n),
-      name,
-      frontFaceName: name.split(' // ')[0] ?? name,
-      typeLine,
-      colorIdentity,
-      commanderLegality: 'legal',
-    })
-    .run();
+  insertCard(db, { id, name, type, domains });
   for (const print of prints) {
-    db.insert(printings)
-      .values({
-        printingId: `${name}-${print.set}-${print.number}`,
-        oracleId: oracle(n),
-        setCode: print.set,
-        setName: `Set ${print.set.toUpperCase()}`,
-        collectorNumber: print.number,
-        lang: 'en',
-        finishes: ['nonfoil', 'foil'],
-        rarity: 'rare',
-        releasedAt: '2025-01-01',
-      })
-      .run();
+    insertPrinting(db, {
+      riftcodexId: `${name}-${print.set}-${print.number}`,
+      cardId: id,
+      setCode: print.set,
+      setName: `Set ${print.set}`,
+      collectorNumber: print.number,
+      rarity: 'rare',
+    });
   }
 }
 
@@ -78,7 +68,7 @@ function addStack(
     .values({
       printingId,
       quantity,
-      finish: details.finish ?? 'nonfoil',
+      finish: details.finish ?? 'normal',
       condition: details.condition ?? 'near_mint',
       language: 'en',
       isProxy: details.isProxy ?? false,
@@ -91,39 +81,51 @@ function addStack(
 
 /** A small collection: a long box with sections, a binder, and a deck's deck box. */
 function seed() {
-  addCard(1, 'Sol Ring', 'Artifact', '', [
-    { set: 'eoc', number: '57' },
-    { set: 'cmm', number: '410' },
-  ]);
-  addCard(2, 'Llanowar Elves', 'Creature — Elf Druid', 'G', [{ set: 'fdn', number: '227' }]);
-  addCard(3, 'Atraxa, Praetors’ Voice', 'Legendary Creature — Phyrexian Angel Horror', 'WUBG', [
-    { set: 'cm2', number: '10' },
-    { set: 'cm2', number: '9' },
-  ]);
-  addCard(4, 'Counterspell', 'Instant', 'U', [{ set: 'tdc', number: '115' }]);
+  addCard(
+    1,
+    'Sun Disc',
+    'gear',
+    [],
+    [
+      { set: 'SFD', number: '57' },
+      { set: 'OGN', number: '210' },
+    ],
+  );
+  addCard(2, 'Wild Shaman', 'unit', ['calm'], [{ set: 'OGS', number: '22' }]);
+  addCard(
+    3,
+    'Lux, Lady of Luminosity',
+    'legend',
+    ['order', 'mind'],
+    [
+      { set: 'OGN', number: '10' },
+      { set: 'OGN', number: '9' },
+    ],
+  );
+  addCard(4, 'Ember Rebuke', 'spell', ['mind'], [{ set: 'UNL', number: '115' }]);
 
   const longBox = addLocation('Long box', 'box', undefined, '#3b6fd8');
   const lands = addLocation('Lands', 'box', longBox);
   const basics = addLocation('Basics', 'tray', lands);
   const binder = addLocation('Rares binder', 'binder', undefined, '#7c5cd6');
-  const deckBox = addLocation('Atraxa deck box', 'deck_box');
+  const deckBox = addLocation('Lux Control deck box', 'deck_box');
   const spareBox = addLocation('Spare deck box', 'deck_box');
   const deck = db
     .insert(decks)
-    .values({ name: 'Atraxa', deckBoxId: deckBox })
+    .values({ name: 'Lux Control', deckBoxId: deckBox })
     .returning({ id: decks.id })
     .get().id;
 
   const stacks = {
-    solEoc: addStack('Sol Ring-eoc-57', longBox, 3),
-    solCmmProxy: addStack('Sol Ring-cmm-410', binder, 1, { isProxy: true }),
-    solInDeck: addStack('Sol Ring-eoc-57', deckBox, 1, { cameFrom: longBox }),
-    elves: addStack('Llanowar Elves-fdn-227', basics, 4),
-    elvesFoil: addStack('Llanowar Elves-fdn-227', lands, 2, { finish: 'foil' }),
-    atraxa10: addStack('Atraxa, Praetors’ Voice-cm2-10', deckBox, 1, { finish: 'foil' }),
-    atraxa9: addStack('Atraxa, Praetors’ Voice-cm2-9', binder, 1),
-    counterspell: addStack('Counterspell-tdc-115', spareBox, 2),
-    toSort: addStack('Counterspell-tdc-115', inboxId, 5, { condition: 'played' }),
+    discSfd: addStack('Sun Disc-SFD-57', longBox, 3),
+    discOgnProxy: addStack('Sun Disc-OGN-210', binder, 1, { isProxy: true }),
+    discInDeck: addStack('Sun Disc-SFD-57', deckBox, 1, { cameFrom: longBox }),
+    shaman: addStack('Wild Shaman-OGS-22', basics, 4),
+    shamanFoil: addStack('Wild Shaman-OGS-22', lands, 2, { finish: 'foil' }),
+    lux10: addStack('Lux, Lady of Luminosity-OGN-10', deckBox, 1, { finish: 'foil' }),
+    lux9: addStack('Lux, Lady of Luminosity-OGN-9', binder, 1),
+    rebuke: addStack('Ember Rebuke-UNL-115', spareBox, 2),
+    toSort: addStack('Ember Rebuke-UNL-115', inboxId, 5, { condition: 'played' }),
   };
   return { longBox, lands, basics, binder, deckBox, spareBox, deck, stacks };
 }
@@ -153,31 +155,31 @@ describe('GET /api/stacks', () => {
         (row) => `${row.card.name} ${row.printing.setCode} ${row.printing.collectorNumber}`,
       ),
     ).toEqual([
-      'Atraxa, Praetors’ Voice cm2 9',
-      'Atraxa, Praetors’ Voice cm2 10',
-      'Counterspell tdc 115',
-      'Counterspell tdc 115',
-      'Llanowar Elves fdn 227',
-      'Llanowar Elves fdn 227',
-      'Sol Ring cmm 410',
-      'Sol Ring eoc 57',
-      'Sol Ring eoc 57',
+      'Ember Rebuke UNL 115',
+      'Ember Rebuke UNL 115',
+      'Lux, Lady of Luminosity OGN 9',
+      'Lux, Lady of Luminosity OGN 10',
+      'Sun Disc OGN 210',
+      'Sun Disc SFD 57',
+      'Sun Disc SFD 57',
+      'Wild Shaman OGS 22',
+      'Wild Shaman OGS 22',
     ]);
     expect(page.total).toMatchObject({ stacks: 9, cards: 20, proxies: 1 });
     expect(page.nextCursor).toBeNull();
     // Stacks of one printing keep their id order.
-    expect(stackIds(page).slice(-2)).toEqual([stacks.solEoc, stacks.solInDeck]);
+    expect(stackIds(page).slice(5, 7)).toEqual([stacks.discSfd, stacks.discInDeck]);
   });
 
   it('builds each row with its location path, inherited color, came-from and deck', async () => {
     const { stacks, longBox, deck, deckBox, spareBox } = seed();
     const rows = new Map((await search()).rows.map((row) => [row.stackId, row]));
 
-    expect(rows.get(stacks.elves)).toMatchObject({
+    expect(rows.get(stacks.shaman)).toMatchObject({
       quantity: 4,
-      card: { name: 'Llanowar Elves', colorIdentity: 'G', canBeCommander: false },
-      printing: { setCode: 'fdn', setName: 'Set FDN', finishes: ['nonfoil', 'foil'] },
-      finish: 'nonfoil',
+      card: { name: 'Wild Shaman', type: 'unit', domains: ['calm'] },
+      printing: { setCode: 'OGS', setName: 'Set OGS', finishes: ['normal', 'foil'] },
+      finish: 'normal',
       condition: 'near_mint',
       isProxy: false,
       location: {
@@ -189,14 +191,14 @@ describe('GET /api/stacks', () => {
       cameFrom: null,
       inDeck: null,
     });
-    expect(rows.get(stacks.solInDeck)).toMatchObject({
-      location: { id: deckBox, path: 'Atraxa deck box', color: null },
+    expect(rows.get(stacks.discInDeck)).toMatchObject({
+      location: { id: deckBox, path: 'Lux Control deck box', color: null },
       cameFrom: { id: longBox, name: 'Long box', path: 'Long box', color: '#3b6fd8' },
-      inDeck: { deckId: deck, deckName: 'Atraxa' },
+      inDeck: { deckId: deck, deckName: 'Lux Control' },
     });
-    expect(rows.get(stacks.solCmmProxy)?.isProxy).toBe(true);
+    expect(rows.get(stacks.discOgnProxy)?.isProxy).toBe(true);
     // A deck box with no deck is not in a deck.
-    expect(rows.get(stacks.counterspell)).toMatchObject({
+    expect(rows.get(stacks.rebuke)).toMatchObject({
       location: { id: spareBox },
       inDeck: null,
     });
@@ -204,59 +206,47 @@ describe('GET /api/stacks', () => {
 
   it('filters by words in the card name, any case', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('ring'))).toEqual([
-      stacks.solCmmProxy,
-      stacks.solEoc,
-      stacks.solInDeck,
+    expect(stackIds(await search('DISC'))).toEqual([
+      stacks.discOgnProxy,
+      stacks.discSfd,
+      stacks.discInDeck,
     ]);
-    expect(stackIds(await search('"praetors’ voice"'))).toEqual([stacks.atraxa9, stacks.atraxa10]);
-    expect(stackIds(await search('sol elves'))).toEqual([]);
+    expect(stackIds(await search('"lady of luminosity"'))).toEqual([stacks.lux9, stacks.lux10]);
+    expect(stackIds(await search('disc shaman'))).toEqual([]);
   });
 
   it('filters by set', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('set:EOC'))).toEqual([stacks.solEoc, stacks.solInDeck]);
+    expect(stackIds(await search('set:sfd'))).toEqual([stacks.discSfd, stacks.discInDeck]);
   });
 
-  it('filters by color identity including every given color, and colorless', async () => {
+  it('filters by domain', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('c:g'))).toEqual([
-      stacks.atraxa9,
-      stacks.atraxa10,
-      stacks.elves,
-      stacks.elvesFoil,
+    expect(stackIds(await search('domain:calm'))).toEqual([stacks.shaman, stacks.shamanFoil]);
+    expect(stackIds(await search('domain:mind'))).toEqual([
+      stacks.rebuke,
+      stacks.toSort,
+      stacks.lux9,
+      stacks.lux10,
     ]);
-    expect(stackIds(await search('c:ug'))).toEqual([stacks.atraxa9, stacks.atraxa10]);
-    expect(stackIds(await search('c:c'))).toEqual([
-      stacks.solCmmProxy,
-      stacks.solEoc,
-      stacks.solInDeck,
-    ]);
+    expect(stackIds(await search('domain:fury'))).toEqual([]);
   });
 
-  it('filters by type line', async () => {
+  it('filters by card type', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('t:creature'))).toEqual([
-      stacks.atraxa9,
-      stacks.atraxa10,
-      stacks.elves,
-      stacks.elvesFoil,
-    ]);
-    expect(stackIds(await search('t:"legendary creature"'))).toEqual([
-      stacks.atraxa9,
-      stacks.atraxa10,
-    ]);
+    expect(stackIds(await search('t:unit'))).toEqual([stacks.shaman, stacks.shamanFoil]);
+    expect(stackIds(await search('t:legend'))).toEqual([stacks.lux9, stacks.lux10]);
   });
 
   it('filters by finish', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('f:foil'))).toEqual([stacks.atraxa10, stacks.elvesFoil]);
-    expect(stackIds(await search('f:etched'))).toEqual([]);
+    expect(stackIds(await search('f:foil'))).toEqual([stacks.lux10, stacks.shamanFoil]);
+    expect(stackIds(await search('f:normal'))).toHaveLength(7);
   });
 
   it('filters proxies and real copies', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('is:proxy'))).toEqual([stacks.solCmmProxy]);
+    expect(stackIds(await search('is:proxy'))).toEqual([stacks.discOgnProxy]);
     const real = await search('is:real');
     expect(real.total).toMatchObject({ stacks: 8, cards: 19, proxies: 0 });
   });
@@ -264,11 +254,11 @@ describe('GET /api/stacks', () => {
   it('filters by location name, any case, including its children', async () => {
     const { stacks } = seed();
     expect(stackIds(await search('loc:"long box"'))).toEqual([
-      stacks.elves,
-      stacks.elvesFoil,
-      stacks.solEoc,
+      stacks.discSfd,
+      stacks.shaman,
+      stacks.shamanFoil,
     ]);
-    expect(stackIds(await search('loc:Lands'))).toEqual([stacks.elves, stacks.elvesFoil]);
+    expect(stackIds(await search('loc:Lands'))).toEqual([stacks.shaman, stacks.shamanFoil]);
     expect(stackIds(await search('loc:"To sort"'))).toEqual([stacks.toSort]);
     expect(stackIds(await search('loc:Nowhere'))).toEqual([]);
   });
@@ -283,13 +273,12 @@ describe('GET /api/stacks', () => {
 
   it('combines filters, every one must match', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('t:creature f:foil'))).toEqual([
-      stacks.atraxa10,
-      stacks.elvesFoil,
+    expect(stackIds(await search('t:legend f:foil'))).toEqual([stacks.lux10]);
+    expect(stackIds(await search('domain:calm loc:"long box" f:normal shaman'))).toEqual([
+      stacks.shaman,
     ]);
-    expect(stackIds(await search('c:g loc:"long box" f:nonfoil elves'))).toEqual([stacks.elves]);
-    const page = await search('sol is:real loc:"atraxa deck box"');
-    expect(stackIds(page)).toEqual([stacks.solInDeck]);
+    const page = await search('disc is:real loc:"lux control deck box"');
+    expect(stackIds(page)).toEqual([stacks.discInDeck]);
     expect(page.total).toMatchObject({ stacks: 1, cards: 1, proxies: 0 });
   });
 
@@ -307,9 +296,9 @@ describe('GET /api/stacks', () => {
     }
     expect(seen).toEqual(all);
 
-    const filtered = await search('c:g', { limit: '3' });
+    const filtered = await search('domain:mind', { limit: '3' });
     expect(filtered.rows).toHaveLength(3);
-    const last = await search('c:g', { limit: '3', cursor: filtered.nextCursor ?? '' });
+    const last = await search('domain:mind', { limit: '3', cursor: filtered.nextCursor ?? '' });
     expect(last.rows).toHaveLength(1);
     expect(last.nextCursor).toBeNull();
     expect(last.total.stacks).toBe(4);
@@ -320,7 +309,7 @@ describe('GET /api/stacks', () => {
     const first = await search(undefined, { limit: '3' });
     db.$client.prepare('DELETE FROM copy_stacks WHERE id = ?').run(first.rows[2]?.stackId);
     const next = await search(undefined, { limit: '3', cursor: first.nextCursor ?? '' });
-    expect(next.rows[0]?.stackId).toBe(stacks.toSort);
+    expect(next.rows[0]?.stackId).toBe(stacks.lux10);
   });
 
   it('refuses a search term it cannot use with 400 invalid_query', async () => {
@@ -328,7 +317,7 @@ describe('GET /api/stacks', () => {
     expect(res.status).toBe(400);
     expect(ErrorBody.parse(await res.json()).error).toEqual({
       code: 'invalid_query',
-      message: 'f: takes foil, nonfoil or etched.',
+      message: 'f: takes normal or foil.',
     });
   });
 
@@ -370,13 +359,13 @@ describe('GET /api/locations/:id/stacks', () => {
       value: 0,
       noPriceCount: 9,
     });
-    expect(stackIds(body)).toEqual([stacks.solEoc]);
+    expect(stackIds(body)).toEqual([stacks.discSfd]);
   });
 
   it('adds its children’s stacks when asked', async () => {
     const { longBox, lands, stacks } = seed();
     const body = LocationStacks.parse(await (await get(longBox, '1')).json());
-    expect(stackIds(body)).toEqual([stacks.elves, stacks.elvesFoil, stacks.solEoc]);
+    expect(stackIds(body)).toEqual([stacks.discSfd, stacks.shaman, stacks.shamanFoil]);
 
     const section = LocationStacks.parse(await (await get(lands, '0')).json());
     expect(section.location).toMatchObject({
@@ -387,16 +376,16 @@ describe('GET /api/locations/:id/stacks', () => {
       cardCount: 2,
       totalCount: 6,
     });
-    expect(stackIds(section)).toEqual([stacks.elvesFoil]);
+    expect(stackIds(section)).toEqual([stacks.shamanFoil]);
   });
 
   it('names the deck of a deck box', async () => {
     const { deckBox, deck, stacks } = seed();
     const body = LocationStacks.parse(await (await get(deckBox)).json());
-    expect(body.location.deck).toEqual({ id: deck, name: 'Atraxa' });
+    expect(body.location.deck).toEqual({ id: deck, name: 'Lux Control' });
     expect(body.rows.map((row) => [row.stackId, row.inDeck?.deckName])).toEqual([
-      [stacks.atraxa10, 'Atraxa'],
-      [stacks.solInDeck, 'Atraxa'],
+      [stacks.lux10, 'Lux Control'],
+      [stacks.discInDeck, 'Lux Control'],
     ]);
   });
 
@@ -420,33 +409,33 @@ describe('GET /api/locations/:id/stacks', () => {
   });
 });
 
-describe('GET /api/cards/:oracleId/copies', () => {
-  const get = async (oracleId: string) => {
-    const res = await client.cards[':oracleId'].copies.$get({ param: { oracleId } });
+describe('GET /api/cards/:id/copies', () => {
+  const get = async (id: number) => {
+    const res = await client.cards[':id'].copies.$get({ param: { id: String(id) } });
     expect(res.status).toBe(200);
     return CardCopies.parse(await res.json());
   };
 
   it('lists every stack of every printing, with counts', async () => {
     const { stacks } = seed();
-    const body = await get(oracle(1));
-    expect(stackIds(body)).toEqual([stacks.solCmmProxy, stacks.solEoc, stacks.solInDeck]);
+    const body = await get(1);
+    expect(stackIds(body)).toEqual([stacks.discOgnProxy, stacks.discSfd, stacks.discInDeck]);
     expect(body.rows.map((row) => row.location.path)).toEqual([
       'Rares binder',
       'Long box',
-      'Atraxa deck box',
+      'Lux Control deck box',
     ]);
     expect(body.counts).toEqual({ owned: 5, proxies: 1, inDecks: 1, free: 4 });
   });
 
   it('counts copies in any deck box as in decks', async () => {
     seed();
-    expect((await get(oracle(4))).counts).toEqual({ owned: 7, proxies: 0, inDecks: 2, free: 5 });
+    expect((await get(4)).counts).toEqual({ owned: 7, proxies: 0, inDecks: 2, free: 5 });
   });
 
   it('answers no copies for a card with none', async () => {
     seed();
-    expect(await get(oracle(99))).toEqual({
+    expect(await get(99)).toEqual({
       rows: [],
       counts: { owned: 0, proxies: 0, inDecks: 0, free: 0 },
     });
@@ -455,24 +444,17 @@ describe('GET /api/cards/:oracleId/copies', () => {
 
 describe('speed with Jeff’s collection size', () => {
   it('answers a filtered page of 10,000 stacks in under 200 ms', async () => {
-    const colors = ['', 'W', 'U', 'B', 'R', 'G', 'WU', 'BG', 'WUBRG'];
-    const types = [
-      'Creature — Elf',
-      'Instant',
-      'Sorcery',
-      'Artifact',
-      'Legendary Creature — Angel',
-    ];
-    const sets = ['eoc', 'tdc', 'fdn', 'cmm', 'mh3'];
+    const domains = ['[]', '["fury"]', '["calm"]', '["mind"]', '["body","chaos"]', '["order"]'];
+    const types = ['unit', 'spell', 'gear', 'legend', 'battlefield'];
+    const sets = ['OGN', 'SFD', 'OGS', 'UNL', 'VEN'];
     const client = db.$client;
     client.transaction(() => {
       const card = client.prepare(
-        `INSERT INTO cards (oracle_id, name, front_face_name, type_line, color_identity, commander_legality)
-         VALUES (?, ?, ?, ?, ?, 'legal')`,
+        'INSERT INTO cards (id, name, name_key, type, domains) VALUES (?, ?, ?, ?, ?)',
       );
       const printing = client.prepare(
-        `INSERT INTO printings (printing_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
-         VALUES (?, ?, ?, ?, ?, 'en', '["nonfoil","foil"]', 'common', '2025-01-01')`,
+        `INSERT INTO printings (riftcodex_id, card_id, public_code, set_code, set_name, collector_number, rarity)
+         VALUES (?, ?, ?, ?, ?, ?, 'common')`,
       );
       const location = client.prepare(
         'INSERT INTO locations (name, type, parent_id, position) VALUES (?, ?, ?, ?)',
@@ -489,10 +471,17 @@ describe('speed with Jeff’s collection size', () => {
       }
       for (let n = 0; n < 4000; n++) {
         const name = `Card ${String(n).padStart(4, '0')} ${['Dragon', 'Elf', 'Ring', 'Bolt'][n % 4]}`;
-        card.run(oracle(n), name, name, types[n % types.length], colors[n % colors.length]);
+        card.run(
+          n + 1,
+          name,
+          name.toLowerCase(),
+          types[n % types.length],
+          domains[n % domains.length],
+        );
         for (let s = 0; s < 2; s++) {
-          const set = sets[(n + s) % sets.length] ?? 'eoc';
-          printing.run(`p-${n}-${s}`, oracle(n), set, set.toUpperCase(), String((n % 300) + s));
+          const set = sets[(n + s) % sets.length] ?? 'OGN';
+          const number = String((n % 300) + s);
+          printing.run(`p-${n}-${s}`, n + 1, `${set}-${number}`, set, set, number);
         }
       }
       const stack = client.prepare(
@@ -503,7 +492,7 @@ describe('speed with Jeff’s collection size', () => {
         stack.run(
           `p-${i % 4000}-${Math.floor(i / 4000) % 2}`,
           (i % 4) + 1,
-          i % 7 === 0 ? 'foil' : 'nonfoil',
+          i % 7 === 0 ? 'foil' : 'normal',
           i % 50 === 0 ? 1 : 0,
           places[i % places.length],
         );
@@ -513,10 +502,10 @@ describe('speed with Jeff’s collection size', () => {
 
     for (const q of [
       undefined,
-      'c:g t:creature',
-      'elf f:nonfoil is:real',
+      'domain:calm t:spell',
+      'elf f:normal is:real',
       'loc:"Box 3"',
-      'set:eoc c:wu',
+      'set:ogn domain:fury',
     ]) {
       const started = performance.now();
       const page = await search(q);

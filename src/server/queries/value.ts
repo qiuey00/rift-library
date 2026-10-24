@@ -6,7 +6,7 @@ import { cardDataStatus } from '../db/schema';
 import { descendantIds } from './locations';
 
 // What copies are worth (VAL-2), always worked out live from copy_stacks and printings and
-// never stored. A stack's unit price is the US price for its finish, and its value is
+// never stored. A stack's unit price is the TCGplayer market price for its finish, and its value is
 // quantity × unit price. Proxies are worth 0 and aren't counted as no price; real copies
 // with no price are worth 0 and are counted in `noPriceCount` (by card quantity).
 
@@ -14,10 +14,7 @@ import { descendantIds } from './locations';
  * The unit price of the stack `s` of printing `p`, in cents, as a SQL expression; NULL when
  * there is no price for the stack's finish.
  */
-export const unitPriceSql = sql`(CASE s.finish
-  WHEN 'foil' THEN p.price_usd_foil
-  WHEN 'etched' THEN p.price_usd_etched
-  ELSE p.price_usd END)`;
+export const unitPriceSql = sql`(CASE s.finish WHEN 'foil' THEN p.price_foil ELSE p.price_normal END)`;
 
 /** What the stack `s` is worth, as a SQL expression: 0 for proxies and with no price. */
 export const stackValueSql = sql`(CASE WHEN s.is_proxy = 1 THEN 0
@@ -29,16 +26,13 @@ export const noPriceSql = sql`(CASE WHEN s.is_proxy = 0 AND ${unitPriceSql} IS N
 
 /** A printing's prices for each finish, in cents. */
 export type Prices = {
-  priceUsd: number | null;
-  priceUsdFoil: number | null;
-  priceUsdEtched: number | null;
+  priceNormal: number | null;
+  priceFoil: number | null;
 };
 
 /** The price of one copy in this finish; null when there is none. */
 export function unitPrice(finish: Finish, prices: Prices): Cents | null {
-  if (finish === 'foil') return prices.priceUsdFoil;
-  if (finish === 'etched') return prices.priceUsdEtched;
-  return prices.priceUsd;
+  return finish === 'foil' ? prices.priceFoil : prices.priceNormal;
 }
 
 /** quantity × unit price; 0 for proxies and stacks with no price. */
@@ -58,7 +52,7 @@ function directWorth(db: Db): Map<number, Worth> {
       sum(${stackValueSql}) AS value,
       sum(${noPriceSql}) AS noPriceCount
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.printing_id = s.printing_id
+    JOIN printings AS p ON p.riftcodex_id = s.printing_id
     GROUP BY s.location_id`);
   return new Map(
     rows.map((row) => [row.locationId, { value: row.value, noPriceCount: row.noPriceCount }]),
@@ -94,7 +88,7 @@ export function locationWorth(db: Db, id: number): Worth {
       SELECT coalesce(sum(${stackValueSql}), 0) AS value,
         coalesce(sum(${noPriceSql}), 0) AS noPriceCount
       FROM copy_stacks AS s
-      JOIN printings AS p ON p.printing_id = s.printing_id
+      JOIN printings AS p ON p.riftcodex_id = s.printing_id
       WHERE s.location_id IN (${sql.join(ids, sql`, `)})`) ?? nothing()
   );
 }
@@ -107,12 +101,12 @@ export function collectionValue(db: Db): CollectionValue {
       coalesce(sum(${noPriceSql}), 0) AS noPriceCount,
       coalesce(sum(CASE WHEN s.is_proxy = 1 THEN s.quantity ELSE 0 END), 0) AS proxies
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.printing_id = s.printing_id`) ?? {
+    JOIN printings AS p ON p.riftcodex_id = s.printing_id`) ?? {
     value: 0,
     cards: 0,
     noPriceCount: 0,
     proxies: 0,
   };
-  const loaded = db.select({ at: cardDataStatus.bulkUpdatedAt }).from(cardDataStatus).get()?.at;
+  const loaded = db.select({ at: cardDataStatus.pricesUpdatedAt }).from(cardDataStatus).get()?.at;
   return { ...totals, pricesUpdatedAt: loaded ? new Date(loaded).toISOString() : null };
 }

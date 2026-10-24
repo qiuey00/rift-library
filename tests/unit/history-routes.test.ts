@@ -2,15 +2,8 @@ import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import {
-  cards,
-  decks,
-  locations,
-  movementBatches,
-  movements,
-  printings,
-} from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { decks, locations, movementBatches, movements } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { historyDay } from '../../src/server/queries/history';
 import type { LocationType } from '../../src/shared/api/common';
 import {
@@ -29,8 +22,6 @@ const client = hc<AppType>('http://localhost', {
 let db: OpenDb;
 let inboxId: number;
 
-const oracle = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-
 beforeEach(() => {
   db = createTestDb();
   setDb(db);
@@ -39,29 +30,15 @@ beforeEach(() => {
 afterEach(() => db.$client.close());
 
 function addCard(n: number, name: string, prints: string[]) {
-  db.insert(cards)
-    .values({
-      oracleId: oracle(n),
-      name,
-      frontFaceName: name,
-      typeLine: 'Artifact',
-      commanderLegality: 'legal',
-    })
-    .run();
+  insertCard(db, { id: n, name });
   for (const [i, printingId] of prints.entries()) {
-    db.insert(printings)
-      .values({
-        printingId,
-        oracleId: oracle(n),
-        setCode: 'eoc',
-        setName: 'Edge of Eternities Commander',
-        collectorNumber: String(50 + i),
-        lang: 'en',
-        finishes: ['nonfoil'],
-        rarity: 'uncommon',
-        releasedAt: '2025-08-01',
-      })
-      .run();
+    insertPrinting(db, {
+      riftcodexId: printingId,
+      cardId: n,
+      collectorNumber: String(50 + i),
+      finishes: ['normal'],
+      rarity: 'uncommon',
+    });
   }
 }
 
@@ -101,7 +78,7 @@ function addMovement(
       batchId,
       copyStackId: 1,
       printingId,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       quantity: details.quantity ?? 1,
@@ -146,8 +123,8 @@ const shape = (entries: HistoryEntry[]) =>
   );
 
 function seedCards() {
-  addCard(1, 'Sol Ring', ['sol-eoc', 'sol-cmm']);
-  addCard(2, 'Arcane Signet', ['signet']);
+  addCard(1, 'Sun Disc', ['sol-eoc', 'sol-cmm']);
+  addCard(2, 'Ember Signet', ['signet']);
 }
 
 describe('GET /api/history', () => {
@@ -181,29 +158,30 @@ describe('GET /api/history', () => {
           id,
           createdAt: '2026-10-18T12:00:00.000Z',
           card: {
-            oracleId: oracle(1),
-            name: 'Sol Ring',
-            frontFaceName: 'Sol Ring',
-            manaCost: '',
-            manaValue: 0,
-            typeLine: 'Artifact',
-            colorIdentity: '',
-            imageSmall: null,
-            imageNormal: null,
-            canBeCommander: false,
-            isBasicLand: false,
+            id: 1,
+            name: 'Sun Disc',
+            type: 'gear',
+            supertype: null,
+            domains: [],
+            energy: null,
+            might: null,
+            power: null,
+            championTag: null,
+            imageUrl: null,
           },
           printing: {
             printingId: 'sol-eoc',
-            oracleId: oracle(1),
-            setCode: 'eoc',
-            setName: 'Edge of Eternities Commander',
+            publicCode: 'OGN-050/298',
+            setCode: 'OGN',
+            setName: 'Origins',
             collectorNumber: '50',
-            lang: 'en',
-            finishes: ['nonfoil'],
             rarity: 'uncommon',
-            imageSmall: null,
-            imageNormal: null,
+            imageUrl: null,
+            alternateArt: false,
+            overnumbered: false,
+            signature: false,
+            finishes: ['normal'],
+            unitPrice: { normal: null, foil: null },
           },
           quantity: 1,
           from: {
@@ -296,7 +274,7 @@ describe('GET /api/history', () => {
     const cmm = move('2026-10-18T12:00:00.000Z', 'sol-cmm', inboxId, box);
     move('2026-10-20T12:00:00.000Z', 'signet', box, inboxId);
 
-    const day = await history({ before: '2026-10-25', card: oracle(1) });
+    const day = await history({ before: '2026-10-25', card: '1' });
     expect(day).toMatchObject({ day: '2026-10-18', nextBefore: null });
     expect(shape(day.entries)).toEqual([cmm, eoc]);
   });
@@ -330,10 +308,10 @@ describe('GET /api/history', () => {
   it('filters by deck', async () => {
     seedCards();
     const box = addLocation('Long box', 'box');
-    const deckBox = addLocation('Hearthhull deck box', 'deck_box');
+    const deckBox = addLocation('Jinx Burn deck box', 'deck_box');
     const deckId = db
       .insert(decks)
-      .values({ name: 'Hearthhull', deckBoxId: deckBox })
+      .values({ name: 'Jinx Burn', deckBoxId: deckBox })
       .returning({ id: decks.id })
       .get().id;
     move('2026-10-18T09:00:00.000Z', 'signet', inboxId, box);
@@ -350,20 +328,20 @@ describe('GET /api/history', () => {
     expect(day.nextBefore).toBeNull();
   });
 
-  it('groups import, pick list, put-away, swap and undo batches with summaries', async () => {
+  it('groups pick list, put-away, swap and undo batches with summaries', async () => {
     seedCards();
     const box = addLocation('Long box', 'box');
-    const deckBox = addLocation('Hearthhull deck box', 'deck_box');
+    const deckBox = addLocation('Jinx Burn deck box', 'deck_box');
     const deckId = db
       .insert(decks)
-      .values({ name: 'Hearthhull', deckBoxId: deckBox })
+      .values({ name: 'Jinx Burn', deckBoxId: deckBox })
       .returning({ id: decks.id })
       .get().id;
     const t = (minute: number) => `2026-10-18T12:${String(minute).padStart(2, '0')}:00.000Z`;
 
-    const imported = addBatch('import', t(1));
-    const i1 = addMovement(imported, t(1), 'sol-eoc', { quantity: 388, to: inboxId });
-    const i2 = addMovement(imported, t(1), 'signet', { quantity: 1, to: inboxId });
+    const added = addBatch('add', t(1));
+    const i1 = addMovement(added, t(1), 'sol-eoc', { quantity: 388, to: inboxId });
+    const i2 = addMovement(added, t(1), 'signet', { quantity: 1, to: inboxId });
 
     const pick = addBatch('pick_list', t(2), { deckId });
     const p1 = addMovement(pick, t(2), 'sol-eoc', {
@@ -420,7 +398,7 @@ describe('GET /api/history', () => {
     });
 
     const day = await history({ before: '2026-10-18' });
-    expect(shape(day.entries)).toEqual([[u2], [u1], single, [a1], [s1], [p2, p1], [i2, i1]]);
+    expect(shape(day.entries)).toEqual([[u2], [u1], single, [a1], [s1], [p2, p1], i2, i1]);
     const batches = day.entries.flatMap((entry) => (entry.kind === 'batch' ? [entry.batch] : []));
     expect(
       batches.map(({ kind, summary, deck, undone, createdAt }) => [
@@ -431,25 +409,24 @@ describe('GET /api/history', () => {
         createdAt,
       ]),
     ).toEqual([
-      ['undo', 'Undid: moved Arcane Signet to To sort', null, false, t(8)],
-      ['undo', 'Undid: Put-away list · Hearthhull · 1 card', null, false, t(7)],
-      ['put_away', 'Put-away list · Hearthhull · 1 card', 'Hearthhull', true, t(5)],
-      ['swap', 'Swap list · Hearthhull · 1 card', 'Hearthhull', false, t(4)],
-      ['pick_list', 'Pick list · Hearthhull · 3 cards', 'Hearthhull', false, t(2)],
-      ['import', 'Imported 389 cards', null, false, t(1)],
+      ['undo', 'Undid: moved Ember Signet to To sort', null, false, t(8)],
+      ['undo', 'Undid: Put-away list · Jinx Burn · 1 card', null, false, t(7)],
+      ['put_away', 'Put-away list · Jinx Burn · 1 card', 'Jinx Burn', true, t(5)],
+      ['swap', 'Swap list · Jinx Burn · 1 card', 'Jinx Burn', false, t(4)],
+      ['pick_list', 'Pick list · Jinx Burn · 3 cards', 'Jinx Burn', false, t(2)],
     ]);
   });
 
   it('keeps a batch’s summary whole when a filter shows only some of its movements', async () => {
     seedCards();
-    const batch = addBatch('import', '2026-10-18T12:00:00.000Z');
+    const batch = addBatch('pick_list', '2026-10-18T12:00:00.000Z');
     addMovement(batch, '2026-10-18T12:00:00.000Z', 'sol-eoc', { quantity: 3, to: inboxId });
     const signet = addMovement(batch, '2026-10-18T12:00:00.000Z', 'signet', { to: inboxId });
 
-    const day = await history({ before: '2026-10-18', card: oracle(2) });
+    const day = await history({ before: '2026-10-18', card: '2' });
     expect(shape(day.entries)).toEqual([[signet]]);
     expect(day.entries[0]).toMatchObject({
-      batch: { summary: 'Imported 4 cards' },
+      batch: { summary: 'Pick list · 4 cards' },
     });
   });
 
@@ -508,16 +485,15 @@ describe('speed with years of history', () => {
     const places = [inboxId];
     sqlite.transaction(() => {
       const card = sqlite.prepare(
-        `INSERT INTO cards (oracle_id, name, front_face_name, type_line, commander_legality)
-         VALUES (?, ?, ?, 'Artifact', 'legal')`,
+        `INSERT INTO cards (id, name, name_key, type) VALUES (?, ?, ?, 'gear')`,
       );
       const printing = sqlite.prepare(
-        `INSERT INTO printings (printing_id, oracle_id, set_code, set_name, collector_number, lang, finishes, rarity, released_at)
-         VALUES (?, ?, 'eoc', 'EOC', ?, 'en', '["nonfoil"]', 'common', '2025-01-01')`,
+        `INSERT INTO printings (riftcodex_id, card_id, public_code, set_code, set_name, collector_number, finishes, rarity)
+         VALUES (?, ?, ?, 'OGN', 'Origins', ?, '["normal"]', 'common')`,
       );
       for (let n = 0; n < 1000; n++) {
-        card.run(oracle(n), `Card ${n}`, `Card ${n}`);
-        printing.run(`p-${n}`, oracle(n), String(n));
+        card.run(n + 1, `Card ${n}`, `card ${n}`);
+        printing.run(`p-${n}`, n + 1, `OGN-${n}`, String(n));
       }
       const location = sqlite.prepare('INSERT INTO locations (name, type) VALUES (?, ?)');
       for (let i = 0; i < 30; i++) {
@@ -527,7 +503,7 @@ describe('speed with years of history', () => {
       const movement = sqlite.prepare(
         `INSERT INTO movements (batch_id, copy_stack_id, printing_id, finish, condition, language,
            quantity, from_location_id, to_location_id, reason, created_at)
-         VALUES (?, 1, ?, 'nonfoil', 'near_mint', 'en', 1, ?, ?, ?, ?)`,
+         VALUES (?, 1, ?, 'normal', 'near_mint', 'en', 1, ?, ?, ?, ?)`,
       );
       // 45 older days of 1,000 movements, then the busy day: 5,000 movements, half of them
       // in pick-list batches of 50.

@@ -5,15 +5,8 @@ import type { z } from 'zod';
 import type { AppType } from '../../src/server/app';
 import { app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import {
-  cards,
-  copyStacks,
-  deckSlots,
-  decks,
-  locations,
-  printings,
-} from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { copyStacks, deckSlots, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { AppError } from '../../src/server/errors';
 import { deckList, deckView } from '../../src/server/queries/decks';
 import {
@@ -25,11 +18,11 @@ import {
   removeSlot,
   renameDeck,
   replaceSlots,
-  setCommanders,
+  setLegend,
   setSlotPrinting,
   setSlotQuantity,
 } from '../../src/server/services/decks';
-import type { LocationType } from '../../src/shared/api/common';
+import type { Domain, LocationType } from '../../src/shared/api/common';
 import { ErrorBody } from '../../src/shared/api/common';
 import { DeckList, DeckSummary, DeckView, SlotRow } from '../../src/shared/api/decks';
 
@@ -41,41 +34,36 @@ beforeEach(() => {
 });
 afterEach(() => db.$client.close());
 
-/** A card with one printing whose printing id is `<oracleId>-1`. */
-function card(oracleId: string, options: { basic?: boolean; colors?: string } = {}) {
-  db.insert(cards)
-    .values({
-      oracleId,
-      name: oracleId,
-      frontFaceName: oracleId,
-      typeLine: options.basic ? 'Basic Land — Forest' : 'Creature',
-      colorIdentity: options.colors ?? '',
-      commanderLegality: 'legal',
-      isBasicLand: options.basic ?? false,
-      canBeCommander: !options.basic,
-    })
-    .run();
-  printing(oracleId, 1);
-  return oracleId;
+/** Each test card's name, by id; a card's printings are `<name>-<n>`. */
+const names = new Map<number, string>();
+const nameOf = (cardId: number) => names.get(cardId) ?? '';
+
+/** A card with one printing whose printing id is `<name>-1`. */
+function card(
+  name: string,
+  options: { rune?: boolean; legend?: boolean; domains?: Domain[] } = {},
+) {
+  const type = options.rune ? 'rune' : options.legend ? 'legend' : 'unit';
+  const cardId = insertCard(db, { name, type, domains: options.domains ?? [] });
+  names.set(cardId, name);
+  printing(cardId, 1);
+  return cardId;
 }
 
-function printing(oracleId: string, n: number, releasedAt = '2024-01-01') {
-  db.insert(printings)
-    .values({
-      printingId: `${oracleId}-${n}`,
-      oracleId,
-      setCode: 'tst',
-      setName: 'Test set',
-      collectorNumber: String(n),
-      lang: 'en',
-      finishes: ['nonfoil'],
-      rarity: 'rare',
-      releasedAt,
-      imageSmall: `small-${oracleId}-${n}`,
-      imageNormal: `normal-${oracleId}-${n}`,
-    })
-    .run();
-  return `${oracleId}-${n}`;
+function printing(cardId: number, n: number) {
+  const riftcodexId = `${nameOf(cardId)}-${n}`;
+  insertPrinting(db, {
+    riftcodexId,
+    cardId,
+    setCode: 'TST',
+    setName: 'Test set',
+    collectorNumber: String(n),
+    publicCode: `TST-${String(n).padStart(3, '0')}/100`,
+    finishes: ['normal'],
+    rarity: 'rare',
+    imageUrl: `image-${riftcodexId}`,
+  });
+  return riftcodexId;
 }
 
 function place(name: string, type: LocationType = 'box', parentId: number | null = null) {
@@ -83,16 +71,16 @@ function place(name: string, type: LocationType = 'box', parentId: number | null
 }
 
 function stack(
-  oracleId: string,
+  cardId: number,
   locationId: number,
   quantity = 1,
   options: { proxy?: boolean; printingId?: string } = {},
 ) {
   db.insert(copyStacks)
     .values({
-      printingId: options.printingId ?? `${oracleId}-1`,
+      printingId: options.printingId ?? `${nameOf(cardId)}-1`,
       quantity,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       isProxy: options.proxy ?? false,
@@ -107,8 +95,8 @@ function deck(name: string, slots: DeckSlotInput[]) {
   return { id, boxId: row?.deckBoxId ?? 0 };
 }
 
-const main = (oracleId: string, quantity = 1): DeckSlotInput => ({
-  oracleId,
+const main = (cardId: number, quantity = 1): DeckSlotInput => ({
+  cardId,
   board: 'main',
   quantity,
 });
@@ -119,9 +107,9 @@ function view(id: number) {
   return DeckView.parse(result);
 }
 
-function slotFor(id: number, oracleId: string, board = 'main') {
-  const slot = view(id).slots.find((s) => s.card.oracleId === oracleId && s.board === board);
-  if (!slot) throw new Error(`no ${oracleId} slot`);
+function slotFor(id: number, cardId: number, board = 'main') {
+  const slot = view(id).slots.find((s) => s.card.id === cardId && s.board === board);
+  if (!slot) throw new Error(`no ${nameOf(cardId)} slot`);
   return slot;
 }
 
@@ -137,28 +125,29 @@ function refusal(fn: () => unknown) {
 
 describe('creating decks', () => {
   it('creates a top-level deck box named after the deck, then the slots', () => {
-    const korvold = card('korvold', { colors: 'BRG' });
+    const dariusAggro = card('dariusAggro', { legend: true, domains: ['fury', 'order'] });
     const ring = card('sol-ring');
-    const { id, boxId } = deck('Korvold', [
-      { oracleId: korvold, board: 'commander', quantity: 1 },
+    const { id, boxId } = deck('Darius Aggro', [
+      { cardId: dariusAggro, board: 'legend', quantity: 1 },
       main(ring),
       main(ring),
     ]);
     const box = db.select().from(locations).where(eq(locations.id, boxId)).get();
-    expect(box).toMatchObject({ name: 'Korvold deck box', type: 'deck_box', parentId: null });
+    expect(box).toMatchObject({ name: 'Darius Aggro deck box', type: 'deck_box', parentId: null });
 
     const { deck: summary, slots } = view(id);
-    expect(summary.commanders.map((c) => c.oracleId)).toEqual([korvold]);
-    expect(summary.colorIdentity).toBe('BRG');
-    expect(summary.commanders[0].imageSmall).toBe('small-korvold-1');
-    expect(slots.map((s) => [s.card.oracleId, s.board, s.quantity])).toEqual([
-      [korvold, 'commander', 1],
+    expect(summary.legend?.id).toBe(dariusAggro);
+    expect(summary.champion).toBeNull();
+    expect(summary.domains).toEqual(['fury', 'order']);
+    expect(summary.legend?.imageUrl).toBe('image-dariusAggro-1');
+    expect(slots.map((s) => [s.card.id, s.board, s.quantity])).toEqual([
+      [dariusAggro, 'legend', 1],
       [ring, 'main', 2],
     ]);
   });
 
   it('refuses a card the card data doesn’t know', () => {
-    expect(refusal(() => deck('Nobody', [main('nope')]))).toEqual({
+    expect(refusal(() => deck('Nobody', [main(999)]))).toEqual({
       status: 400,
       code: 'card_not_found',
     });
@@ -167,10 +156,8 @@ describe('creating decks', () => {
 
   it('keeps printing hints', () => {
     const ring = card('sol-ring');
-    const { id } = deck('Hints', [
-      { ...main(ring), hint: { setCode: 'eoc', collectorNumber: '57', foil: true } },
-    ]);
-    expect(slotFor(id, ring).hint).toEqual({ setCode: 'eoc', collectorNumber: '57', foil: true });
+    const { id } = deck('Hints', [{ ...main(ring), hint: { publicCode: 'OGN-057', foil: true } }]);
+    expect(slotFor(id, ring).hint).toEqual({ publicCode: 'OGN-057', foil: true });
   });
 });
 
@@ -217,12 +204,12 @@ describe('slot status', () => {
 
   it('is other_decks when copies sit only in other decks’ boxes, naming them', () => {
     const ring = card('sol-ring');
-    const atraxa = deck('Atraxa', [main(ring)]);
-    stack(ring, atraxa.boxId);
-    const { id } = deck('Hearthhull', [main(ring)]);
+    const luxControl = deck('Lux Control', [main(ring)]);
+    stack(ring, luxControl.boxId);
+    const { id } = deck('Jinx Burn', [main(ring)]);
     const slot = slotFor(id, ring);
     expect(slot.status).toBe('other_decks');
-    expect(slot.where.otherDecks).toEqual([{ id: atraxa.id, name: 'Atraxa' }]);
+    expect(slot.where.otherDecks).toEqual([{ id: luxControl.id, name: 'Lux Control' }]);
     expect(view(id).deck.counts.otherDecks).toBe(1);
   });
 
@@ -240,39 +227,39 @@ describe('slot status', () => {
   });
 
   it('says how many are in the box when it holds part of a slot, and describes the rest', () => {
-    const forestLike = card('cultivate');
-    const { id, boxId } = deck('A', [main(forestLike, 3)]);
-    stack(forestLike, boxId, 1);
-    stack(forestLike, place('Bulk'), 1);
-    const slot = slotFor(id, forestLike);
+    const calmRuneLike = card('grimScheme');
+    const { id, boxId } = deck('A', [main(calmRuneLike, 3)]);
+    stack(calmRuneLike, boxId, 1);
+    stack(calmRuneLike, place('Bulk'), 1);
+    const slot = slotFor(id, calmRuneLike);
     expect(slot).toMatchObject({ status: 'free', inBoxQuantity: 1 });
     expect(view(id).deck.counts).toEqual({
       inBox: 1,
       free: 1,
       otherDecks: 0,
       missing: 1,
-      basics: 0,
+      runes: 0,
     });
   });
 
   it('marks basic lands as basic, counted apart', () => {
-    const forest = card('forest', { basic: true });
-    const { id } = deck('A', [main(forest, 30)]);
-    expect(slotFor(id, forest).status).toBe('basic');
-    expect(view(id).deck.counts.basics).toBe(30);
+    const calmRune = card('calmRune', { rune: true });
+    const { id } = deck('A', [main(calmRune, 30)]);
+    expect(slotFor(id, calmRune).status).toBe('rune');
+    expect(view(id).deck.counts.runes).toBe(30);
   });
 
   it('gives maybe board slots no status', () => {
     const ring = card('sol-ring');
     stack(ring, place('Binder'));
-    const { id } = deck('A', [{ oracleId: ring, board: 'maybe', quantity: 1 }]);
+    const { id } = deck('A', [{ cardId: ring, board: 'maybe', quantity: 1 }]);
     expect(slotFor(id, ring, 'maybe').status).toBeNull();
     expect(view(id).deck.counts).toEqual({
       inBox: 0,
       free: 0,
       otherDecks: 0,
       missing: 0,
-      basics: 0,
+      runes: 0,
     });
   });
 
@@ -290,9 +277,9 @@ describe('deck state and counts', () => {
   it('goes from not assembled to partly to assembled, leaving basics out', () => {
     const ring = card('sol-ring');
     const signet = card('signet');
-    const forest = card('forest', { basic: true });
+    const calmRune = card('calmRune', { rune: true });
     stack(ring, place('Binder'));
-    const { id, boxId } = deck('A', [main(ring), main(signet), main(forest, 10)]);
+    const { id, boxId } = deck('A', [main(ring), main(signet), main(calmRune, 10)]);
     expect(view(id).deck.state).toBe('not_assembled');
 
     stack(ring, boxId);
@@ -301,7 +288,7 @@ describe('deck state and counts', () => {
     stack(signet, boxId);
     expect(view(id).deck).toMatchObject({
       state: 'assembled',
-      counts: { inBox: 2, free: 0, otherDecks: 0, missing: 0, basics: 10 },
+      counts: { inBox: 2, free: 0, otherDecks: 0, missing: 0, runes: 10 },
     });
   });
 
@@ -324,13 +311,13 @@ describe('editing slots', () => {
     expect(addSlot(db, id, main(ring, 2))).toBe(first);
     expect(slotFor(id, ring).quantity).toBe(3);
 
-    addSlot(db, id, { oracleId: ring, board: 'maybe', quantity: 1 });
+    addSlot(db, id, { cardId: ring, board: 'maybe', quantity: 1 });
     expect(view(id).slots).toHaveLength(2);
   });
 
   it('moveSlotBoard merges when the target board already has the card', () => {
     const ring = card('sol-ring');
-    const { id } = deck('A', [main(ring, 2), { oracleId: ring, board: 'maybe', quantity: 1 }]);
+    const { id } = deck('A', [main(ring, 2), { cardId: ring, board: 'maybe', quantity: 1 }]);
     const maybe = slotFor(id, ring, 'maybe').id;
     const ends = moveSlotBoard(db, id, maybe, 'main');
     expect(ends).toBe(slotFor(id, ring).id);
@@ -370,9 +357,9 @@ describe('editing slots', () => {
 
     setSlotPrinting(db, id, slot, { printingId: second, foil: true });
     const row = slotFor(id, ring);
-    expect(row.hint).toEqual({ setCode: 'tst', collectorNumber: '2', foil: true });
+    expect(row.hint).toEqual({ publicCode: 'TST-002/100', foil: true });
     expect(row.printing?.printingId).toBe(second);
-    expect(row.printing?.imageNormal).toBe(`normal-${ring}-2`);
+    expect(row.printing?.imageUrl).toBe(`image-${nameOf(ring)}-2`);
   });
 
   it('setSlotPrinting clears a picked printing of another printing, keeping the copy', () => {
@@ -381,12 +368,12 @@ describe('editing slots', () => {
     const { id, boxId } = deck('A', [main(ring)]);
     stack(ring, boxId);
     db.update(deckSlots)
-      .set({ pickedPrintingId: `${ring}-1` })
+      .set({ pickedPrintingId: `${nameOf(ring)}-1` })
       .run();
     const slot = slotFor(id, ring).id;
 
-    setSlotPrinting(db, id, slot, { printingId: `${ring}-1`, foil: false });
-    expect(slotFor(id, ring).pickedPrinting?.printingId).toBe(`${ring}-1`);
+    setSlotPrinting(db, id, slot, { printingId: `${nameOf(ring)}-1`, foil: false });
+    expect(slotFor(id, ring).pickedPrinting?.printingId).toBe(`${nameOf(ring)}-1`);
 
     setSlotPrinting(db, id, slot, { printingId: second, foil: false });
     const row = slotFor(id, ring);
@@ -401,7 +388,9 @@ describe('editing slots', () => {
     const { id } = deck('A', [main(ring)]);
     const slot = slotFor(id, ring).id;
     expect(
-      refusal(() => setSlotPrinting(db, id, slot, { printingId: `${signet}-1`, foil: false })),
+      refusal(() =>
+        setSlotPrinting(db, id, slot, { printingId: `${nameOf(signet)}-1`, foil: false }),
+      ),
     ).toEqual({ status: 400, code: 'wrong_card' });
     expect(
       refusal(() => setSlotPrinting(db, id, slot, { printingId: 'nope', foil: false })),
@@ -428,25 +417,25 @@ describe('editing slots', () => {
     });
   });
 
-  it('setCommanders swaps commanders, moving one up from the main board', () => {
-    const korvold = card('korvold', { colors: 'BRG' });
-    const tymna = card('tymna', { colors: 'WB' });
-    const thrasios = card('thrasios', { colors: 'GU' });
-    const { id } = deck('A', [{ oracleId: korvold, board: 'commander', quantity: 1 }, main(tymna)]);
-    db.update(deckSlots)
-      .set({ pickedPrintingId: `${tymna}-1` })
-      .where(eq(deckSlots.oracleId, tymna))
-      .run();
-    setCommanders(db, id, [tymna, thrasios]);
+  it('setLegend replaces the Legend, leaving the other boards alone', () => {
+    const dariusAggro = card('dariusAggro', { legend: true, domains: ['fury', 'order'] });
+    const leeSin = card('leeSin', { legend: true, domains: ['calm', 'body'] });
+    const champion = card('champion', { domains: ['calm'] });
+    const { id } = deck('A', [
+      { cardId: dariusAggro, board: 'legend', quantity: 1 },
+      { cardId: champion, board: 'champion', quantity: 1 },
+    ]);
+    setLegend(db, id, leeSin);
 
     const { deck: summary, slots } = view(id);
-    expect(summary.commanders.map((c) => c.oracleId).sort()).toEqual([thrasios, tymna]);
-    expect(summary.colorIdentity).toBe('WUBG');
-    expect(slots.map((s) => [s.card.oracleId, s.board])).toEqual([
-      [tymna, 'commander'],
-      [thrasios, 'commander'],
+    expect(summary.legend?.id).toBe(leeSin);
+    expect(summary.champion?.id).toBe(champion);
+    expect(summary.domains).toEqual(['calm', 'body']);
+    expect(slots.map((s) => [s.card.id, s.board])).toEqual([
+      [champion, 'champion'],
+      [leeSin, 'legend'],
     ]);
-    expect(slotFor(id, tymna, 'commander').pickedPrinting?.printingId).toBe(`${tymna}-1`);
+    expect(refusal(() => setLegend(db, id, 999))).toEqual({ status: 400, code: 'card_not_found' });
   });
 
   it('replaceSlots keeps picked printings of cards that stay', () => {
@@ -455,27 +444,27 @@ describe('editing slots', () => {
     const grasp = card('grasp');
     const { id } = deck('A', [main(ring), main(signet)]);
     db.update(deckSlots)
-      .set({ pickedPrintingId: `${ring}-1` })
+      .set({ pickedPrintingId: `${nameOf(ring)}-1` })
       .run();
     const ringSlot = slotFor(id, ring).id;
 
     replaceSlots(db, id, [main(ring, 2), main(grasp)]);
     const { slots } = view(id);
-    expect(slots.map((s) => [s.card.oracleId, s.quantity, s.pickedPrinting?.printingId])).toEqual([
-      [ring, 2, `${ring}-1`],
+    expect(slots.map((s) => [s.card.id, s.quantity, s.pickedPrinting?.printingId])).toEqual([
+      [ring, 2, `${nameOf(ring)}-1`],
       [grasp, 1, undefined],
     ]);
     expect(slotFor(id, ring).id).toBe(ringSlot);
   });
 
   it('renames the deck box with the deck while it has the default name', () => {
-    const { id, boxId } = deck('Korvold', []);
+    const { id, boxId } = deck('Darius Aggro', []);
     const boxName = () => db.select().from(locations).where(eq(locations.id, boxId)).get()?.name;
-    renameDeck(db, id, 'Korvold Food');
-    expect(boxName()).toBe('Korvold Food deck box');
+    renameDeck(db, id, 'Darius Aggro Food');
+    expect(boxName()).toBe('Darius Aggro Food deck box');
 
     db.update(locations).set({ name: 'Red box' }).where(eq(locations.id, boxId)).run();
-    renameDeck(db, id, 'Korvold');
+    renameDeck(db, id, 'Darius Aggro');
     expect(boxName()).toBe('Red box');
   });
 });
@@ -519,19 +508,19 @@ async function body<T extends z.ZodType>(res: Response, schema: T, status = 200)
 
 describe('decks routes', () => {
   it('creates, opens, lists, renames and deletes a deck', async () => {
-    const korvold = card('korvold', { colors: 'BRG' });
+    const dariusAggro = card('dariusAggro', { legend: true, domains: ['fury', 'order'] });
     const created = await body(
-      await api.decks.$post({ json: { name: 'Korvold', commanders: [korvold] } }),
+      await api.decks.$post({ json: { name: 'Darius Aggro', legendId: dariusAggro } }),
       DeckSummary,
       201,
     );
-    expect(created).toMatchObject({ name: 'Korvold', state: 'not_assembled', openedAt: null });
+    expect(created).toMatchObject({ name: 'Darius Aggro', state: 'not_assembled', openedAt: null });
     const other = deck('Older', []);
 
     const param = { id: String(created.id) };
     const opened = await body(await api.decks[':id'].$get({ param }), DeckView);
     expect(opened.deck.openedAt).not.toBeNull();
-    expect(opened.slots[0]).toMatchObject({ board: 'commander', status: 'missing' });
+    expect(opened.slots[0]).toMatchObject({ board: 'legend', status: 'missing' });
 
     const list = await body(await api.decks.$get(), DeckList);
     expect(list.decks.map((d) => d.id)).toEqual([created.id, other.id]);
@@ -555,10 +544,10 @@ describe('decks routes', () => {
     expect(list.decks.map((d) => d.id)).toEqual([a.id, b.id, c.id]);
   });
 
-  it('edits slots and commanders', async () => {
-    const korvold = card('korvold');
+  it('edits slots and the Legend', async () => {
+    const dariusAggro = card('dariusAggro');
     const ring = card('sol-ring');
-    const { id } = deck('A', [{ oracleId: korvold, board: 'commander', quantity: 1 }]);
+    const { id } = deck('A', [{ cardId: dariusAggro, board: 'legend', quantity: 1 }]);
     const param = { id: String(id) };
 
     const added = await body(
@@ -580,20 +569,15 @@ describe('decks routes', () => {
 
     const reprinted = await api.decks[':id'].slots[':slotId'].$patch({
       param: slot,
-      json: { printing: { printingId: `${ring}-1`, foil: false } },
+      json: { printing: { printingId: `${nameOf(ring)}-1`, foil: false } },
     });
-    expect((await body(reprinted, SlotRow)).printing?.printingId).toBe(`${ring}-1`);
+    expect((await body(reprinted, SlotRow)).printing?.printingId).toBe(`${nameOf(ring)}-1`);
 
     const empty = await api.decks[':id'].slots[':slotId'].$patch({ param: slot, json: {} });
     expect((await body(empty, ErrorBody, 400)).error.code).toBe('invalid_request');
 
-    const commanders = await api.decks[':id'].commanders.$put({
-      param,
-      json: { oracleIds: [ring] },
-    });
-    expect((await body(commanders, DeckView)).deck.commanders.map((c) => c.oracleId)).toEqual([
-      ring,
-    ]);
+    const legend = await api.decks[':id'].legend.$put({ param, json: { legendId: ring } });
+    expect((await body(legend, DeckView)).deck.legend?.id).toBe(ring);
 
     const removed = await api.decks[':id'].slots[':slotId'].$delete({ param: slot });
     expect(removed.status).toBe(204);
@@ -601,20 +585,22 @@ describe('decks routes', () => {
 
   it('refuses to delete a deck whose box holds copies', async () => {
     const ring = card('sol-ring');
-    const { id, boxId } = deck('Hearthhull', [main(ring)]);
+    const { id, boxId } = deck('Jinx Burn', [main(ring)]);
     stack(ring, boxId, 2);
     const res = await api.decks[':id'].$delete({ param: { id: String(id) } });
     const error = (await body(res, ErrorBody, 409)).error;
     expect(error.code).toBe('deck_box_not_empty');
-    expect(error.message).toContain('Hearthhull deck box still holds 2 cards');
+    expect(error.message).toContain('Jinx Burn deck box still holds 2 cards');
   });
 
   it('checks ids and bodies', async () => {
     const bad = await api.decks[':id'].$get({ param: { id: 'one' } });
     expect((await body(bad, ErrorBody, 400)).error.code).toBe('invalid_request');
 
-    for (const commanders of [[], ['a', 'b', 'c']]) {
-      const res = await api.decks.$post({ json: { name: 'Korvold', commanders } });
+    for (const json of [{ name: 'Darius Aggro' }, { name: 'Darius Aggro', legendId: 'a' }]) {
+      const res = await api.decks.$post({
+        json: json as unknown as { name: string; legendId: number },
+      });
       expect((await body(res, ErrorBody, 400)).error.code).toBe('invalid_request');
     }
 

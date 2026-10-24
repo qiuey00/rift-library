@@ -4,15 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
 import {
-  cards,
   copyStacks,
   decks,
   locations,
   movementBatches,
   movements,
-  printings,
 } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import {
   addCopies,
   createBatch,
@@ -45,29 +43,8 @@ function location(name: string, type: typeof locations.$inferInsert.type, parent
 }
 
 function card(printingId: string, name: string) {
-  const oracleId = `oracle-${printingId}`;
-  db.insert(cards)
-    .values({
-      oracleId,
-      name,
-      frontFaceName: name,
-      typeLine: 'Artifact',
-      commanderLegality: 'legal',
-    })
-    .run();
-  db.insert(printings)
-    .values({
-      printingId,
-      oracleId,
-      setCode: 'cmm',
-      setName: 'Commander Masters',
-      collectorNumber: '1',
-      lang: 'en',
-      finishes: ['nonfoil', 'foil'],
-      rarity: 'uncommon',
-      releasedAt: '2023-08-04',
-    })
-    .run();
+  const cardId = insertCard(db, { name });
+  insertPrinting(db, { riftcodexId: printingId, cardId });
 }
 
 function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
@@ -76,7 +53,7 @@ function stack(overrides: Partial<typeof copyStacks.$inferInsert> = {}) {
     .values({
       printingId: SIGNET,
       quantity: 1,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       locationId: binder,
@@ -98,11 +75,11 @@ beforeEach(() => {
   binder = location('Rares binder', 'binder');
   box = location('Long box', 'box');
   row = location('Lands', 'box', box);
-  deckBox = location('Hearthhull deck box', 'deck_box');
-  otherDeckBox = location('Atraxa deck box', 'deck_box');
-  db.insert(decks).values({ name: 'Hearthhull', deckBoxId: deckBox }).run();
-  card(SIGNET, 'Arcane Signet');
-  card(SOL_RING, 'Sol Ring');
+  deckBox = location('Jinx Burn deck box', 'deck_box');
+  otherDeckBox = location('Lux Control deck box', 'deck_box');
+  db.insert(decks).values({ name: 'Jinx Burn', deckBoxId: deckBox }).run();
+  card(SIGNET, 'Ember Signet');
+  card(SOL_RING, 'Sun Disc');
   batch = createBatch(db, 'move');
 });
 afterEach(() => db.$client.close());
@@ -243,7 +220,7 @@ describe('moveCopies', () => {
 
 describe('addCopies, removeCopies and setProxy', () => {
   const details = {
-    finish: 'nonfoil' as const,
+    finish: 'normal' as const,
     condition: 'near_mint',
     language: 'en',
     misprint: false,
@@ -318,7 +295,7 @@ describe('copies routes', () => {
     });
     expect(res.status).toBe(200);
     const result = await json(res);
-    expect(result.message).toBe('Moved Arcane Signet to Hearthhull deck box');
+    expect(result.message).toBe('Moved Ember Signet to Jinx Burn deck box');
     const batchRow = db
       .select()
       .from(movementBatches)
@@ -389,7 +366,7 @@ describe('copies routes', () => {
         json: { toLocationId: inbox, includeChildren: false },
       }),
     );
-    expect(result.message).toBe('Moved 2 Arcane Signet from Long box to To sort');
+    expect(result.message).toBe('Moved 2 Ember Signet from Long box to To sort');
     expect(getStack(inRow)?.locationId).toBe(row);
     expect(stacks().filter((s) => s.locationId === inbox)).toHaveLength(1);
   });
@@ -433,7 +410,7 @@ describe('copies routes', () => {
         json: {
           printingId: SIGNET,
           quantity: 1,
-          finish: 'nonfoil',
+          finish: 'normal',
           condition: 'near_mint',
           language: 'en',
           misprint: false,
@@ -445,7 +422,7 @@ describe('copies routes', () => {
         },
       }),
     );
-    expect(result.message).toBe('Added 1 Arcane Signet to Rares binder');
+    expect(result.message).toBe('Added 1 Ember Signet to Rares binder');
     expect(db.select().from(movementBatches).all().at(-1)).toMatchObject({ kind: 'add' });
     expect(allMovements()).toEqual([
       expect.objectContaining({ reason: 'added', fromLocationId: null, toLocationId: binder }),
@@ -460,7 +437,7 @@ describe('copies routes', () => {
       json: {
         printingId: 'no-such-printing',
         quantity: 1,
-        finish: 'nonfoil',
+        finish: 'normal',
         condition: 'near_mint',
         language: 'en',
         misprint: false,

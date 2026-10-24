@@ -26,24 +26,24 @@ describe('card samples', () => {
   it('parse with their schemas', () => {
     const s = cardSamples;
     for (const card of [
-      s.arcaneSignet,
-      s.arcaneDenial,
-      s.arcaneSanctum,
-      s.arcaneLighthouse,
-      s.pakoArcaneRetriever,
-      s.hearthhullTheWorldseed,
-      s.harmonizedTrio,
+      s.emberSignet,
+      s.emberRebuke,
+      s.emberSanctum,
+      s.emberLighthouse,
+      s.poroEmberRetriever,
+      s.jinxLooseCannon,
+      s.gildedWhelp,
     ]) {
       CardSummary.parse(card);
     }
-    for (const printing of [...s.arcaneSignetPrintings, ...s.harmonizedTrioPrintings]) {
+    for (const printing of [...s.emberSignetPrintings, ...s.gildedWhelpPrintings]) {
       PrintingSummary.parse(printing);
     }
-    CardSearchResult.parse(s.arcaneSignetResult);
-    for (const search of [s.arcaneSearch, s.commanderSearch, s.emptySearch]) {
+    CardSearchResult.parse(s.emberSignetResult);
+    for (const search of [s.emberSearch, s.legendSearch, s.emptySearch]) {
       CardSearchResponse.parse(search);
     }
-    for (const details of [s.arcaneSignetDetails, s.harmonizedTrioDetails]) {
+    for (const details of [s.emberSignetDetails, s.gildedWhelpDetails]) {
       const parsed = CardDetailsResponse.parse(details);
       const { owned, inDecks, free } = parsed.counts;
       expect(free).toBe(owned - inDecks);
@@ -52,38 +52,46 @@ describe('card samples', () => {
   });
 
   it('match what the screens need', () => {
-    const signet = cardSamples.arcaneSearch.results.find((r) => r.name === 'Arcane Signet');
+    const signet = cardSamples.emberSearch.results.find((r) => r.name === 'Ember Signet');
     expect(signet).toMatchObject({ owned: 3, free: 1 });
-    expect(cardSamples.commanderSearch.results[0]).toMatchObject({
-      name: 'Hearthhull, the Worldseed',
-      colorIdentity: 'BRG',
-      canBeCommander: true,
+    expect(cardSamples.legendSearch.results[0]).toMatchObject({
+      name: 'Jinx, Loose Cannon',
+      type: 'legend',
+      domains: ['fury', 'chaos'],
     });
-    expect(cardSamples.arcaneSignetDetails.printings).toHaveLength(3);
-    expect(cardSamples.harmonizedTrioDetails.card).toMatchObject({
-      name: 'Harmonized Trio // Brainstorm',
-      frontFaceName: 'Harmonized Trio',
+    expect(cardSamples.emberSignetDetails.printings).toHaveLength(3);
+    expect(cardSamples.gildedWhelpDetails.card).toMatchObject({
+      name: 'Gilded Whelp',
+      deckable: true,
     });
-    expect(cardSamples.arcaneSignet.imageSmall).toMatch(
-      /^https:\/\/images\.example\.com\/small\/front\/[0-9a-f]\/[0-9a-f]\/[0-9a-f-]{36}\.jpg\?\d+$/,
+    expect(cardSamples.emberSignet.imageUrl).toMatch(
+      /^https:\/\/images\.example\.com\/riftbound\/[0-9a-f-]{36}\.webp$/,
     );
   });
 });
 
 describe('card search query', () => {
-  it('needs q, defaults the limit to 20 and checks the color identity', () => {
-    expect(CardSearchQuery.parse({ q: 'arcane' })).toEqual({ q: 'arcane', limit: 20 });
-    expect(CardSearchQuery.parse({ q: 'x', identity: '', limit: '5' }).limit).toBe(5);
+  it('needs q, defaults the limit to 20 and checks the type and domains', () => {
+    expect(CardSearchQuery.parse({ q: 'ember' })).toEqual({ q: 'ember', limit: 20 });
+    expect(CardSearchQuery.parse({ q: 'x', domains: '', limit: '5' })).toEqual({
+      q: 'x',
+      domains: [],
+      limit: 5,
+    });
+    expect(CardSearchQuery.parse({ q: 'x', domains: 'fury,chaos' }).domains).toEqual([
+      'fury',
+      'chaos',
+    ]);
     expect(CardSearchQuery.safeParse({}).success).toBe(false);
     expect(CardSearchQuery.safeParse({ q: '  ' }).success).toBe(false);
-    expect(CardSearchQuery.safeParse({ q: 'x', identity: 'brg' }).success).toBe(false);
-    expect(CardSearchQuery.safeParse({ q: 'x', commander: 'yes' }).success).toBe(false);
+    expect(CardSearchQuery.safeParse({ q: 'x', domains: 'green' }).success).toBe(false);
+    expect(CardSearchQuery.safeParse({ q: 'x', type: 'creature' }).success).toBe(false);
   });
 });
 
 describe('card search route', () => {
   it('answers a search without q with 400 invalid_request', async () => {
-    const res = await app.request('/api/cards/search');
+    const res = await app.request('/api/cards');
     expect(res.status).toBe(400);
     expect(ErrorBody.parse(await res.json()).error.code).toBe('invalid_request');
   });

@@ -2,12 +2,12 @@ import { expect, type Page, test } from '@playwright/test';
 import type { CardDataStatus } from '../../src/shared/api/card-data';
 import { cardDataStatusSamples } from '../../src/shared/api/samples/card-data';
 import {
-  arcaneSearch,
-  arcaneSignet,
-  arcaneSignetDetails,
   cardNotFoundError,
-  harmonizedTrio,
-  harmonizedTrioDetails,
+  emberSearch,
+  emberSignet,
+  emberSignetDetails,
+  gildedWhelp,
+  gildedWhelpDetails,
 } from '../../src/shared/api/samples/cards';
 
 // A 1×1 PNG stands in for the card images; tests never reach the network.
@@ -21,9 +21,9 @@ async function mockApi(page: Page, status: CardDataStatus = cardDataStatusSample
     route.fulfill({ contentType: 'image/png', body: pixel }),
   );
   await page.route('**/api/card-data/status', (route) => route.fulfill({ json: status }));
-  await page.route(/\/api\/cards\/search\?/, (route) => route.fulfill({ json: arcaneSearch }));
-  for (const details of [arcaneSignetDetails, harmonizedTrioDetails]) {
-    await page.route(`**/api/cards/${details.card.oracleId}`, (route) =>
+  await page.route(/\/api\/cards\?/, (route) => route.fulfill({ json: emberSearch }));
+  for (const details of [emberSignetDetails, gildedWhelpDetails]) {
+    await page.route(`**/api/cards/${details.card.id}`, (route) =>
       route.fulfill({ json: details }),
     );
   }
@@ -32,25 +32,25 @@ async function mockApi(page: Page, status: CardDataStatus = cardDataStatusSample
 const searchBox = (page: Page) => page.getByRole('combobox', { name: 'Search cards' });
 const options = (page: Page) => page.getByRole('listbox', { name: 'Cards' }).getByRole('option');
 
-test('typing "arcane" lists Arcane Signet with its counts', async ({ page }) => {
+test('typing "ember" lists Ember Signet with its counts', async ({ page }) => {
   await mockApi(page);
   await page.goto('/collection');
-  await searchBox(page).fill('arcane');
+  await searchBox(page).fill('ember');
 
-  await expect(options(page)).toHaveCount(arcaneSearch.results.length);
+  await expect(options(page)).toHaveCount(emberSearch.results.length);
   const signet = options(page).first();
-  await expect(signet).toContainText('Arcane Signet');
+  await expect(signet).toContainText('Ember Signet');
   await expect(signet).toContainText('3 owned');
   await expect(signet).toContainText('1 free');
   await expect(signet).toHaveAttribute('aria-selected', 'true');
-  await expect(options(page).nth(1)).toContainText('Arcane Denial');
+  await expect(options(page).nth(1)).toContainText('Ember Rebuke');
 });
 
 test('Enter opens the highlighted card, and ↑/↓ move the highlight', async ({ page }) => {
   await mockApi(page);
   await page.goto('/');
-  await searchBox(page).fill('arcane');
-  await expect(options(page)).toHaveCount(arcaneSearch.results.length);
+  await searchBox(page).fill('ember');
+  await expect(options(page)).toHaveCount(emberSearch.results.length);
 
   await searchBox(page).press('ArrowDown');
   await expect(options(page).nth(1)).toHaveAttribute('aria-selected', 'true');
@@ -61,8 +61,8 @@ test('Enter opens the highlighted card, and ↑/↓ move the highlight', async (
   await searchBox(page).press('ArrowDown');
 
   await searchBox(page).press('Enter');
-  await expect(page).toHaveURL(`/cards/${arcaneSignet.oracleId}`);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Arcane Signet');
+  await expect(page).toHaveURL(`/cards/${emberSignet.id}`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ember Signet');
   await expect(page.getByRole('listbox')).toBeHidden();
   await expect(searchBox(page)).toHaveValue('');
 });
@@ -70,15 +70,15 @@ test('Enter opens the highlighted card, and ↑/↓ move the highlight', async (
 test('clicking a result opens its card page', async ({ page }) => {
   await mockApi(page);
   await page.goto('/');
-  await searchBox(page).fill('arcane');
+  await searchBox(page).fill('ember');
   await options(page).first().click();
-  await expect(page).toHaveURL(`/cards/${arcaneSignet.oracleId}`);
+  await expect(page).toHaveURL(`/cards/${emberSignet.id}`);
 });
 
 test('Esc closes the list', async ({ page }) => {
   await mockApi(page);
   await page.goto('/');
-  await searchBox(page).fill('arcane');
+  await searchBox(page).fill('ember');
   await expect(options(page).first()).toBeVisible();
   await searchBox(page).press('Escape');
   await expect(page.getByRole('listbox')).toBeHidden();
@@ -109,12 +109,12 @@ test('/ focuses the box from another screen, but not from a text field', async (
 test('while card data first loads, the box says so', async ({ page }) => {
   await mockApi(page, cardDataStatusSamples.downloading);
   let searched = false;
-  await page.route(/\/api\/cards\/search\?/, (route) => {
+  await page.route(/\/api\/cards\?/, (route) => {
     searched = true;
-    return route.fulfill({ json: arcaneSearch });
+    return route.fulfill({ json: emberSearch });
   });
   await page.goto('/');
-  await searchBox(page).fill('arcane');
+  await searchBox(page).fill('ember');
   await expect(page.getByRole('status').filter({ hasText: 'Card data is loading' })).toBeVisible();
   await expect(page.getByRole('option')).toHaveCount(0);
   expect(searched).toBe(false);
@@ -122,19 +122,15 @@ test('while card data first loads, the box says so', async ({ page }) => {
 
 test('the card page shows the header, counts, image and printings', async ({ page }) => {
   await mockApi(page);
-  await page.goto(`/cards/${arcaneSignet.oracleId}`);
+  await page.goto(`/cards/${emberSignet.id}`);
   const main = page.getByRole('main');
 
-  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Arcane Signet');
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Ember Signet');
   await expect(main.getByRole('heading', { level: 1 })).toHaveCSS(
     'font-family',
     /^"Instrument Serif"/,
   );
-  // The Copies table below has its own mana costs, so look in the header only.
-  const header = main.locator('header');
-  await expect(header.locator('i.ms.ms-cost.ms-2')).toHaveCount(1);
-  await expect(header.getByText('Mana cost {2}')).toBeAttached();
-  await expect(main.getByText('Artifact', { exact: true })).toBeVisible();
+  await expect(main.locator('header').getByText('Gear', { exact: true })).toBeVisible();
 
   await expect(main.locator('[data-count="owned"]')).toHaveText(/^\s*Owned, 1 proxy\s*3\s*$/);
   await expect(main.locator('[data-count="in-decks"]')).toContainText('2');
@@ -149,13 +145,13 @@ test('the card page shows the header, counts, image and printings', async ({ pag
   await expect(dialog).toBeHidden();
   await expect(main.getByRole('link', { name: 'History' })).toHaveAttribute(
     'href',
-    `/history?card=${arcaneSignet.oracleId}`,
+    `/history?card=${emberSignet.id}`,
   );
 
   // The whole card, at its own shape, to the right of the header.
-  const image = main.getByRole('img', { name: 'Arcane Signet' });
+  const image = main.getByRole('img', { name: 'Ember Signet' });
   await expect(image).toBeVisible();
-  await expect(image).toHaveAttribute('src', arcaneSignet.imageNormal ?? '');
+  await expect(image).toHaveAttribute('src', emberSignet.imageUrl ?? '');
   await expect(image).toHaveCSS('object-fit', 'contain');
   const imageBox = await image.boundingBox();
   const headingBox = await main.getByRole('heading', { level: 1 }).boundingBox();
@@ -163,31 +159,31 @@ test('the card page shows the header, counts, image and printings', async ({ pag
   expect(imageBox && Math.abs(imageBox.width / imageBox.height - 488 / 680)).toBeLessThan(0.01);
 
   const rows = main.getByRole('table').first().locator('tbody tr');
-  await expect(rows).toHaveCount(arcaneSignetDetails.printings.length);
-  await expect(rows.first()).toContainText('Edge of Eternities Commander');
-  await expect(rows.first()).toContainText('#53');
-  await expect(rows.first()).toContainText('Nonfoil');
-  await expect(rows.first().locator('i.ss.ss-eoc.ss-common')).toHaveCount(1);
-  await expect(rows.nth(1)).toContainText('Commander Masters');
-  await expect(rows.nth(1)).toContainText('Nonfoil, Foil');
+  await expect(rows).toHaveCount(emberSignetDetails.printings.length);
+  await expect(rows.first()).toContainText('Origins');
+  await expect(rows.first()).toContainText('OGN-053/298');
+  await expect(rows.first()).toContainText('Normal');
+  await expect(rows.nth(1)).toContainText('Vendetta');
+  await expect(rows.nth(1)).toContainText('Normal, Foil');
 
   await expect(main.getByRole('heading', { name: 'Copies' })).toBeVisible();
   await expect(main.getByRole('heading', { name: 'Decks' })).toBeVisible();
 });
 
-test('a double-faced card shows its full name', async ({ page }) => {
+test('a card shows its domains and type line', async ({ page }) => {
   await mockApi(page);
-  await page.goto(`/cards/${harmonizedTrio.oracleId}`);
+  await page.goto(`/cards/${gildedWhelp.id}`);
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Harmonized Trio // Brainstorm');
-  await expect(main.getByRole('img', { name: 'Harmonized Trio // Brainstorm' })).toBeVisible();
-  await expect(main.locator('i.ms.ms-cost.ms-u')).toHaveCount(2);
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Gilded Whelp');
+  await expect(main.getByRole('img', { name: 'Gilded Whelp' })).toBeVisible();
+  await expect(main.locator('header').getByRole('img', { name: 'Mind' })).toBeVisible();
+  await expect(main.locator('header').getByText('Unit', { exact: true })).toBeVisible();
   await expect(main.locator('[data-count="owned"]')).toHaveText(/^\s*Owned\s*1\s*$/);
 });
 
 test('a card the card data lacks says so', async ({ page }) => {
   await mockApi(page);
-  const missing = '11111111-2222-4333-8444-555555555555';
+  const missing = 999;
   await page.route(`**/api/cards/${missing}`, (route) =>
     route.fulfill({ status: 404, json: cardNotFoundError }),
   );

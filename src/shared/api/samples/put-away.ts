@@ -1,46 +1,46 @@
 import type { ErrorBody } from '../common';
 import type { PutAwayResponse, ReturnResult } from '../put-away';
-import { cards, decks, inHearthhullBox, locations, printings, putAwayLine } from './hearthhull';
+import { cards, decks, inJinxBurnBox, locations, printings, putAwayLine } from './jinx-burn';
 
-// What GET /api/decks/1/put-away answers for the partly assembled Hearthhull deck, and what
+// What GET /api/decks/1/put-away answers for the partly assembled Jinx Burn deck, and what
 // POST /api/decks/1/returns answers.
 
-const { toSort, blackGreen, lands, raresBinder } = locations;
+const { toSort, chaosCalm, lands, raresBinder } = locations;
 
 export const putAwaySample: PutAwayResponse = {
-  deck: { ...decks.hearthhull, state: 'partly_assembled' },
+  deck: { ...decks.jinxBurn, state: 'partly_assembled' },
   groups: [
     {
       // A proxy added straight into the box has no came-from location, so it goes to the inbox.
       location: toSort,
       lines: [
         putAwayLine(
-          inHearthhullBox(301, cards.braids, printings.braidsEoc, null, { isProxy: true }),
+          inJinxBurnBox(301, cards.volibearPathfinder, printings.volibearPathfinderOgn, null, {
+            isProxy: true,
+          }),
         ),
       ],
     },
     {
-      location: blackGreen,
+      location: chaosCalm,
       lines: [
-        putAwayLine(inHearthhullBox(302, cards.farseek, printings.farseekEoc, blackGreen)),
-        putAwayLine(inHearthhullBox(303, cards.naturesLore, printings.naturesLoreEoc, blackGreen)),
-        putAwayLine(
-          inHearthhullBox(304, cards.nightsWhisper, printings.nightsWhisperEoc, blackGreen),
-        ),
+        putAwayLine(inJinxBurnBox(302, cards.ironInsight, printings.ironInsightOgn, chaosCalm)),
+        putAwayLine(inJinxBurnBox(303, cards.dawnMend, printings.dawnMendOgn, chaosCalm)),
+        putAwayLine(inJinxBurnBox(304, cards.sunkenEdict, printings.sunkenEdictOgn, chaosCalm)),
       ],
     },
     {
       location: lands,
       lines: [
-        putAwayLine(inHearthhullBox(305, cards.bojukaBog, printings.bojukaBogEoc, lands)),
-        putAwayLine(inHearthhullBox(306, cards.cinderGlade, printings.cinderGladeEoc, lands)),
+        putAwayLine(inJinxBurnBox(305, cards.eagerSteppe, printings.eagerSteppeOgn, lands)),
+        putAwayLine(inJinxBurnBox(306, cards.weatheredCanyon, printings.weatheredCanyonOgn, lands)),
       ],
     },
     {
       location: raresBinder,
       lines: [
         putAwayLine(
-          inHearthhullBox(307, cards.hearthhull, printings.hearthhullEoc, raresBinder, {
+          inJinxBurnBox(307, cards.jinxBurn, printings.jinxBurnOgn, raresBinder, {
             finish: 'foil',
           }),
         ),
@@ -52,7 +52,7 @@ export const putAwaySample: PutAwayResponse = {
 
 /** Ticking one line. */
 export const returnResultSample: ReturnResult = {
-  message: 'Returned Farseek to Long box › Black & Green',
+  message: 'Returned Iron Insight to Long box › Chaos & Calm',
   batchId: 32,
   movementIds: [415],
 };

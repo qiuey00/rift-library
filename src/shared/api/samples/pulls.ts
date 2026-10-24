@@ -1,28 +1,28 @@
 import type { ErrorBody } from '../common';
 import type { ProxyResult, PullResult } from '../pulls';
-import { decks } from './hearthhull';
+import { decks } from './jinx-burn';
 
-// What POST /api/decks/1/pulls and /proxies answer while Jeff walks the Hearthhull pick list.
+// What POST /api/decks/1/pulls and /proxies answer while Jeff walks the Jinx Burn pick list.
 
 /** Ticking a line for a copy in storage. */
 export const pullResultSample: PullResult = {
-  message: 'Pulled Infernal Grasp into Hearthhull deck box',
+  message: 'Pulled Fierce Blast into Jinx Burn deck box',
   batchId: 31,
   movementId: 412,
   otherDeck: null,
 };
 
-/** Ticking the line for the Arcane Signet in the Atraxa deck box. */
+/** Ticking the line for the Ember Signet in the Lux Control deck box. */
 export const pullFromOtherDeckResultSample: PullResult = {
-  message: 'Pulled Arcane Signet into Hearthhull deck box. Atraxa is now partly assembled.',
+  message: 'Pulled Ember Signet into Jinx Burn deck box. Lux Control is now partly assembled.',
   batchId: 31,
   movementId: 413,
-  otherDeck: decks.atraxa,
+  otherDeck: decks.luxControl,
 };
 
-/** Add proxy on the missing Soul of Windgrace. */
+/** Add proxy on the missing Swift Ox. */
 export const proxyResultSample: ProxyResult = {
-  message: 'Added a proxy of Soul of Windgrace to Hearthhull deck box',
+  message: 'Added a proxy of Swift Ox to Jinx Burn deck box',
   batchId: 31,
   movementId: 414,
 };

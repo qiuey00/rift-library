@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { LocationIdParams } from '../../shared/api/locations';
-import { LocationStacksQuery, OracleIdParams, StacksQuery } from '../../shared/api/stacks';
+import { CardIdParams, LocationStacksQuery, StacksQuery } from '../../shared/api/stacks';
 import { parseCollectionQuery } from '../../shared/collection-query';
 import { getDb } from '../db/database';
 import { cardCopies, locationStacks, searchStacks } from '../queries/stacks';
@@ -28,6 +28,6 @@ export const stacksRoutes = new Hono()
         ),
       ),
   )
-  .get('/cards/:oracleId/copies', validate('param', OracleIdParams), (c) =>
-    c.json(cardCopies(getDb(), c.req.valid('param').oracleId)),
+  .get('/cards/:id/copies', validate('param', CardIdParams), (c) =>
+    c.json(cardCopies(getDb(), c.req.valid('param').id)),
   );

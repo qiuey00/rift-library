@@ -1,25 +1,27 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { type APIRequestContext, expect, type Locator, type Page, test } from '@playwright/test';
+import type { Board, Finish } from '../../../src/shared/api/common';
 import type { LocationTree } from '../../../src/shared/api/locations';
 
 // Jeff's main journeys through the real app and server, with no API mocks: set up storage,
 // add a collection and a deck, assemble it from the pick list, take it apart, undo, change it
 // through the swap list and delete a deck. The journeys share one database, so they run in
-// order and each starts where the one before stopped. The cards are Magic stand-ins until
-// the Riftbound flows (#26).
+// order and each starts where the one before stopped. The deck is a stand-in until the
+// Riftbound flows (#26).
 //
-// flow-collection.json holds the Hearthhull deck's list and its nonbasic cards in two groups,
-// Spells (58 cards) and Lands (25), less Worldsoul's Rage, which is added as a proxy. It has
-// two Sol Rings, a Command Tower in each group and a proxy Beast Within next to a real one,
-// plus Tymna the Weaver for the second deck and Primeval Titan and Seven Dwarves to swap in.
+// flow-collection.json holds the Jinx Burn deck's list and its cards other than runes in two
+// groups, Spells (58 cards) and Lands (25), less Wary Sweep, which is added as a proxy. It has
+// two Sun Discs, a Targon's Peak in each group and a proxy Unbound Volley next to a real one,
+// plus Lee Sin, Blind Monk for the second deck and Solar Adept and Proud Trapper to swap in
+// (both in Jinx's domains, Fury and Chaos, so the deck's Add card search finds them).
 
 type FlowCollection = {
   copies: {
     name: string;
     printingId: string;
     quantity: number;
-    finish: 'nonfoil' | 'foil' | 'etched';
+    finish: Finish;
     condition: string;
     language: string;
     isProxy: boolean;
@@ -27,8 +29,8 @@ type FlowCollection = {
   }[];
   deck: {
     name: string;
-    oracleId: string;
-    board: 'commander' | 'main' | 'maybe';
+    cardId: number;
+    board: Board;
     quantity: number;
   }[];
 };
@@ -58,7 +60,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 /** The deck ids the journeys create, in the order they are made. */
-const decks = { hearthhull: 0, tymna: 0 };
+const decks = { jinxBurn: 0, leeSinBlindMonk: 0 };
 
 const deckHeader = (page: Page) => page.getByRole('region', { name: 'Deck header' });
 /** A deck view row, found by the card's exact name. */
@@ -155,118 +157,118 @@ test('1. storage is set up and the collection added to it', async ({ page }) => 
   await expect(storageCount(page, 'Back row')).toHaveText('0');
 });
 
-test('2. the Hearthhull deck is added with statuses and paths', async ({ page }) => {
-  const [commander, ...slots] = flow.deck;
+test('2. the Jinx Burn deck is added with statuses and paths', async ({ page }) => {
+  const [legend, ...slots] = flow.deck;
   const deck = await call<{ id: number }>(page.request, 'post', '/api/decks', {
-    name: 'Hearthhull',
-    commanders: [commander?.oracleId],
+    name: 'Jinx Burn',
+    legendId: legend?.cardId,
   });
-  decks.hearthhull = deck.id;
-  for (const { oracleId, board, quantity } of slots) {
-    await call(page.request, 'post', `/api/decks/${deck.id}/slots`, { oracleId, board, quantity });
+  decks.jinxBurn = deck.id;
+  for (const { cardId, board, quantity } of slots) {
+    await call(page.request, 'post', `/api/decks/${deck.id}/slots`, { cardId, board, quantity });
   }
-  await page.goto(`/decks/${decks.hearthhull}`);
+  await page.goto(`/decks/${decks.jinxBurn}`);
 
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hearthhull');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Jinx Burn');
   await expect(deckHeader(page)).toContainText('Not assembled');
-  await expect(deckRow(page, 'Cultivate')).toContainText('Free');
-  await expect(deckRow(page, 'Cultivate')).toContainText(FRONT_ROW);
-  await expect(deckRow(page, 'Cinder Glade')).toContainText('Free');
-  await expect(deckRow(page, 'Cinder Glade')).toContainText(LANDS_BINDER);
-  // Command Tower is in both binders.
-  await expect(deckRow(page, 'Command Tower')).toContainText('+1 more');
-  await expect(deckRow(page, "Worldsoul's Rage")).toContainText('Missing');
-  await expect(deckRow(page, 'Forest')).toContainText('Basic');
+  await expect(deckRow(page, 'Grim Scheme')).toContainText('Free');
+  await expect(deckRow(page, 'Grim Scheme')).toContainText(FRONT_ROW);
+  await expect(deckRow(page, 'Weathered Canyon')).toContainText('Free');
+  await expect(deckRow(page, 'Weathered Canyon')).toContainText(LANDS_BINDER);
+  // Targon's Peak is in both binders.
+  await expect(deckRow(page, "Targon's Peak")).toContainText('+1 more');
+  await expect(deckRow(page, 'Wary Sweep')).toContainText('Missing');
+  await expect(deckRow(page, 'Calm Rune')).toContainText('Rune');
 });
 
-test('3. a second deck sharing Arcane Signet is built in the app and assembled first', async ({
+test('3. a second deck sharing Ember Signet is built in the app and assembled first', async ({
   page,
 }) => {
   await page.goto('/decks/new');
-  await page.getByLabel('Commander', { exact: true }).fill('tymna');
+  await page.getByLabel('Legend', { exact: true }).fill('lee sin');
   await page
-    .getByRole('list', { name: 'Commander results' })
-    .getByRole('button', { name: 'Tymna the Weaver' })
+    .getByRole('list', { name: 'Legend results' })
+    .getByRole('button', { name: 'Lee Sin, Blind Monk' })
     .click();
-  await page.getByLabel('Deck name', { exact: true }).fill('Tymna');
+  await page.getByLabel('Deck name', { exact: true }).fill('Lee Sin Combo');
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page).toHaveURL(/\/decks\/\d+$/);
-  decks.tymna = Number(new URL(page.url()).pathname.split('/').at(-1));
+  decks.leeSinBlindMonk = Number(new URL(page.url()).pathname.split('/').at(-1));
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Edit deck' });
-  await panel.getByLabel('Add card', { exact: true }).fill('arcane signet');
-  await panel.getByRole('button', { name: 'Arcane Signet' }).click();
-  await expect(panel.getByRole('status')).toHaveText('Added Arcane Signet to the main board.');
+  await panel.getByLabel('Add card', { exact: true }).fill('ember signet');
+  await panel.getByRole('button', { name: 'Ember Signet' }).click();
+  await expect(panel.getByRole('status')).toHaveText('Added Ember Signet to the main board.');
   await panel.getByRole('button', { name: 'Done editing' }).click();
-  await expect(deckRow(page, 'Arcane Signet')).toContainText('Free');
+  await expect(deckRow(page, 'Ember Signet')).toContainText('Free');
 
   await deckHeader(page).getByRole('link', { name: 'Assemble' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pick list');
   await tickEveryLine(page, page.locator('[data-slot="walk-list"]'));
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(deckHeader(page)).toContainText('Assembled');
-  await expect(deckRow(page, 'Arcane Signet')).toContainText('In deck box');
+  await expect(deckRow(page, 'Ember Signet')).toContainText('In deck box');
 });
 
-test('4. Hearthhull is assembled from the pick list, borrowing a copy and adding a proxy', async ({
+test('4. Jinx Burn is assembled from the pick list, borrowing a copy and adding a proxy', async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  await page.goto(`/decks/${decks.hearthhull}`);
-  await expect(deckRow(page, 'Arcane Signet')).toContainText('In other deck');
-  await expect(deckRow(page, 'Arcane Signet')).toContainText('Tymna');
+  await page.goto(`/decks/${decks.jinxBurn}`);
+  await expect(deckRow(page, 'Ember Signet')).toContainText('In other deck');
+  await expect(deckRow(page, 'Ember Signet')).toContainText('Lee Sin Combo');
   await deckHeader(page).getByRole('link', { name: 'Assemble' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pick list');
 
   const walk = page.locator('[data-slot="walk-list"]');
   await expect(walk.getByRole('region', { name: 'In other deck boxes' })).toContainText(
-    'Arcane Signet',
+    'Ember Signet',
   );
-  // The real Beast Within is suggested over the proxy next to it.
-  const beastWithin = walk.locator('li[data-walk-line]', { hasText: 'Beast Within' });
-  await expect(beastWithin).not.toContainText('Proxy');
-  await expect(page.getByRole('region', { name: 'Basic lands' })).toContainText(
-    '8 Forest, 3 Mountain, 5 Swamp, 1 Wastes',
+  // The real Unbound Volley is suggested over the proxy next to it.
+  const unboundVolley = walk.locator('li[data-walk-line]', { hasText: 'Unbound Volley' });
+  await expect(unboundVolley).not.toContainText('Proxy');
+  await expect(page.getByRole('region', { name: 'Runes' })).toContainText(
+    '1 Body Rune, 8 Calm Rune, 5 Chaos Rune, 3 Fury Rune',
   );
 
-  await tickEveryLine(page, walk, 'Tymna');
+  await tickEveryLine(page, walk, 'Lee Sin Combo');
 
-  const rage = page.locator('[data-missing-line]', { hasText: "Worldsoul's Rage" });
-  await rage.getByRole('button', { name: 'Add proxy' }).click();
+  const sweep = page.locator('[data-missing-line]', { hasText: 'Wary Sweep' });
+  await sweep.getByRole('button', { name: 'Add proxy' }).click();
   // The deck list has no printing hints, so Jeff picks the proxy's printing.
   const printing = page.getByRole('dialog', {
-    name: "Pick a printing for the Worldsoul's Rage proxy",
+    name: 'Pick a printing for the Wary Sweep proxy',
   });
-  await printing.getByRole('button', { name: /^EOC #130/ }).click();
-  await expect(rage).toContainText('Proxy added to the deck box');
+  await printing.getByRole('button', { name: /^OGN-130\/298/ }).click();
+  await expect(sweep).toContainText('Proxy added to the deck box');
 
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(deckHeader(page)).toContainText('Assembled');
-  await expect(deckRow(page, "Worldsoul's Rage")).toContainText('Proxy');
+  await expect(deckRow(page, 'Wary Sweep')).toContainText('Proxy');
 
-  await page.goto(`/decks/${decks.tymna}`);
+  await page.goto(`/decks/${decks.leeSinBlindMonk}`);
   await expect(deckHeader(page)).toContainText('Partly assembled');
 });
 
-test('5. taking Hearthhull apart puts every copy back where it came from', async ({ page }) => {
+test('5. taking Jinx Burn apart puts every copy back where it came from', async ({ page }) => {
   test.setTimeout(120_000);
-  await page.goto(`/decks/${decks.hearthhull}`);
+  await page.goto(`/decks/${decks.jinxBurn}`);
   await deckHeader(page).getByRole('link', { name: 'Take apart' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Take apart Hearthhull');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Take apart Jinx Burn');
   const group = (name: string) => page.getByRole('region', { name, exact: true });
-  await expect(group('To sort')).toContainText("Worldsoul's Rage");
+  await expect(group('To sort')).toContainText('Wary Sweep');
   // The borrowed copy goes back to its storage spot, not to the deck it was borrowed from.
-  await expect(group(FRONT_ROW)).toContainText('Arcane Signet');
-  await expect(page.getByRole('region', { name: /Tymna/ })).toHaveCount(0);
+  await expect(group(FRONT_ROW)).toContainText('Ember Signet');
+  await expect(page.getByRole('region', { name: /Lee Sin Combo/ })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'More for Farseek' }).click();
+  await page.getByRole('button', { name: 'More for Iron Insight' }).click();
   await page.getByRole('menuitem', { name: 'Send elsewhere' }).click();
-  const sendDialog = page.getByRole('dialog', { name: 'Send Farseek elsewhere' });
+  const sendDialog = page.getByRole('dialog', { name: 'Send Iron Insight elsewhere' });
   await sendDialog.getByLabel('Location').click();
   await page.getByRole('option', { name: 'Back row', exact: true }).click();
   await sendDialog.getByRole('button', { name: 'Send here' }).click();
-  await expect(group(BACK_ROW)).toContainText('Farseek');
+  await expect(group(BACK_ROW)).toContainText('Iron Insight');
 
   await page.getByRole('button', { name: 'Return all' }).click();
   const confirm = page.getByRole('dialog', { name: 'Return 78 cards?' });
@@ -278,7 +280,7 @@ test('5. taking Hearthhull apart puts every copy back where it came from', async
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(deckHeader(page)).toContainText('Not assembled');
 
-  // Storage holds what it held before, less Tymna (in its deck box) and Farseek (sent on).
+  // Storage holds what it held before, less Lee Sin Combo (in its deck box) and Iron Insight (sent on).
   await page.goto('/locations');
   await expect(storageCount(page, 'Front row')).toHaveText(String(SPELLS_CARDS - 2));
   await expect(storageCount(page, LANDS_BINDER)).toHaveText(String(LANDS_CARDS));
@@ -287,33 +289,33 @@ test('5. taking Hearthhull apart puts every copy back where it came from', async
     '1',
   );
 
-  const signet = await copiesOf(page, decks.hearthhull, 'Arcane Signet');
+  const signet = await copiesOf(page, decks.jinxBurn, 'Ember Signet');
   await expect(signet).toHaveCount(1);
   await expect(signet).toContainText(FRONT_ROW);
-  const tower = await copiesOf(page, decks.hearthhull, 'Command Tower');
+  const tower = await copiesOf(page, decks.jinxBurn, "Targon's Peak");
   await expect(tower).toHaveCount(2);
   await expect(tower.filter({ hasText: LANDS_BINDER })).toHaveCount(1);
   await expect(tower.filter({ hasText: FRONT_ROW })).toHaveCount(1);
-  const solRing = await copiesOf(page, decks.hearthhull, 'Sol Ring');
-  await expect(solRing).toHaveCount(1);
-  await expect(solRing).toContainText(FRONT_ROW);
-  const farseek = await copiesOf(page, decks.hearthhull, 'Farseek');
-  await expect(farseek).toContainText(BACK_ROW);
-  const rage = await copiesOf(page, decks.hearthhull, "Worldsoul's Rage");
-  await expect(rage).toContainText('To sort');
-  await expect(rage).toContainText('Proxy');
+  const sunDisc = await copiesOf(page, decks.jinxBurn, 'Sun Disc');
+  await expect(sunDisc).toHaveCount(1);
+  await expect(sunDisc).toContainText(FRONT_ROW);
+  const ironInsight = await copiesOf(page, decks.jinxBurn, 'Iron Insight');
+  await expect(ironInsight).toContainText(BACK_ROW);
+  const sweep = await copiesOf(page, decks.jinxBurn, 'Wary Sweep');
+  await expect(sweep).toContainText('To sort');
+  await expect(sweep).toContainText('Proxy');
 });
 
 test('6. undoing a pull from History puts the copy back and unfills the slot', async ({ page }) => {
   test.setTimeout(120_000);
-  // Assemble Hearthhull again; the proxy is now a free copy in To sort.
-  await page.goto(`/decks/${decks.hearthhull}/assemble`);
+  // Assemble Jinx Burn again; the proxy is now a free copy in To sort.
+  await page.goto(`/decks/${decks.jinxBurn}/assemble`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pick list');
   await expect(page.locator('[data-missing-line]')).toHaveCount(0);
   await tickEveryLine(page, page.locator('[data-slot="walk-list"]'));
-  await page.goto(`/decks/${decks.hearthhull}`);
+  await page.goto(`/decks/${decks.jinxBurn}`);
   await expect(deckHeader(page)).toContainText('Assembled');
-  await expect(deckRow(page, 'Cultivate')).toContainText('In deck box');
+  await expect(deckRow(page, 'Grim Scheme')).toContainText('In deck box');
 
   await page.goto('/history');
   const pickList = page
@@ -321,20 +323,20 @@ test('6. undoing a pull from History puts the copy back and unfills the slot', a
     .filter({ has: page.getByRole('button', { name: /^Show the moves in Pick list/ }) })
     .first();
   await pickList.getByRole('button', { name: /^Show the moves in Pick list/ }).click();
-  await pickList.getByRole('button', { name: 'Undo this move of Cultivate' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Cultivate' })).toBeVisible();
+  await pickList.getByRole('button', { name: 'Undo this move of Grim Scheme' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Grim Scheme' })).toBeVisible();
 
-  await page.goto(`/decks/${decks.hearthhull}`);
+  await page.goto(`/decks/${decks.jinxBurn}`);
   await expect(deckHeader(page)).toContainText('Partly assembled');
-  await expect(deckRow(page, 'Cultivate')).toContainText('Free');
-  await expect(deckRow(page, 'Cultivate')).toContainText(FRONT_ROW);
-  const cultivate = await copiesOf(page, decks.hearthhull, 'Cultivate');
-  await expect(cultivate).toHaveCount(1);
-  await expect(cultivate).toContainText(FRONT_ROW);
+  await expect(deckRow(page, 'Grim Scheme')).toContainText('Free');
+  await expect(deckRow(page, 'Grim Scheme')).toContainText(FRONT_ROW);
+  const grimScheme = await copiesOf(page, decks.jinxBurn, 'Grim Scheme');
+  await expect(grimScheme).toHaveCount(1);
+  await expect(grimScheme).toContainText(FRONT_ROW);
 });
 
 test('7. after re-assembling, changing two cards goes through the swap list', async ({ page }) => {
-  await page.goto(`/decks/${decks.hearthhull}/assemble`);
+  await page.goto(`/decks/${decks.jinxBurn}/assemble`);
   const walk = page.locator('[data-slot="walk-list"]');
   await expect(walk.locator('li[data-walk-line]')).toHaveCount(1);
   await tickEveryLine(page, walk);
@@ -342,13 +344,13 @@ test('7. after re-assembling, changing two cards goes through the swap list', as
   await expect(deckHeader(page)).toContainText('Assembled');
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
-  for (const name of ['Tireless Tracker', 'Mayhem Devil']) {
+  for (const name of ['Vast Scout', 'Rogue Captain']) {
     await page.getByRole('button', { name: `Edit ${name}` }).click();
     await page.getByRole('menuitem', { name: 'Remove' }).click();
     await expect(deckRow(page, name)).toHaveCount(0);
   }
   const panel = page.getByRole('region', { name: 'Edit deck' });
-  for (const name of ['Primeval Titan', 'Seven Dwarves']) {
+  for (const name of ['Solar Adept', 'Proud Trapper']) {
     await panel.getByLabel('Add card', { exact: true }).fill(name.toLowerCase());
     await panel.getByRole('button', { name }).click();
     await expect(panel.getByRole('status')).toHaveText(`Added ${name} to the main board.`);
@@ -359,45 +361,45 @@ test('7. after re-assembling, changing two cards goes through the swap list', as
     .getByRole('link', { name: 'Open swap list' })
     .click();
 
-  await expect(page).toHaveURL(`/decks/${decks.hearthhull}/swap`);
+  await expect(page).toHaveURL(`/decks/${decks.jinxBurn}/swap`);
   const takeOut = page.getByRole('region', { name: 'Take out', exact: true });
   const pullIn = page.getByRole('region', { name: 'Pull in', exact: true });
-  await expect(takeOut.getByRole('region', { name: FRONT_ROW })).toContainText('Tireless Tracker');
-  await expect(takeOut.getByRole('region', { name: FRONT_ROW })).toContainText('Mayhem Devil');
-  await expect(pullIn.getByRole('region', { name: FRONT_ROW })).toContainText('Primeval Titan');
-  await expect(pullIn.getByRole('region', { name: FRONT_ROW })).toContainText('Seven Dwarves');
+  await expect(takeOut.getByRole('region', { name: FRONT_ROW })).toContainText('Vast Scout');
+  await expect(takeOut.getByRole('region', { name: FRONT_ROW })).toContainText('Rogue Captain');
+  await expect(pullIn.getByRole('region', { name: FRONT_ROW })).toContainText('Solar Adept');
+  await expect(pullIn.getByRole('region', { name: FRONT_ROW })).toContainText('Proud Trapper');
   await tickEveryLine(page, takeOut);
   await tickEveryLine(page, pullIn);
   await expect(page.getByText('2 of 2 taken out · 2 of 2 pulled in')).toBeVisible();
   await page.getByRole('link', { name: 'Done' }).click();
 
-  await expect(page).toHaveURL(`/decks/${decks.hearthhull}`);
+  await expect(page).toHaveURL(`/decks/${decks.jinxBurn}`);
   await expect(deckHeader(page)).toContainText('Assembled');
   await expect(page.getByRole('status', { name: 'Swap list' })).toHaveCount(0);
-  await expect(deckRow(page, 'Primeval Titan')).toContainText('In deck box');
-  await expect(deckRow(page, 'Tireless Tracker')).toHaveCount(0);
+  await expect(deckRow(page, 'Solar Adept')).toContainText('In deck box');
+  await expect(deckRow(page, 'Vast Scout')).toHaveCount(0);
 });
 
 test('8. deleting the second deck puts its cards away first', async ({ page }) => {
-  await page.goto(`/decks/${decks.tymna}`);
-  const tymnaPage = await deckRow(page, 'Tymna the Weaver')
-    .getByRole('link', { name: 'Tymna the Weaver', exact: true })
+  await page.goto(`/decks/${decks.leeSinBlindMonk}`);
+  const leeSinBlindMonkPage = await deckRow(page, 'Lee Sin, Blind Monk')
+    .getByRole('link', { name: 'Lee Sin, Blind Monk', exact: true })
     .getAttribute('href');
   await deckHeader(page).getByRole('button', { name: 'More actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete deck' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Delete Tymna?' });
+  const dialog = page.getByRole('dialog', { name: 'Delete Lee Sin Combo?' });
   await expect(dialog).toContainText('Its deck box holds 1 card.');
   await dialog.getByRole('button', { name: 'Put cards away' }).click();
 
   await expect(page.getByRole('note')).toHaveText('Put these cards away to delete the deck');
   await expect(page.getByRole('region', { name: FRONT_ROW, exact: true })).toContainText(
-    'Tymna the Weaver',
+    'Lee Sin, Blind Monk',
   );
-  await page.getByRole('checkbox', { name: '1 Tymna the Weaver' }).click();
+  await page.getByRole('checkbox', { name: '1 Lee Sin, Blind Monk' }).click();
   await expect(page).toHaveURL('/');
-  await expect(page.getByRole('link', { name: /Tymna/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Lee Sin Combo/ })).toHaveCount(0);
 
-  await page.goto(tymnaPage ?? '');
+  await page.goto(leeSinBlindMonkPage ?? '');
   const copies = page.getByRole('region', { name: 'Copies' }).locator('tbody tr[data-stack-id]');
   await expect(copies).toHaveCount(1);
   await expect(copies).toContainText(FRONT_ROW);

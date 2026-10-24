@@ -4,7 +4,7 @@ import type { SlotRow } from '../../shared/api/decks';
 // status, location and count comes from the server.
 
 export type GroupBy = 'type' | 'where' | 'tag';
-export type SortBy = 'name' | 'mana_value';
+export type SortBy = 'name' | 'energy';
 /** Which cards the deck view shows: every card, cards with no tag, or cards with one tag (by tag key). */
 export type TagFilter = { kind: 'any' } | { kind: 'untagged' } | { kind: 'tag'; key: string };
 
@@ -16,36 +16,27 @@ export type SlotGroup = {
   slots: SlotRow[];
 };
 
-/** The type groups after Commander, in deck list order. A card goes in the first its front face matches. */
-const cardTypes = [
-  ['Creature', 'Creatures'],
-  ['Planeswalker', 'Planeswalkers'],
-  ['Battle', 'Battles'],
-  ['Instant', 'Instants'],
-  ['Sorcery', 'Sorceries'],
-  ['Artifact', 'Artifacts'],
-  ['Enchantment', 'Enchantments'],
-  ['Land', 'Lands'],
-] as const;
-
-/** The card types on a card's front face, such as ["Legendary", "Artifact"] for "Legendary Artifact — Spacecraft". */
-function frontFaceTypes(typeLine: string): string[] {
-  const front = typeLine.split(' // ')[0] ?? '';
-  const types = front.split(' — ')[0] ?? '';
-  return types.split(/\s+/);
-}
+/** The boards that are a group of their own under Type, rather than grouped by card type. */
+const ownGroupBoards = ['legend', 'champion', 'battlefield', 'rune', 'sideboard'] as const;
 
 function typeGroupKey(slot: SlotRow): string {
-  if (slot.board === 'commander') return 'commander';
-  const types = frontFaceTypes(slot.card.typeLine);
-  const match = cardTypes.find(([type]) => types.includes(type));
-  return match ? match[0] : 'other';
+  const board = ownGroupBoards.find((b) => b === slot.board);
+  if (board) return board;
+  const { type } = slot.card;
+  return type === 'unit' || type === 'spell' || type === 'gear' ? type : 'other';
 }
 
+/** The Type groups in deck list order: the Legend and Chosen Champion first, the main deck by card type, then the other boards. */
 const typeGroups: [string, string][] = [
-  ['commander', 'Commander'],
-  ...cardTypes.map(([key, title]): [string, string] => [key, title]),
+  ['legend', 'Legend'],
+  ['champion', 'Chosen Champion'],
+  ['unit', 'Units'],
+  ['spell', 'Spells'],
+  ['gear', 'Gear'],
   ['other', 'Other'],
+  ['battlefield', 'Battlefields'],
+  ['rune', 'Runes'],
+  ['sideboard', 'Sideboard'],
 ];
 
 function whereGroupKey(slot: SlotRow): string {
@@ -57,7 +48,7 @@ const whereGroups: [string, string][] = [
   ['free', 'Free in storage'],
   ['other_decks', 'Only in other decks'],
   ['missing', 'Missing'],
-  ['basic', 'Basic lands'],
+  ['rune', 'Runes'],
 ];
 
 /** Tags with the same key (lower case, spaces as -) are one tag. */
@@ -84,10 +75,10 @@ function passes(slot: SlotRow, filter: TagFilter): boolean {
 
 const byName = (a: SlotRow, b: SlotRow) => a.card.name.localeCompare(b.card.name);
 
-// The mana value already counts X as 0.
+// Cards with no energy cost (battlefields, runes, the Legend) sort as 0.
 const sorts: Record<SortBy, (a: SlotRow, b: SlotRow) => number> = {
   name: byName,
-  mana_value: (a, b) => a.card.manaValue - b.card.manaValue || byName(a, b),
+  energy: (a, b) => (a.card.energy ?? 0) - (b.card.energy ?? 0) || byName(a, b),
 };
 
 /** Free cards stay in location order: by the path of the best location the server named. */
@@ -136,17 +127,28 @@ function group(key: string, title: string, slots: SlotRow[], compare: Compare): 
 type Compare = (a: SlotRow, b: SlotRow) => number;
 
 /**
- * Commander, then one group per tag by name, then Lands (lands with no tag), then Untagged.
- * A card with several tags shows under each of them.
+ * The Legend and Chosen Champion, then one group per tag by name, then Runes (runes with no
+ * tag), then Untagged. A card with several tags shows under each of them.
  */
 function tagGroups(slots: SlotRow[], sortBy: SortBy): SlotGroup[] {
   const sort = sorts[sortBy];
-  const commanders = slots.filter((slot) => slot.board === 'commander');
-  const cards = slots.filter((slot) => slot.board !== 'commander');
+  const isTop = (slot: SlotRow) => slot.board === 'legend' || slot.board === 'champion';
+  const cards = slots.filter((slot) => !isTop(slot));
   const untagged = cards.filter((slot) => slot.tags.length === 0);
-  const isLand = (slot: SlotRow) => frontFaceTypes(slot.card.typeLine).includes('Land');
+  const isRune = (slot: SlotRow) => slot.card.type === 'rune';
   const groups = [
-    group('commander', 'Commander', commanders, sort),
+    group(
+      'legend',
+      'Legend',
+      slots.filter((slot) => slot.board === 'legend'),
+      sort,
+    ),
+    group(
+      'champion',
+      'Chosen Champion',
+      slots.filter((slot) => slot.board === 'champion'),
+      sort,
+    ),
     ...deckTags(cards).map(({ key, name }) =>
       group(
         `tag:${key}`,
@@ -155,11 +157,11 @@ function tagGroups(slots: SlotRow[], sortBy: SortBy): SlotGroup[] {
         sort,
       ),
     ),
-    group('untagged-lands', 'Lands', untagged.filter(isLand), sort),
+    group('untagged-runes', 'Runes', untagged.filter(isRune), sort),
     group(
       'untagged',
       'Untagged',
-      untagged.filter((slot) => !isLand(slot)),
+      untagged.filter((slot) => !isRune(slot)),
       sort,
     ),
   ];
@@ -182,9 +184,9 @@ function groupsOf(slots: SlotRow[], groupBy: GroupBy, sortBy: SortBy): SlotGroup
 
 /**
  * Copies the slot still lacks: what neither the deck box nor free storage covers. Copies in
- * other decks' boxes cover a slot whose status says so. Zero on the maybe board and for basics.
+ * other decks' boxes cover a slot whose status says so. Zero on the maybe board and for runes.
  */
 export function missingQuantity(slot: SlotRow): number {
-  if (slot.status === null || slot.status === 'basic' || slot.status === 'other_decks') return 0;
+  if (slot.status === null || slot.status === 'rune' || slot.status === 'other_decks') return 0;
   return Math.max(0, slot.quantity - slot.inBoxQuantity - slot.where.freeCount);
 }

@@ -1,7 +1,7 @@
 import { expect, type Page, type Request, test } from '@playwright/test';
 import type { CardDetailsResponse } from '../../src/shared/api/cards';
 import type { ProxyRequest, PullRequest } from '../../src/shared/api/pulls';
-import { cards, locations, printings } from '../../src/shared/api/samples/hearthhull';
+import { cards, locations, printings } from '../../src/shared/api/samples/jinx-burn';
 import { pickListSample } from '../../src/shared/api/samples/pick-list';
 import {
   proxyResultSample,
@@ -11,13 +11,13 @@ import {
 } from '../../src/shared/api/samples/pulls';
 import { undoMovementResultSample } from '../../src/shared/api/samples/undo';
 
-// The pick list screen against the API mocked from the samples (deck 1, Hearthhull).
+// The pick list screen against the API mocked from the samples (deck 1, Jinx Burn).
 
 const details = (
   card: (typeof cards)[keyof typeof cards],
   cardPrintings: CardDetailsResponse['printings'],
 ): CardDetailsResponse => ({
-  card: { ...card, keywords: [], commanderLegality: 'legal' },
+  card: { ...card, rulesText: '', deckable: true },
   printings: cardPrintings,
   counts: { owned: 0, proxies: 0, inDecks: 0, free: 0 },
 });
@@ -56,11 +56,11 @@ async function openPickList(page: Page, { stale = false } = {}): Promise<Mock> {
     mock.undone.push(new URL(route.request().url()).pathname);
     return route.fulfill({ json: undoMovementResultSample });
   });
-  await page.route(`**/api/cards/${cards.soulOfWindgrace.oracleId}`, (route) =>
-    route.fulfill({ json: details(cards.soulOfWindgrace, [printings.soulOfWindgraceEoc]) }),
+  await page.route(`**/api/cards/${cards.swiftOx.id}`, (route) =>
+    route.fulfill({ json: details(cards.swiftOx, [printings.swiftOxOgn]) }),
   );
-  await page.route(`**/api/cards/${cards.omnath.oracleId}`, (route) =>
-    route.fulfill({ json: details(cards.omnath, [printings.omnathEoc]) }),
+  await page.route(`**/api/cards/${cards.nasusTrickster.id}`, (route) =>
+    route.fulfill({ json: details(cards.nasusTrickster, [printings.nasusTricksterOgn]) }),
   );
   await page.goto('/decks/1/assemble');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pick list');
@@ -74,27 +74,27 @@ const undoBar = (page: Page) => page.locator('[data-slot="undo-bar"]');
 const isPost = (path: string) => (request: Request) =>
   request.method() === 'POST' && new URL(request.url()).pathname === path;
 
-test('shows each location in order, then other deck boxes, missing cards and basic lands', async ({
+test('shows each location in order, then other deck boxes, missing cards and runes', async ({
   page,
 }) => {
   await openPickList(page);
   const sections = page.locator('[data-slot="walk-group"] h2');
   await expect(sections).toHaveText([
-    'Long box › Black & Green',
-    'Long box › Red & Gold',
+    'Long box › Chaos & Calm',
+    'Long box › Fury & Order',
     'Rares binder',
     'Staples binder',
     'Trade binder',
     'In other deck boxes',
     'Missing',
   ]);
-  await expect(page.getByRole('region', { name: 'Long box › Black & Green' })).toContainText(
+  await expect(page.getByRole('region', { name: 'Long box › Chaos & Calm' })).toContainText(
     'pull 4 here',
   );
-  await expect(page.getByRole('region', { name: 'Basic lands' })).toContainText(
-    '8 Forest, 3 Mountain, 5 Swamp',
+  await expect(page.getByRole('region', { name: 'Runes' })).toContainText(
+    '8 Calm Rune, 3 Fury Rune, 5 Chaos Rune',
   );
-  await expect(line(page, '118-1')).toContainText('Atraxa becomes partly assembled');
+  await expect(line(page, '118-1')).toContainText('Lux Control becomes partly assembled');
 });
 
 test('ticking pulls at once, greys the line and names the move', async ({ page }) => {
@@ -125,8 +125,8 @@ test('unticking undoes that line’s movement', async ({ page }) => {
 
 test('switching copy changes which stack the tick pulls', async ({ page }) => {
   const mock = await openPickList(page);
-  await line(page, '104-1').getByRole('button', { name: 'Switch copy of Infernal Grasp' }).click();
-  const menu = page.getByRole('menu', { name: 'Copies of Infernal Grasp' });
+  await line(page, '104-1').getByRole('button', { name: 'Switch copy of Fierce Blast' }).click();
+  const menu = page.getByRole('menu', { name: 'Copies of Fierce Blast' });
   await expect(menu.getByRole('menuitemradio')).toHaveCount(2);
   await menu.getByRole('menuitemradio', { name: /Staples binder/ }).click();
   await expect(line(page, '104-1')).toContainText('Switched · Staples binder');
@@ -142,19 +142,19 @@ test('a copy from the trade binder says so, on the line and in Switch copy', asy
   await expect(tag(line(page, '116-1'))).toBeVisible();
   await expect(tag(line(page, '104-1'))).toHaveCount(0);
 
-  // Infernal Grasp's other copy moved to the Trade binder.
+  // Fierce Blast's other copy moved to the Trade binder.
   const sample = structuredClone(pickListSample);
   const grasp = sample.pickList.groups[0].lines[0];
   grasp.alternatives[0].location = locations.tradeBinder;
   await page.route('**/api/decks/1/pick-list', (route) => route.fulfill({ json: sample }));
   await page.reload();
-  await line(page, '104-1').getByRole('button', { name: 'Switch copy of Infernal Grasp' }).click();
-  const menu = page.getByRole('menu', { name: 'Copies of Infernal Grasp' });
+  await line(page, '104-1').getByRole('button', { name: 'Switch copy of Fierce Blast' }).click();
+  const menu = page.getByRole('menu', { name: 'Copies of Fierce Blast' });
   await expect(
     menu.getByRole('menuitemradio', { name: /Trade binder/ }).getByText('From trade binder'),
   ).toBeVisible();
   await expect(
-    menu.getByRole('menuitemradio', { name: /Black & Green/ }).getByText('From trade binder'),
+    menu.getByRole('menuitemradio', { name: /Chaos & Calm/ }).getByText('From trade binder'),
   ).toHaveCount(0);
 });
 
@@ -162,9 +162,9 @@ test('pulling a copy from another deck box asks first', async ({ page }) => {
   const mock = await openPickList(page);
   await tickBox(page, '118-1').click();
   const dialog = page.getByRole('dialog', {
-    name: 'Pull Arcane Signet from the Atraxa deck box?',
+    name: 'Pull Ember Signet from the Lux Control deck box?',
   });
-  await expect(dialog).toContainText('Atraxa becomes partly assembled.');
+  await expect(dialog).toContainText('Lux Control becomes partly assembled.');
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
   await expect(tickBox(page, '118-1')).not.toBeChecked();
@@ -185,24 +185,24 @@ test('Add proxy uses the decklist printing, or lets Jeff pick one', async ({ pag
   await expect(soul).toContainText('Proxy added to the deck box');
   await expect(undoBar(page)).toContainText(proxyResultSample.message);
   expect(mock.proxies).toEqual([
-    { slotId: 119, printingId: printings.soulOfWindgraceEoc.printingId, quantity: 1 },
+    { slotId: 119, printingId: printings.swiftOxOgn.printingId, quantity: 1 },
   ]);
 
-  // Omnath has no printing hint, so Jeff picks one; it joins the open batch.
-  const omnath = missing.locator('[data-missing-line="120"]');
-  await omnath.getByRole('button', { name: 'Add proxy' }).click();
+  // Nasus, Trickster has no printing hint, so Jeff picks one; it joins the open batch.
+  const nasusTrickster = missing.locator('[data-missing-line="120"]');
+  await nasusTrickster.getByRole('button', { name: 'Add proxy' }).click();
   const dialog = page.getByRole('dialog', { name: /Pick a printing/ });
-  await dialog.getByRole('button', { name: /EOC #123/ }).click();
-  await expect(omnath).toContainText('Proxy added to the deck box');
+  await dialog.getByRole('button', { name: /OGN-123\/298/ }).click();
+  await expect(nasusTrickster).toContainText('Proxy added to the deck box');
   expect(mock.proxies[1]).toEqual({
     slotId: 120,
-    printingId: printings.omnathEoc.printingId,
+    printingId: printings.nasusTricksterOgn.printingId,
     quantity: 1,
     batchId: 31,
   });
 
   // Removing the proxy undoes its movement.
-  await soul.getByRole('button', { name: 'Remove the proxy of Soul of Windgrace' }).click();
+  await soul.getByRole('button', { name: 'Remove the proxy of Swift Ox' }).click();
   await expect(soul.getByRole('button', { name: 'Add proxy' })).toBeVisible();
   expect(mock.undone).toEqual([`/api/movements/${proxyResultSample.movementId}/undo`]);
 });
@@ -236,19 +236,19 @@ test('a copy that has moved says so and works the pick list out again', async ({
 test('ticks from the keyboard, with progress in the Now picking pane', async ({ page }) => {
   const mock = await openPickList(page);
   const pane = page.getByRole('complementary', { name: 'Now picking' });
-  await expect(pane).toContainText('Long box › Black & Green');
+  await expect(pane).toContainText('Long box › Chaos & Calm');
   await expect(pane).toContainText('Stop 1 of 5');
-  await expect(pane).toContainText('1 Infernal Grasp');
+  await expect(pane).toContainText('1 Fierce Blast');
   await expect(pane).toContainText('0 of 15 pulled');
 
   await page.keyboard.press('Space');
   await expect(tickBox(page, '104-1')).toBeChecked();
   await expect(pane).toContainText('1 of 15 pulled');
-  await expect(pane).toContainText('1 Cultivate');
+  await expect(pane).toContainText('1 Grim Scheme');
 
-  // Skip Cultivate and tick Tireless Tracker.
+  // Skip Grim Scheme and tick Vast Scout.
   await page.keyboard.press('ArrowDown');
-  await expect(pane).toContainText('1 Tireless Tracker');
+  await expect(pane).toContainText('1 Vast Scout');
   await page.keyboard.press('Space');
   await expect(tickBox(page, '106-1')).toBeChecked();
   await expect(pane).toContainText('2 of 15 pulled');

@@ -103,18 +103,18 @@ const key = (k: string) => fireEvent.keyDown(document.body, { key: k });
 describe('WalkList', () => {
   it('renders each group with its tile, path, count and lines', () => {
     render(<Demo />);
-    const blackGreen = screen.getByRole('region', { name: 'Long box › Black & Green' });
-    expect(within(blackGreen).getByRole('heading', { level: 2 }).textContent).toBe(
-      'Long box › Black & Green',
+    const chaosCalm = screen.getByRole('region', { name: 'Long box › Chaos & Calm' });
+    expect(within(chaosCalm).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Long box › Chaos & Calm',
     );
-    expect(blackGreen.querySelector('[data-location-type="box"]')).not.toBeNull();
-    expect(within(blackGreen).getByText('pull 4 here')).toBeTruthy();
-    expect(within(blackGreen).getAllByRole('checkbox')).toHaveLength(4);
+    expect(chaosCalm.querySelector('[data-location-type="box"]')).not.toBeNull();
+    expect(within(chaosCalm).getByText('pull 4 here')).toBeTruthy();
+    expect(within(chaosCalm).getAllByRole('checkbox')).toHaveLength(4);
 
     const names = screen.getAllByRole('region').map((group) => group.getAttribute('aria-label'));
     expect(names).toEqual([
-      'Long box › Black & Green',
-      'Long box › Red & Gold',
+      'Long box › Chaos & Calm',
+      'Long box › Fury & Order',
       'Rares binder',
       'Staples binder',
       'Trade binder',
@@ -124,28 +124,28 @@ describe('WalkList', () => {
 
   it('shows the copy, a card link, Proxy, line actions and the note', () => {
     render(<Demo />);
-    const grasp = row('Infernal Grasp');
+    const grasp = row('Fierce Blast');
     expect(grasp).not.toBeNull();
-    const link = within(grasp as HTMLElement).getByRole('link', { name: 'Infernal Grasp' });
-    expect(link.getAttribute('href')).toBe(`/cards/${pickList.groups[0].lines[0].card.oracleId}`);
-    expect(grasp?.textContent).toMatch(/EOC #\d+ · Nonfoil · Near mint/);
-    expect(grasp?.querySelector('i.ss.ss-eoc')).not.toBeNull();
+    const link = within(grasp as HTMLElement).getByRole('link', { name: 'Fierce Blast' });
+    expect(link.getAttribute('href')).toBe(`/cards/${pickList.groups[0].lines[0].card.id}`);
+    expect(grasp?.textContent).toMatch(/OGN #\d+ · Normal · Near mint/);
+    expect(grasp?.querySelector('[data-set="OGN"]')).not.toBeNull();
     expect(within(grasp as HTMLElement).getByRole('button', { name: /Switch copy/ })).toBeTruthy();
 
-    const korvold = pickList.groups[1].lines[2].card.name;
-    expect(within(row(korvold) as HTMLElement).getByText('Proxy')).toBeTruthy();
-    expect(screen.getByText('Atraxa becomes partly assembled')).toBeTruthy();
+    const dariusAggro = pickList.groups[1].lines[2].card.name;
+    expect(within(row(dariusAggro) as HTMLElement).getByText('Proxy')).toBeTruthy();
+    expect(screen.getByText('Lux Control becomes partly assembled')).toBeTruthy();
   });
 
   it('greys a ticked line and calls onToggle with it', () => {
     const onToggle = vi.fn();
     render(<Demo onToggle={onToggle} />);
-    const checkbox = screen.getByRole('checkbox', { name: '1 Cultivate' });
+    const checkbox = screen.getByRole('checkbox', { name: '1 Grim Scheme' });
     fireEvent.click(checkbox);
     expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ key: allLines[1].key }));
     expect((checkbox as HTMLInputElement).checked).toBe(true);
-    expect(row('Cultivate')?.getAttribute('data-done')).toBe('true');
-    expect(row('Cultivate')?.querySelector('.opacity-50')).not.toBeNull();
+    expect(row('Grim Scheme')?.getAttribute('data-done')).toBe('true');
+    expect(row('Grim Scheme')?.querySelector('.opacity-50')).not.toBeNull();
 
     fireEvent.click(checkbox);
     expect(onToggle).toHaveBeenCalledTimes(2);
@@ -155,19 +155,19 @@ describe('WalkList', () => {
   it('starts on the first unticked line; ↑ / ↓ move and Space ticks', () => {
     const onToggle = vi.fn();
     render(<Demo onToggle={onToggle} />);
-    expect(currentRow()).toBe(row('Infernal Grasp'));
+    expect(currentRow()).toBe(row('Fierce Blast'));
 
     key('ArrowDown');
-    expect(currentRow()).toBe(row('Cultivate'));
+    expect(currentRow()).toBe(row('Grim Scheme'));
     key('ArrowDown');
     key('ArrowUp');
-    expect(currentRow()).toBe(row('Cultivate'));
+    expect(currentRow()).toBe(row('Grim Scheme'));
 
     // Space ticks the current line and walks on to the next unticked one.
     key(' ');
     expect(onToggle).toHaveBeenLastCalledWith(expect.objectContaining({ key: allLines[1].key }));
     expect(
-      (screen.getByRole('checkbox', { name: '1 Cultivate' }) as HTMLInputElement).checked,
+      (screen.getByRole('checkbox', { name: '1 Grim Scheme' }) as HTMLInputElement).checked,
     ).toBe(true);
     expect(currentRow()).toBe(row(allLines[2].card.name));
 
@@ -175,14 +175,14 @@ describe('WalkList', () => {
     key('ArrowUp');
     key(' ');
     expect(
-      (screen.getByRole('checkbox', { name: '1 Cultivate' }) as HTMLInputElement).checked,
+      (screen.getByRole('checkbox', { name: '1 Grim Scheme' }) as HTMLInputElement).checked,
     ).toBe(false);
-    expect(currentRow()).toBe(row('Cultivate'));
+    expect(currentRow()).toBe(row('Grim Scheme'));
 
     // ↑ stops at the first line.
     key('ArrowUp');
     key('ArrowUp');
-    expect(currentRow()).toBe(row('Infernal Grasp'));
+    expect(currentRow()).toBe(row('Fierce Blast'));
   });
 
   it('leaves keys typed in a field alone', () => {
@@ -197,23 +197,23 @@ describe('WalkList', () => {
     fireEvent.keyDown(field, { key: 'ArrowDown' });
     fireEvent.keyDown(field, { key: ' ' });
     expect(onToggle).not.toHaveBeenCalled();
-    expect(currentRow()).toBe(row('Infernal Grasp'));
+    expect(currentRow()).toBe(row('Fierce Blast'));
   });
 
   it('makes a clicked line the current one', () => {
     render(<Demo />);
-    fireEvent.mouseDown(row('Rakdos Charm') as HTMLElement);
-    expect(currentRow()).toBe(row('Rakdos Charm'));
+    fireEvent.mouseDown(row('Twilight Gust') as HTMLElement);
+    expect(currentRow()).toBe(row('Twilight Gust'));
   });
 
   it('shows the card image while the name is hovered', () => {
     render(<Demo />);
-    const grasp = row('Infernal Grasp') as HTMLElement;
-    const link = within(grasp).getByRole('link', { name: 'Infernal Grasp' });
+    const grasp = row('Fierce Blast') as HTMLElement;
+    const link = within(grasp).getByRole('link', { name: 'Fierce Blast' });
     expect(grasp.querySelector('[data-slot="hover-image"]')).toBeNull();
     fireEvent.mouseEnter(link);
     expect(grasp.querySelector('[data-slot="hover-image"]')?.getAttribute('src')).toBe(
-      pickList.groups[0].lines[0].card.imageNormal,
+      pickList.groups[0].lines[0].card.imageUrl,
     );
     fireEvent.mouseLeave(link);
     expect(grasp.querySelector('[data-slot="hover-image"]')).toBeNull();
@@ -229,7 +229,7 @@ describe('WalkList', () => {
     key('ArrowDown');
     key(' ');
     expect(onToggle).not.toHaveBeenCalled();
-    expect(currentRow()).toBe(row('Infernal Grasp'));
+    expect(currentRow()).toBe(row('Fierce Blast'));
   });
 });
 
@@ -255,15 +255,15 @@ describe('NowPickingPane', () => {
   it('follows the current line: location, image and copy', () => {
     render(<Demo />);
     const first = pickList.groups[0].lines[0];
-    expect(within(pane()).getByText('Long box › Black & Green')).toBeTruthy();
+    expect(within(pane()).getByText('Long box › Chaos & Calm')).toBeTruthy();
     expect(within(pane()).getByRole('img', { name: first.card.name }).getAttribute('src')).toBe(
-      first.card.imageNormal,
+      first.card.imageUrl,
     );
 
     // Move to the first line in the next location.
     for (let i = 0; i < 4; i++) key('ArrowDown');
     const next = pickList.groups[1].lines[0];
-    expect(within(pane()).getByText('Long box › Red & Gold')).toBeTruthy();
+    expect(within(pane()).getByText('Long box › Fury & Order')).toBeTruthy();
     expect(within(pane()).getByRole('img', { name: next.card.name })).toBeTruthy();
     expect(within(pane()).getByText('Space')).toBeTruthy();
   });

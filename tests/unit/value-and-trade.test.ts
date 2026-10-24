@@ -3,15 +3,8 @@ import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import {
-  cardDataStatus,
-  cards,
-  copyStacks,
-  decks,
-  locations,
-  printings,
-} from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { cardDataStatus, copyStacks, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { locationTradeFlags } from '../../src/server/queries/locations';
 import { locationWorth, unitPrice } from '../../src/server/queries/value';
 import { ErrorBody, type Finish, type LocationType } from '../../src/shared/api/common';
@@ -41,38 +34,21 @@ beforeEach(() => {
 });
 afterEach(() => db.$client.close());
 
-const oracle = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-
-type Price = { usd?: number; foil?: number; etched?: number };
+type Price = { usd?: number; foil?: number };
 
 function addCard(n: number, name: string, prints: ({ set: string; number: string } & Price)[]) {
-  db.insert(cards)
-    .values({
-      oracleId: oracle(n),
-      name,
-      frontFaceName: name,
-      typeLine: 'Artifact',
-      colorIdentity: '',
-      commanderLegality: 'legal',
-    })
-    .run();
+  insertCard(db, { id: n, name });
   for (const print of prints) {
-    db.insert(printings)
-      .values({
-        printingId: `${name}-${print.set}-${print.number}`,
-        oracleId: oracle(n),
-        setCode: print.set,
-        setName: `Set ${print.set.toUpperCase()}`,
-        collectorNumber: print.number,
-        lang: 'en',
-        finishes: ['nonfoil', 'foil', 'etched'],
-        rarity: 'rare',
-        releasedAt: '2025-01-01',
-        priceUsd: print.usd ?? null,
-        priceUsdFoil: print.foil ?? null,
-        priceUsdEtched: print.etched ?? null,
-      })
-      .run();
+    insertPrinting(db, {
+      riftcodexId: `${name}-${print.set}-${print.number}`,
+      cardId: n,
+      setCode: print.set,
+      setName: `Set ${print.set.toUpperCase()}`,
+      collectorNumber: print.number,
+      rarity: 'rare',
+      priceNormal: print.usd ?? null,
+      priceFoil: print.foil ?? null,
+    });
   }
 }
 
@@ -94,7 +70,7 @@ function addStack(
     .values({
       printingId,
       quantity,
-      finish: details.finish ?? 'nonfoil',
+      finish: details.finish ?? 'normal',
       condition: 'near_mint',
       language: 'en',
       isProxy: details.isProxy ?? false,
@@ -108,34 +84,34 @@ function addStack(
 
 /**
  * A shelf with a trade binder (and a section inside it), a long box, a deck's deck box and
- * the inbox. Sol Ring costs $1.50 ($4.00 foil), Mana Crypt $180 (no foil price), Brainstorm
- * has no prices at all, and Lotus Petal's etched printing is $12.
+ * the inbox. Sun Disc costs $1.50 ($4.00 foil), Mana Crypt $180 (no foil price), Brainstorm
+ * has no prices at all, and Lotus Petal's foil is $12.
  */
 function seed() {
-  addCard(1, 'Sol Ring', [
+  addCard(1, 'Sun Disc', [
     { set: 'eoc', number: '57', usd: 150, foil: 400 },
     { set: 'cmm', number: '410', usd: 120 },
   ]);
   addCard(2, 'Mana Crypt', [{ set: '2xm', number: '270', usd: 18000 }]);
   addCard(3, 'Brainstorm', [{ set: 'ice', number: '61' }]);
-  addCard(4, 'Lotus Petal', [{ set: 'tmp', number: '9', usd: 900, etched: 1200 }]);
+  addCard(4, 'Lotus Petal', [{ set: 'tmp', number: '9', usd: 900, foil: 1200 }]);
 
   const shelf = addLocation('Shelf', 'box');
   const tradeBinder = addLocation('Trade binder', 'binder', shelf);
   const tradePage = addLocation('Page 2', 'tray', tradeBinder);
   const longBox = addLocation('Long box', 'box');
-  const deckBox = addLocation('Atraxa deck box', 'deck_box');
-  db.insert(decks).values({ name: 'Atraxa', deckBoxId: deckBox }).run();
+  const deckBox = addLocation('Lux Control deck box', 'deck_box');
+  db.insert(decks).values({ name: 'Lux Control', deckBoxId: deckBox }).run();
 
   const stacks = {
-    solShelf: addStack('Sol Ring-eoc-57', shelf, 2), // 2 × 150 = 300
-    solFoilTrade: addStack('Sol Ring-eoc-57', tradeBinder, 3, { finish: 'foil' }), // 1200
+    solShelf: addStack('Sun Disc-eoc-57', shelf, 2), // 2 × 150 = 300
+    solFoilTrade: addStack('Sun Disc-eoc-57', tradeBinder, 3, { finish: 'foil' }), // 1200
     cryptFoilTrade: addStack('Mana Crypt-2xm-270', tradeBinder, 1, { finish: 'foil' }), // no price
     cryptProxyPage: addStack('Mana Crypt-2xm-270', tradePage, 2, { isProxy: true }), // 0
     brainstormPage: addStack('Brainstorm-ice-61', tradePage, 4), // no price × 4
-    petalEtchedBox: addStack('Lotus Petal-tmp-9', longBox, 1, { finish: 'etched' }), // 1200
+    petalEtchedBox: addStack('Lotus Petal-tmp-9', longBox, 1, { finish: 'foil' }), // 1200
     cryptInDeck: addStack('Mana Crypt-2xm-270', deckBox, 1, { cameFrom: tradeBinder }), // 18000
-    solCmmInbox: addStack('Sol Ring-cmm-410', inboxId, 5), // 600
+    solCmmInbox: addStack('Sun Disc-cmm-410', inboxId, 5), // 600
     brainstormProxyInbox: addStack('Brainstorm-ice-61', inboxId, 1, { isProxy: true }), // 0
   };
   return { shelf, tradeBinder, tradePage, longBox, deckBox, stacks };
@@ -179,10 +155,10 @@ describe('values', () => {
   });
 
   it('picks the price for the finish', () => {
-    const prices = { priceUsd: 1, priceUsdFoil: 2, priceUsdEtched: null };
-    expect(unitPrice('nonfoil', prices)).toBe(1);
+    const prices = { priceNormal: 1, priceFoil: 2 };
+    expect(unitPrice('normal', prices)).toBe(1);
     expect(unitPrice('foil', prices)).toBe(2);
-    expect(unitPrice('etched', prices)).toBeNull();
+    expect(unitPrice('foil', { priceNormal: 1, priceFoil: null })).toBeNull();
   });
 
   it('totals the matched stacks, counting real cards with no price by quantity', async () => {
@@ -226,7 +202,7 @@ describe('values', () => {
 
   it('values a card’s copies', async () => {
     const { stacks } = seed();
-    const res = await client.cards[':oracleId'].copies.$get({ param: { oracleId: oracle(1) } });
+    const res = await client.cards[':id'].copies.$get({ param: { id: '1' } });
     const body = CardCopies.parse(await res.json());
     expect(body.rows.find((row) => row.stackId === stacks.solCmmInbox)).toMatchObject({
       unitPrice: 120,
@@ -245,7 +221,7 @@ describe('values', () => {
     });
 
     seed();
-    db.insert(cardDataStatus).values({ bulkUpdatedAt: '2026-10-18T21:04:31.000+00:00' }).run();
+    db.insert(cardDataStatus).values({ pricesUpdatedAt: '2026-10-18T21:04:31.000+00:00' }).run();
     const res = await client.collection.value.$get();
     expect(res.status).toBe(200);
     expect(CollectionValue.parse(await res.json())).toEqual({
@@ -351,7 +327,7 @@ describe('trade locations', () => {
     );
     expect(yes.total).toEqual({ stacks: 4, cards: 10, proxies: 2, value: 1200, noPriceCount: 5 });
 
-    const no = await search({ q: 'trade:no sol' });
+    const no = await search({ q: 'trade:no disc' });
     expect(new Set(no.rows.map((row) => row.stackId))).toEqual(
       new Set([stacks.solShelf, stacks.solCmmInbox]),
     );
@@ -406,7 +382,7 @@ describe('collection sorts', () => {
     const { stacks: s } = seed();
     const expected = [
       s.cryptInDeck, // 18000
-      s.petalEtchedBox, // 1200, Lotus Petal before Sol Ring
+      s.petalEtchedBox, // 1200, Lotus Petal before Sun Disc
       s.solFoilTrade, // 1200
       s.solCmmInbox, // 600
       s.solShelf, // 300
@@ -438,12 +414,12 @@ describe('collection sorts', () => {
 
   it('sorts by set, then collector number', async () => {
     const { stacks: s } = seed();
-    addCard(5, 'Arcane Signet', [
+    addCard(5, 'Ember Signet', [
       { set: 'eoc', number: '9' },
       { set: 'eoc', number: '100' },
     ]);
-    const nine = addStack('Arcane Signet-eoc-9', inboxId, 1);
-    const hundred = addStack('Arcane Signet-eoc-100', inboxId, 1);
+    const nine = addStack('Ember Signet-eoc-9', inboxId, 1);
+    const hundred = addStack('Ember Signet-eoc-100', inboxId, 1);
     const expected = [
       s.cryptFoilTrade, // 2xm
       s.cryptProxyPage,
@@ -470,7 +446,7 @@ describe('collection sorts', () => {
 
   it('keeps filters and totals whatever the sort', async () => {
     seed();
-    const page = await search({ q: 'sol', sort: 'value' });
+    const page = await search({ q: 'disc', sort: 'value' });
     expect(page.total).toMatchObject({ stacks: 3, cards: 10, value: 2100 });
   });
 

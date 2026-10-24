@@ -1,9 +1,18 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { CardSummary, DeckState, Finish, LocationRef } from '../../shared/api/common';
+import type { Board, CardSummary, DeckState, Finish, LocationRef } from '../../shared/api/common';
 import type { AssemblyDeck } from '../../shared/api/pick-list';
 import type { PutAwayGroup, PutAwayLine, PutAwayResponse } from '../../shared/api/put-away';
 import type { Db } from '../db/database';
 import { decks, locations } from '../db/schema';
+import {
+  type CardRecord,
+  cardColumnsSql,
+  type PrintingRecord,
+  printingColumnsSql,
+  toCardSummary,
+  toPrintingSummary,
+} from './card-summaries';
+import { BOARD_ORDER } from './decks';
 import { effectiveColor, isForTrade, locationPaths } from './locations';
 
 // The put-away list: cards leave a deck box the way they came in, back to the spot they left.
@@ -62,35 +71,18 @@ export function locationRef(db: Db, id: number, paths: Map<number, string>): Loc
   };
 }
 
-type BoxStack = {
-  stackId: number;
-  quantity: number;
-  finish: Finish;
-  condition: string;
-  language: string;
-  misprint: number;
-  altered: number;
-  isProxy: number;
-  cameFromLocationId: number | null;
-  printingId: string;
-  setCode: string;
-  setName: string;
-  collectorNumber: string;
-  lang: string;
-  finishes: string;
-  rarity: string;
-  imageSmall: string | null;
-  imageNormal: string | null;
-  oracleId: string;
-  name: string;
-  frontFaceName: string;
-  manaCost: string;
-  manaValue: number;
-  typeLine: string;
-  colorIdentity: string;
-  canBeCommander: number;
-  isBasicLand: number;
-};
+type BoxStack = CardRecord &
+  PrintingRecord & {
+    stackId: number;
+    quantity: number;
+    finish: Finish;
+    condition: string;
+    language: string;
+    misprint: number;
+    altered: number;
+    isProxy: number;
+    cameFromLocationId: number | null;
+  };
 
 /** Every copy stack in a deck box, by card name. */
 function boxStacks(db: Db, deckBoxId: number): BoxStack[] {
@@ -98,69 +90,50 @@ function boxStacks(db: Db, deckBoxId: number): BoxStack[] {
     SELECT
       s.id AS stackId, s.quantity, s.finish, s.condition, s.language, s.misprint, s.altered,
       s.is_proxy AS isProxy, s.came_from_location_id AS cameFromLocationId,
-      p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
-      p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
-      p.image_small AS imageSmall, p.image_normal AS imageNormal,
-      c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
-      c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
-      c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
-      c.is_basic_land AS isBasicLand
+      ${printingColumnsSql}, ${cardColumnsSql}
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.printing_id = s.printing_id
-    JOIN cards AS c ON c.oracle_id = p.oracle_id
+    JOIN printings AS p ON p.riftcodex_id = s.printing_id
+    JOIN cards AS c ON c.id = p.card_id
     WHERE s.location_id = ${deckBoxId}
     ORDER BY c.name COLLATE NOCASE, s.id`);
 }
 
+/** The card as the stack shows it, with the stack's printing's image. */
 function cardOf(stack: BoxStack): CardSummary {
-  return {
-    oracleId: stack.oracleId,
-    name: stack.name,
-    frontFaceName: stack.frontFaceName,
-    manaCost: stack.manaCost,
-    manaValue: stack.manaValue,
-    typeLine: stack.typeLine,
-    colorIdentity: stack.colorIdentity,
-    imageSmall: stack.imageSmall,
-    imageNormal: stack.imageNormal,
-    canBeCommander: stack.canBeCommander === 1,
-    isBasicLand: stack.isBasicLand === 1,
-  };
+  return { ...toCardSummary(stack), imageUrl: stack.imageUrl };
 }
 
-const BOARD_ORDER = { commander: 0, main: 1, maybe: 2 } as const;
-
 /**
- * The deck's state from what its box holds, by the deck queries' rule: maybeboard and basic
- * land slots don't count; copies in the box are shared out among slots of that card,
- * commander first. Not assembled while no counted slot has a copy in the box, assembled when
+ * The deck's state from what its box holds, by the deck queries' rule: maybe board and rune
+ * slots don't count; copies in the box are shared out among slots of that card, in board
+ * order. Not assembled while no counted slot has a copy in the box, assembled when
  * every counted slot is full, partly assembled otherwise.
  */
 export function deckState(db: Db, deck: DeckRow): DeckState {
   const slots = db
-    .all<{ id: number; board: keyof typeof BOARD_ORDER; quantity: number; oracleId: string }>(sql`
-      SELECT s.id, s.board, s.quantity, s.oracle_id AS oracleId
+    .all<{ id: number; board: Board; quantity: number; cardId: number }>(sql`
+      SELECT s.id, s.board, s.quantity, s.card_id AS cardId
       FROM deck_slots AS s
-      JOIN cards AS c ON c.oracle_id = s.oracle_id
-      WHERE s.deck_id = ${deck.id} AND s.board <> 'maybe' AND c.is_basic_land = 0`)
+      JOIN cards AS c ON c.id = s.card_id
+      WHERE s.deck_id = ${deck.id} AND s.board <> 'maybe' AND c.type <> 'rune'`)
     .sort((a, b) => BOARD_ORDER[a.board] - BOARD_ORDER[b.board] || a.id - b.id);
   const inBox = new Map(
     db
-      .all<{ oracleId: string; quantity: number }>(sql`
-        SELECT p.oracle_id AS oracleId, SUM(s.quantity) AS quantity
+      .all<{ cardId: number; quantity: number }>(sql`
+        SELECT p.card_id AS cardId, SUM(s.quantity) AS quantity
         FROM copy_stacks AS s
-        JOIN printings AS p ON p.printing_id = s.printing_id
+        JOIN printings AS p ON p.riftcodex_id = s.printing_id
         WHERE s.location_id = ${deck.deckBoxId}
-        GROUP BY p.oracle_id`)
-      .map((row) => [row.oracleId, row.quantity]),
+        GROUP BY p.card_id`)
+      .map((row) => [row.cardId, row.quantity]),
   );
   const left = new Map(inBox);
   let filled = 0;
   let touched = 0;
   for (const slot of slots) {
-    if ((inBox.get(slot.oracleId) ?? 0) > 0) touched += 1;
-    const here = Math.min(left.get(slot.oracleId) ?? 0, slot.quantity);
-    left.set(slot.oracleId, (left.get(slot.oracleId) ?? 0) - here);
+    if ((inBox.get(slot.cardId) ?? 0) > 0) touched += 1;
+    const here = Math.min(left.get(slot.cardId) ?? 0, slot.quantity);
+    left.set(slot.cardId, (left.get(slot.cardId) ?? 0) - here);
     if (here >= slot.quantity) filled += 1;
   }
   if (touched === 0) return 'not_assembled';
@@ -196,18 +169,7 @@ export function putAwayList(db: Db, deckId: number): PutAwayResponse | undefined
     const line: PutAwayLine = {
       stackId: stack.stackId,
       card: cardOf(stack),
-      printing: {
-        printingId: stack.printingId,
-        oracleId: stack.oracleId,
-        setCode: stack.setCode,
-        setName: stack.setName,
-        collectorNumber: stack.collectorNumber,
-        lang: stack.lang,
-        finishes: JSON.parse(stack.finishes),
-        rarity: stack.rarity,
-        imageSmall: stack.imageSmall,
-        imageNormal: stack.imageNormal,
-      },
+      printing: toPrintingSummary(stack),
       finish: stack.finish,
       condition: stack.condition,
       language: stack.language,

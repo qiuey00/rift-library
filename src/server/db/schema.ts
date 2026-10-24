@@ -10,13 +10,15 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
-import { Board, Finish, LocationType } from '../../shared/api/common';
+import { Board, CardType, type Domain, Finish, LocationType } from '../../shared/api/common';
+import { RemovalReason } from '../../shared/api/copies';
 
 // The whole database. Change it here, then run `npm run db:generate` to write a migration
 // into ./migrations, which the server applies when it starts.
 //
-// Conventions: app rows have autoincrement whole-number ids, card data rows keep their source's
-// ids (text), true/false is stored as 0 or 1, and times are UTC ISO 8601 text.
+// Conventions: app rows (cards included) have autoincrement whole-number ids, printings keep
+// Riftcodex's ids (text), true/false is stored as 0 or 1, times are UTC ISO 8601 text and
+// money is whole US cents.
 
 /** The current UTC time as ISO 8601 text, such as "2026-10-19T02:20:45.123Z". */
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
@@ -27,89 +29,81 @@ const createdAt = () => text('created_at').notNull().default(now);
 /** A shared Zod enum's values, as the non-empty list a text column's `enum` takes. */
 const values = <T extends string>(options: readonly T[]) => options as [T, ...T[]];
 
-// Card data. Nothing loads it until the Riftcodex sync (#7), so the tables start empty.
+// Card data from Riftcodex. Nothing loads it until the Riftcodex sync (#7), so the tables
+// start empty.
 
-/** A card's columns, shared by `cards` and `cards_staging`. */
-const cardColumns = () => ({
-  oracleId: text('oracle_id').primaryKey(),
-  /** The full "Front // Back" name for double-faced cards. */
-  name: text('name').notNull(),
-  frontFaceName: text('front_face_name').notNull(),
-  typeLine: text('type_line').notNull(),
-  manaCost: text('mana_cost').notNull().default(''),
-  manaValue: real('mana_value').notNull().default(0),
-  /** WUBRG order, such as "BRG"; "" for colorless. */
-  colorIdentity: text('color_identity').notNull().default(''),
-  commanderLegality: text('commander_legality', {
-    enum: ['legal', 'not_legal', 'banned', 'restricted'],
-  }).notNull(),
-  keywords: text('keywords', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
-  canBeCommander: flag('can_be_commander'),
-  isBasicLand: flag('is_basic_land'),
-  /** A deck can hold any number of this card. */
-  allowsMany: flag('allows_many'),
-});
-
-/** A printing's columns, shared by `printings` and `printings_staging`. */
-const printingColumns = () => ({
-  printingId: text('printing_id').primaryKey(),
-  setCode: text('set_code').notNull(),
-  setName: text('set_name').notNull(),
-  collectorNumber: text('collector_number').notNull(),
-  lang: text('lang').notNull(),
-  finishes: text('finishes', { mode: 'json' }).$type<Finish[]>().notNull(),
-  rarity: text('rarity').notNull(),
-  /** A date, such as "2024-08-02". */
-  releasedAt: text('released_at').notNull(),
-  imageSmall: text('image_small'),
-  imageNormal: text('image_normal'),
-  /** The name this printing carries instead of the card's, such as "T'Challa's Protection". */
-  flavorName: text('flavor_name'),
-  // TCGplayer market price for each finish, in whole cents; null when there is none.
-  priceUsd: integer('price_usd'),
-  priceUsdFoil: integer('price_usd_foil'),
-  priceUsdEtched: integer('price_usd_etched'),
-});
-
-/** One card, with all its printings. */
-export const cards = sqliteTable('cards', cardColumns(), (t) => [
-  index('cards_name').on(sql`${t.name} COLLATE NOCASE`),
-  index('cards_front_face_name').on(sql`${t.frontFaceName} COLLATE NOCASE`),
-]);
+/**
+ * One card, with all its printings. Riftcodex has no card-level id, so printings are grouped
+ * into cards by name key.
+ */
+export const cards = sqliteTable(
+  'cards',
+  {
+    id: id(),
+    name: text('name').notNull(),
+    /** Lower case, each run of spaces collapsed to one; the grouping rule. */
+    nameKey: text('name_key').notNull().unique(),
+    type: text('type', { enum: values(CardType.options) }).notNull(),
+    /** Such as "champion", "signature" or "token". */
+    supertype: text('supertype'),
+    domains: text('domains', { mode: 'json' }).$type<Domain[]>().notNull().default(sql`'[]'`),
+    energy: integer('energy'),
+    might: integer('might'),
+    power: integer('power'),
+    /** The champion the card belongs to, such as "Jinx". */
+    championTag: text('champion_tag'),
+    rulesText: text('rules_text').notNull().default(''),
+    /** False for tokens and other cards a deck can't hold. */
+    deckable: integer('deckable', { mode: 'boolean' }).notNull().default(true),
+  },
+  (t) => [index('cards_name').on(sql`${t.name} COLLATE NOCASE`)],
+);
 
 /** One printing of a card. */
 export const printings = sqliteTable(
   'printings',
   {
-    ...printingColumns(),
-    oracleId: text('oracle_id')
+    riftcodexId: text('riftcodex_id').primaryKey(),
+    cardId: integer('card_id')
       .notNull()
-      .references(() => cards.oracleId),
+      .references(() => cards.id),
+    riftboundId: text('riftbound_id'),
+    /** Such as "OGN-001/298". */
+    publicCode: text('public_code').notNull(),
+    /** Such as "OGN". */
+    setCode: text('set_code').notNull(),
+    setName: text('set_name').notNull(),
+    collectorNumber: text('collector_number').notNull(),
+    rarity: text('rarity').notNull(),
+    imageUrl: text('image_url'),
+    artist: text('artist'),
+    alternateArt: flag('alternate_art'),
+    overnumbered: flag('overnumbered'),
+    signature: flag('signature'),
+    /** TCGplayer's product id, which prices are matched by (#25). */
+    tcgplayerId: integer('tcgplayer_id'),
+    finishes: text('finishes', { mode: 'json' })
+      .$type<Finish[]>()
+      .notNull()
+      .default(sql`'["normal","foil"]'`),
+    // TCGplayer market price for each finish, in whole cents; null when there is none.
+    priceNormal: integer('price_normal'),
+    priceFoil: integer('price_foil'),
   },
   (t) => [
-    index('printings_oracle_id').on(t.oracleId),
-    index('printings_set_code_collector_number').on(t.setCode, t.collectorNumber),
-    index('printings_flavor_name').on(sql`${t.flavorName} COLLATE NOCASE`),
+    index('printings_card_id').on(t.cardId),
+    index('printings_public_code').on(sql`${t.publicCode} COLLATE NOCASE`),
+    index('printings_tcgplayer_id').on(t.tcgplayerId),
   ],
 );
 
-// A card data load fills these first, then swaps them into `cards` and `printings` in one
-// transaction, so the app keeps working while a load runs. Empty between loads.
-
-export const cardsStaging = sqliteTable('cards_staging', cardColumns());
-
-export const printingsStaging = sqliteTable('printings_staging', {
-  ...printingColumns(),
-  oracleId: text('oracle_id').notNull(),
-});
-
-/** Which card data file the app last loaded, and when it last checked. One row at most. */
+/** When cards were last synced and prices last updated. One row at most. */
 export const cardDataStatus = sqliteTable(
   'card_data_status',
   {
     id: integer('id').primaryKey().default(1),
-    bulkUpdatedAt: text('bulk_updated_at'),
-    lastCheckedAt: text('last_checked_at'),
+    cardsSyncedAt: text('cards_synced_at'),
+    pricesUpdatedAt: text('prices_updated_at'),
     cardCount: integer('card_count').notNull().default(0),
     printingCount: integer('printing_count').notNull().default(0),
   },
@@ -149,7 +143,7 @@ export const copyStacks = sqliteTable(
     id: id(),
     printingId: text('printing_id')
       .notNull()
-      .references(() => printings.printingId),
+      .references(() => printings.riftcodexId),
     quantity: integer('quantity').notNull(),
     finish: text('finish', { enum: values(Finish.options) }).notNull(),
     /** Such as "near_mint". */
@@ -221,20 +215,19 @@ export const deckSlots = sqliteTable(
     deckId: integer('deck_id')
       .notNull()
       .references(() => decks.id, { onDelete: 'cascade' }),
-    oracleId: text('oracle_id')
+    cardId: integer('card_id')
       .notNull()
-      .references(() => cards.oracleId),
+      .references(() => cards.id),
     board: text('board', { enum: values(Board.options) }).notNull(),
     quantity: integer('quantity').notNull(),
     /** The printing of the copy pulled for this slot; null until one is pulled. */
     pickedPrintingId: text('picked_printing_id'),
-    // The printing hint from the deck list: a set code, collector number and foil.
-    hintSetCode: text('hint_set_code'),
-    hintCollectorNumber: text('hint_collector_number'),
+    // The printing hint from the deck list: a public code, such as "OGN-042", and foil.
+    hintPublicCode: text('hint_public_code'),
     hintFoil: flag('hint_foil'),
   },
   (t) => [
-    uniqueIndex('deck_slots_deck_card_board').on(t.deckId, t.oracleId, t.board),
+    uniqueIndex('deck_slots_deck_card_board').on(t.deckId, t.cardId, t.board),
     check('deck_slots_quantity_above_zero', sql`${t.quantity} > 0`),
   ],
 );
@@ -263,7 +256,7 @@ export const deckSlotTags = sqliteTable(
 export const movementBatches = sqliteTable('movement_batches', {
   id: id(),
   kind: text('kind', {
-    enum: ['import', 'add', 'move', 'pick_list', 'put_away', 'swap', 'undo'],
+    enum: ['add', 'remove', 'move', 'pick_list', 'put_away', 'swap', 'undo'],
   }).notNull(),
   deckId: integer('deck_id'),
   createdAt: createdAt(),
@@ -291,7 +284,7 @@ export const movements = sqliteTable(
     purchasePrice: real('purchase_price'),
     purchaseCurrency: text('purchase_currency'),
     quantity: integer('quantity').notNull(),
-    /** Null for imports and adds. */
+    /** Null for adds. */
     fromLocationId: integer('from_location_id'),
     /** Null when copies are removed. */
     toLocationId: integer('to_location_id'),
@@ -299,8 +292,8 @@ export const movements = sqliteTable(
     cameFromAfter: integer('came_from_after'),
     reason: text('reason', {
       enum: [
-        'imported',
         'added',
+        'removed',
         'moved',
         'assembled',
         'returned',
@@ -310,6 +303,8 @@ export const movements = sqliteTable(
         'undo',
       ],
     }).notNull(),
+    /** Why copies were removed (COL-13); null unless the reason is `removed`. */
+    removalReason: text('removal_reason', { enum: values(RemovalReason.options) }),
     deckId: integer('deck_id'),
     /** No foreign key: slots can be removed while History still names them. */
     slotId: integer('slot_id'),
@@ -332,9 +327,9 @@ export const buyListItems = sqliteTable(
   'buy_list_items',
   {
     id: id(),
-    oracleId: text('oracle_id')
+    cardId: integer('card_id')
       .notNull()
-      .references(() => cards.oracleId),
+      .references(() => cards.id),
     /** A wanted printing, or null for any. */
     printingId: text('printing_id'),
     quantity: integer('quantity').notNull(),

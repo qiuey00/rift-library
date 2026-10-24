@@ -105,7 +105,10 @@ export function History() {
         </fieldset>
         {scope === 'card' && (
           <div className="w-[300px]">
-            <CardFilter oracleId={card} onChange={(oracleId) => filterBy('card', oracleId)} />
+            <CardFilter
+              cardId={card === null ? null : Number(card)}
+              onChange={(cardId) => filterBy('card', String(cardId))}
+            />
           </div>
         )}
         {scope === 'location' && (
@@ -469,7 +472,7 @@ function CardName({ movement, undone }: { movement: MovementRow; undone: boolean
         )}
       />
       <Link
-        to={`/cards/${card.oracleId}`}
+        to={`/cards/${card.id}`}
         className={cn(
           'truncate font-semibold text-foreground hover:underline',
           undone && 'line-through',
@@ -517,8 +520,8 @@ function FromTo({
 }
 
 const reasonWords: Record<MovementReason, string> = {
-  imported: 'Imported',
   added: 'Added',
+  removed: 'Removed',
   moved: 'Moved',
   assembled: 'Pulled',
   returned: 'Returned',
@@ -529,8 +532,8 @@ const reasonWords: Record<MovementReason, string> = {
 };
 
 const reasonColors: Record<MovementReason, string> = {
-  imported: 'bg-[#e2f2f4] text-[#0e6170]',
   added: 'bg-[#e2f2f4] text-[#0e6170]',
+  removed: 'bg-[#fbe9e9] text-[#a12a2a]',
   moved: 'bg-[#eef0f3] text-[#3b4252]',
   assembled: 'bg-[#e8eefc] text-[#1b3f9c]',
   returned: 'bg-[#e3f3e9] text-[#146c3a]',
@@ -542,12 +545,12 @@ const reasonColors: Record<MovementReason, string> = {
 
 /** The reason a batch's chip shows. A swap batch holds both directions. */
 const batchReason: Record<BatchKind, MovementReason | 'swap'> = {
-  import: 'imported',
   pick_list: 'assembled',
   put_away: 'returned',
   swap: 'swap',
   move: 'moved',
   add: 'added',
+  remove: 'removed',
   undo: 'undo',
 };
 
@@ -579,7 +582,7 @@ function DeckLink({ deck }: { deck: { id: Id; name: string } | null }) {
 
 function UndoneTag() {
   return (
-    <span className="rounded-full bg-status-basic-soft px-2 py-0.5 font-semibold text-status-basic text-xs">
+    <span className="rounded-full bg-status-rune-soft px-2 py-0.5 font-semibold text-status-rune text-xs">
       Undone
     </span>
   );
@@ -690,11 +693,11 @@ function useUndo(): Undo {
 
 /** Picks a card by searching its name; shows the picked card's name. */
 function CardFilter({
-  oracleId,
+  cardId,
   onChange,
 }: {
-  oracleId: string | null;
-  onChange: (oracleId: string) => void;
+  cardId: number | null;
+  onChange: (cardId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -704,7 +707,7 @@ function CardFilter({
     return () => clearTimeout(timer);
   }, [text]);
 
-  const picked = useQuery({ ...cardDetailsQuery(oracleId ?? ''), enabled: oracleId !== null });
+  const picked = useQuery({ ...cardDetailsQuery(cardId ?? 0), enabled: cardId !== null });
   const search = useCardSearch(query);
   const results = query.trim() === '' ? [] : (search.data?.results ?? []);
 
@@ -725,7 +728,7 @@ function CardFilter({
           aria-haspopup="listbox"
           className="flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-input bg-card px-3 text-left text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          {oracleId ? (
+          {cardId ? (
             <span className="truncate font-semibold">
               {picked.data?.card.name ?? (picked.isError ? 'Unknown card' : 'Loading…')}
             </span>
@@ -751,10 +754,10 @@ function CardFilter({
             )}
             {results.map((result) => (
               <CommandItem
-                key={result.oracleId}
-                value={result.oracleId}
+                key={result.id}
+                value={String(result.id)}
                 onSelect={() => {
-                  onChange(result.oracleId);
+                  onChange(result.id);
                   setOpen(false);
                   setText('');
                 }}
@@ -765,7 +768,7 @@ function CardFilter({
                   aria-hidden="true"
                   className={cn(
                     'ml-auto size-4 text-primary',
-                    result.oracleId === oracleId ? 'opacity-100' : 'opacity-0',
+                    result.id === cardId ? 'opacity-100' : 'opacity-0',
                   )}
                 />
               </CommandItem>

@@ -39,7 +39,7 @@ describe('location queries', () => {
   //     Bulk box 1            position 1
   //   Shelf                   position 0
   //     Trade binder          position 0
-  //     Atraxa deck box       position 1, a deck box on a shelf
+  //     Lux Control deck box       position 1, a deck box on a shelf
   //   Edgar deck box          position 3
   //   Old box (deleted)       position 5
   //     Lost tray             under a deleted location
@@ -53,7 +53,7 @@ describe('location queries', () => {
     add('Row A', 'tray', 0, 'Bulk box 2');
     add('Bulk box 1', 'box', 1, 'Closet');
     add('Shelf', 'box', 0);
-    add('Atraxa deck box', 'deck_box', 1, 'Shelf');
+    add('Lux Control deck box', 'deck_box', 1, 'Shelf');
     add('Trade binder', 'binder', 0, 'Shelf');
     add('Old box', 'box', 5);
     add('Lost tray', 'tray', 0, 'Old box');
@@ -77,7 +77,7 @@ describe('location queries', () => {
       'Bulk box 2',
       'Row A',
       'Row C',
-      'Atraxa deck box',
+      'Lux Control deck box',
       'Edgar deck box',
     ]);
   });
@@ -92,7 +92,7 @@ describe('location queries', () => {
     const paths = locationPaths(db);
     expect([...paths.keys()]).toEqual(treeOrder(db));
     expect(paths.get(ids['Row A'])).toBe('Closet › Bulk box 2 › Row A');
-    expect(paths.get(ids['Atraxa deck box'])).toBe('Shelf › Atraxa deck box');
+    expect(paths.get(ids['Lux Control deck box'])).toBe('Shelf › Lux Control deck box');
   });
 
   it('inherits the nearest ancestor color', () => {
@@ -140,7 +140,7 @@ describe('location queries', () => {
     expect(names(descendantIds(db, ids.Shelf))).toEqual([
       'Trade binder',
       'Trade sleeve',
-      'Atraxa deck box',
+      'Lux Control deck box',
     ]);
   });
 });

@@ -34,10 +34,7 @@ export function useCardSearch(text: string) {
   return useQuery({
     queryKey: ['cards', 'search', q],
     queryFn: async () =>
-      read(
-        await api.cards.search.$get({ query: { q, limit: String(SEARCH_LIMIT) } }),
-        CardSearchResponse,
-      ),
+      read(await api.cards.$get({ query: { q, limit: String(SEARCH_LIMIT) } }), CardSearchResponse),
     enabled: q !== '',
     placeholderData: keepPreviousData,
     staleTime: 30_000,
@@ -45,10 +42,10 @@ export function useCardSearch(text: string) {
 }
 
 /** One card, its printings and Jeff's counts, for the card page. */
-export const cardDetailsQuery = (oracleId: string) =>
+export const cardDetailsQuery = (cardId: number) =>
   queryOptions({
-    queryKey: ['cards', oracleId],
+    queryKey: ['cards', cardId],
     queryFn: async () =>
-      read(await api.cards[':oracleId'].$get({ param: { oracleId } }), CardDetailsResponse),
+      read(await api.cards[':id'].$get({ param: { id: String(cardId) } }), CardDetailsResponse),
     retry: (failures, error) => !(error instanceof ApiError && error.status < 500) && failures < 2,
   });

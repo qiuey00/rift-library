@@ -49,7 +49,7 @@ test('the bar stays away when card data is ready or failed', async ({ page }) =>
 test('on the first start, the search box says card data is loading', async ({ page }) => {
   await mockStatus(page, cardDataStatusSamples.loading);
   await page.goto('/');
-  await page.getByRole('combobox', { name: 'Search cards' }).fill('Sol Ring');
+  await page.getByRole('combobox', { name: 'Search cards' }).fill('Sun Disc');
   await expect(page.getByRole('status').filter({ hasText: 'Card data is loading' })).toBeVisible();
 });
 
@@ -57,7 +57,7 @@ test('a refresh keeps search open, since the old cards still work', async ({ pag
   await mockStatus(page, { ...cardDataStatusSamples.ready, state: 'downloading', progress: 0.2 });
   await page.goto('/');
   await expect(page.getByText('Loading card data… 20%')).toBeVisible();
-  await page.getByRole('combobox', { name: 'Search cards' }).fill('Sol Ring');
+  await page.getByRole('combobox', { name: 'Search cards' }).fill('Sun Disc');
   await expect(page.getByText('Card data is loading')).toBeHidden();
 });
 
@@ -67,10 +67,10 @@ test('Settings shows the card data panel', async ({ page }) => {
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
   const panel = page.getByRole('region', { name: 'Card data' });
-  await expect(panel).toContainText('Card data file dateOct 18, 2026');
-  await expect(panel).toContainText('Last checkedOct 19, 2026, 1:30 AM');
-  await expect(panel).toContainText('Cards33,874');
-  await expect(panel).toContainText('Printings101,652');
+  await expect(panel).toContainText('Cards syncedOct 18, 2026, 9:04 PM');
+  await expect(panel).toContainText('Prices updatedOct 19, 2026, 1:30 AM');
+  await expect(panel).toContainText('Cards812');
+  await expect(panel).toContainText('Printings1,406');
   await expect(panel.getByRole('alert')).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Refresh card data' })).toBeEnabled();
 });
@@ -105,7 +105,7 @@ test('Settings shows the last error', async ({ page }) => {
   await expect(panel.getByRole('alert')).toHaveText(
     cardDataStatusSamples.error.error ?? 'missing sample error',
   );
-  await expect(panel).toContainText('Card data file dateOct 11, 2026');
+  await expect(panel).toContainText('Cards syncedOct 11, 2026, 9:02 PM');
   await expect(panel.getByRole('button', { name: 'Refresh card data' })).toBeEnabled();
 });
 

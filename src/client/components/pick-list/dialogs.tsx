@@ -80,13 +80,7 @@ export function ProxyPrintingDialog({
                   onClick={() => onPick(printing)}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                 >
-                  <i
-                    aria-hidden="true"
-                    className={`ss ss-${printing.setCode} ss-${printing.rarity}`}
-                  />
-                  <span className="font-semibold">
-                    {printing.setCode.toUpperCase()} #{printing.collectorNumber}
-                  </span>
+                  <span className="font-semibold">{printing.publicCode}</span>
                   <span className="truncate text-muted-foreground">{printing.setName}</span>
                 </button>
               </li>

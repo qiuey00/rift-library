@@ -5,7 +5,7 @@ import { ErrorBody } from '../../src/shared/api/common';
 import { type PickList, PickListResponse } from '../../src/shared/api/pick-list';
 import { ProxyResult, PullResult } from '../../src/shared/api/pulls';
 import { type PutAwayGroup, PutAwayResponse, ReturnResult } from '../../src/shared/api/put-away';
-import { printings } from '../../src/shared/api/samples/hearthhull';
+import { printings } from '../../src/shared/api/samples/jinx-burn';
 import { pickListSample } from '../../src/shared/api/samples/pick-list';
 import {
   proxyResultSample,
@@ -22,7 +22,7 @@ import {
 import { swapSample } from '../../src/shared/api/samples/swap';
 import { SwapResponse } from '../../src/shared/api/swap';
 
-const soulOfWindgrace = printings.soulOfWindgraceEoc;
+const swiftOx = printings.swiftOxOgn;
 
 function post(path: string, body: unknown) {
   return app.request(path, {
@@ -124,7 +124,7 @@ describe('assembly stub routes', () => {
   });
 
   it('POST /api/decks/:id/proxies checks the request', async () => {
-    const body = { slotId: 119, printingId: soulOfWindgrace.printingId, quantity: 1 };
+    const body = { slotId: 119, printingId: swiftOx.printingId, quantity: 1 };
     await expectInvalid(await post('/api/decks/1/proxies', { ...body, printingId: '' }));
     await expectInvalid(await post('/api/decks/1/proxies', { ...body, slotId: '119' }));
   });

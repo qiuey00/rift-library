@@ -4,7 +4,6 @@ import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
 import { isCardDataBusy, useCardDataStatus, useRefreshCardData } from '../lib/card-data';
 
-const fileDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 const checkedAt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 const count = new Intl.NumberFormat();
 
@@ -45,13 +44,13 @@ function CardDataPanel() {
       </div>
 
       <dl className="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-2.5 px-5 py-4 text-[15px]">
-        <Row label="Card data file date">
-          {status?.bulkUpdatedAt
-            ? fileDate.format(new Date(status.bulkUpdatedAt))
+        <Row label="Cards synced">
+          {status?.cardsSyncedAt
+            ? checkedAt.format(new Date(status.cardsSyncedAt))
             : 'Not loaded yet'}
         </Row>
-        <Row label="Last checked">
-          {status?.lastCheckedAt ? checkedAt.format(new Date(status.lastCheckedAt)) : 'Never'}
+        <Row label="Prices updated">
+          {status?.pricesUpdatedAt ? checkedAt.format(new Date(status.pricesUpdatedAt)) : 'Never'}
         </Row>
         <Row label="Cards">{status ? count.format(status.cardCount) : '…'}</Row>
         <Row label="Printings">{status ? count.format(status.printingCount) : '…'}</Row>

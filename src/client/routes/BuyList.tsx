@@ -8,6 +8,7 @@ import { api } from '../api';
 import { BUY_LIST_QUERY_KEY, printingLabel } from '../components/AddToBuyListDialog';
 import { Panel } from '../components/Panel';
 import { Input } from '../components/ui/input';
+import { typeLine } from '../lib/card-text';
 import { cn } from '../lib/utils';
 
 /** The error message a failed answer carries, written for Jeff. */
@@ -141,7 +142,7 @@ function plural(count: number, one: string, many = `${one}s`) {
 }
 
 function itemImage(item: BuyItem) {
-  return item.printing?.imageNormal ?? item.card.imageNormal;
+  return item.printing?.imageUrl ?? item.card.imageUrl;
 }
 
 /** Such as "Oct 18, 2026", in Jeff's time zone. */
@@ -262,7 +263,7 @@ function RemoveButton({ item, actions }: { item: BuyItem; actions: BuyItemAction
       title="Remove"
       disabled={actions.removing(item.id)}
       onClick={() => actions.remove(item.id)}
-      className="inline-flex size-10 items-center justify-center rounded-lg text-status-basic hover:bg-status-missing-soft hover:text-status-missing focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+      className="inline-flex size-10 items-center justify-center rounded-lg text-status-rune hover:bg-status-missing-soft hover:text-status-missing focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
     >
       <Trash2 aria-hidden="true" className="size-[17px]" />
     </button>
@@ -293,12 +294,12 @@ function ItemRow({
       <td className="px-4 py-2.5 align-middle">
         <div className="flex flex-col gap-0.5">
           <Link
-            to={`/cards/${item.card.oracleId}`}
+            to={`/cards/${item.card.id}`}
             className="font-semibold text-[15px] text-foreground hover:text-primary hover:underline"
           >
             {item.card.name}
           </Link>
-          <span className="text-[13px] text-muted-foreground">{item.card.typeLine}</span>
+          <span className="text-[13px] text-muted-foreground">{typeLine(item.card)}</span>
         </div>
       </td>
       <td className="px-2 py-2.5 text-sm">
@@ -334,7 +335,7 @@ function Preview({ item }: { item: BuyItem }) {
           {image && <img src={image} alt={item.card.name} className="size-full object-contain" />}
         </div>
         <Link
-          to={`/cards/${item.card.oracleId}`}
+          to={`/cards/${item.card.id}`}
           className="font-semibold text-[13px] text-primary hover:underline"
         >
           Open card page
@@ -352,7 +353,7 @@ function ItemImage({ item, actions }: { item: BuyItem; actions: BuyItemActions }
   return (
     <li data-item-id={item.id} className="flex flex-col gap-2">
       <Link
-        to={`/cards/${item.card.oracleId}`}
+        to={`/cards/${item.card.id}`}
         className="block aspect-[488/680] overflow-hidden rounded-[9px] bg-muted"
       >
         {image ? (
@@ -370,7 +371,7 @@ function ItemImage({ item, actions }: { item: BuyItem; actions: BuyItemActions }
       </Link>
       <div className="flex flex-col gap-0.5">
         <Link
-          to={`/cards/${item.card.oracleId}`}
+          to={`/cards/${item.card.id}`}
           className="truncate font-semibold text-foreground hover:text-primary hover:underline"
         >
           {item.card.name}

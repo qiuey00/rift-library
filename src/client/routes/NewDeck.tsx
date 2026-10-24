@@ -6,33 +6,27 @@ import type { CardSearchResult } from '../../shared/api/cards';
 import { ErrorBody } from '../../shared/api/common';
 import { api } from '../api';
 import { CardSearchPicker } from '../components/CardSearchPicker';
-import { ManaCost } from '../components/ManaCost';
+import { DomainIcons } from '../components/DomainIcon';
 import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { typeLine } from '../lib/card-text';
 
-/** The name a deck gets from its commanders until Jeff types his own. */
-function nameFromCommanders(commanders: CardSearchResult[]): string {
-  return commanders.map((card) => card.frontFaceName).join(' & ');
-}
-
-/** Starts a new deck (`/decks/new`): pick the commander, an optional partner and a name. */
+/** Starts a new deck (`/decks/new`): pick the Legend and a name. */
 export function NewDeck() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const nameId = useId();
-  const [commander, setCommander] = useState<CardSearchResult | null>(null);
-  const [partner, setPartner] = useState<CardSearchResult | null>(null);
-  /** Null while the name follows the commanders. */
+  const [legend, setLegend] = useState<CardSearchResult | null>(null);
+  /** Null while the name follows the Legend. */
   const [typedName, setTypedName] = useState<string | null>(null);
 
-  const commanders = [commander, partner].filter((card) => card !== null);
-  const name = typedName ?? nameFromCommanders(commanders);
+  const name = typedName ?? legend?.name ?? '';
 
   const create = useMutation({
     mutationFn: async () => {
       const res = await api.decks.$post({
-        json: { name: name.trim(), commanders: commanders.map((card) => card.oracleId) },
+        json: { name: name.trim(), legendId: legend?.id ?? 0 },
       });
       if (!res.ok) {
         const body = ErrorBody.safeParse(await res.json().catch(() => null));
@@ -59,35 +53,16 @@ export function NewDeck() {
         </Link>
         <h1 className="font-serif text-[44px] leading-[1.05]">New deck</h1>
         <p className="text-[15px] text-muted-foreground">
-          Pick the commander, then add cards from the deck view.
+          Pick the Legend, then add cards from the deck view.
         </p>
       </div>
       <Panel className="p-6">
         <form onSubmit={submit} aria-label="New deck" className="flex flex-col gap-5">
-          {commander ? (
-            <PickedCommander
-              label="Commander"
-              card={commander}
-              onRemove={() => {
-                setCommander(partner);
-                setPartner(null);
-              }}
-            />
+          {legend ? (
+            <PickedLegend card={legend} onRemove={() => setLegend(null)} />
           ) : (
-            <CardSearchPicker label="Commander" commander onPick={setCommander} autoFocus />
+            <CardSearchPicker label="Legend" type="legend" onPick={setLegend} autoFocus />
           )}
-
-          {commander &&
-            (partner ? (
-              <PickedCommander label="Partner" card={partner} onRemove={() => setPartner(null)} />
-            ) : (
-              <CardSearchPicker
-                label="Partner (optional)"
-                placeholder="Search for a second commander"
-                commander
-                onPick={setPartner}
-              />
-            ))}
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor={nameId} className="font-semibold">
@@ -97,7 +72,7 @@ export function NewDeck() {
               id={nameId}
               value={name}
               onChange={(event) => setTypedName(event.target.value)}
-              placeholder="Named after the commander"
+              placeholder="Named after the Legend"
             />
           </div>
 
@@ -113,7 +88,7 @@ export function NewDeck() {
             </Button>
             <Button
               type="submit"
-              disabled={commanders.length === 0 || name.trim() === '' || create.isPending}
+              disabled={legend === null || name.trim() === '' || create.isPending}
             >
               {create.isPending ? 'Creating…' : 'Create'}
             </Button>
@@ -124,31 +99,24 @@ export function NewDeck() {
   );
 }
 
-function PickedCommander({
-  label,
-  card,
-  onRemove,
-}: {
-  label: string;
-  card: CardSearchResult;
-  onRemove: () => void;
-}) {
+function PickedLegend({ card, onRemove }: { card: CardSearchResult; onRemove: () => void }) {
+  const label = 'Legend';
   return (
     <section aria-label={label} className="flex flex-col gap-1.5">
       <span className="font-semibold">{label}</span>
       <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
-        {card.imageSmall ? (
+        {card.imageUrl ? (
           <img
-            src={card.imageSmall}
+            src={card.imageUrl}
             alt=""
             className="h-14 w-10 shrink-0 rounded-[3px] object-contain"
           />
         ) : null}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-medium">{card.name}</span>
-          <span className="truncate text-[12px] text-muted-foreground">{card.typeLine}</span>
+          <span className="truncate text-[12px] text-muted-foreground">{typeLine(card)}</span>
         </span>
-        <ManaCost cost={card.manaCost} className="text-xs" />
+        <DomainIcons domains={card.domains} className="text-xs" />
         <Button
           type="button"
           variant="ghost"

@@ -6,8 +6,9 @@ import { DeckRef } from './decks';
 
 /** Why copies moved. */
 export const MovementReason = z.enum([
-  'imported',
   'added',
+  /** Lowered or removed by hand, with a removal reason (COL-13). */
+  'removed',
   'moved',
   /** Pulled into a deck box from a pick list. */
   'assembled',
@@ -28,9 +29,9 @@ export const MovementRow = z.object({
   card: CardSummary,
   printing: PrintingSummary,
   quantity: z.number().int().positive(),
-  /** null for imported and added copies. Deleted locations are still named. */
+  /** null for added copies. Deleted locations are still named. */
   from: LocationRef.nullable(),
-  /** null when an update import removed the copies. */
+  /** null when the copies were removed. */
   to: LocationRef.nullable(),
   reason: MovementReason,
   deck: DeckRef.nullable(),
@@ -39,14 +40,14 @@ export const MovementRow = z.object({
 });
 export type MovementRow = z.infer<typeof MovementRow>;
 
-export const BatchKind = z.enum(['import', 'pick_list', 'put_away', 'swap', 'move', 'add', 'undo']);
+export const BatchKind = z.enum(['add', 'remove', 'pick_list', 'put_away', 'swap', 'move', 'undo']);
 export type BatchKind = z.infer<typeof BatchKind>;
 
 /** The movements of one action shown as one entry that expands. */
 export const HistoryBatch = z.object({
   id: Id,
   kind: BatchKind,
-  /** Such as "Imported 389 cards" or "Pick list · Hearthhull · 12 cards". */
+  /** Such as "Pick list · Jinx Burn · 12 cards". */
   summary: z.string(),
   deck: DeckRef.nullable(),
   createdAt: z.iso.datetime(),
@@ -58,7 +59,7 @@ export const HistoryBatch = z.object({
 export type HistoryBatch = z.infer<typeof HistoryBatch>;
 
 /**
- * Batches of kind import, pick_list, put_away, swap and undo are one `batch` entry; other
+ * Batches of kind pick_list, put_away, swap and undo are one `batch` entry; other
  * movements are `movement` entries of their own.
  */
 export const HistoryEntry = z.discriminatedUnion('kind', [
@@ -76,8 +77,8 @@ export const HistoryQuery = z.object({
    * (420 for UTC−7), so days follow Jeff's clock.
    */
   offset: z.coerce.number().int().min(-840).max(720),
-  /** An oracle id: movements of any printing of the card. */
-  card: z.guid().optional(),
+  /** A card id: movements of any printing of the card. */
+  card: IdParam.optional(),
   /** Movements from or to that location or its children. */
   location: IdParam.optional(),
   deck: IdParam.optional(),

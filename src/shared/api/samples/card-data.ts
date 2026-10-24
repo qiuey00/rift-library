@@ -8,8 +8,8 @@ export const cardDataStatusSamples: Record<CardDataState, CardDataStatus> = {
   idle: {
     state: 'idle',
     progress: 0,
-    bulkUpdatedAt: null,
-    lastCheckedAt: null,
+    cardsSyncedAt: null,
+    pricesUpdatedAt: null,
     cardCount: 0,
     printingCount: 0,
     error: null,
@@ -17,8 +17,8 @@ export const cardDataStatusSamples: Record<CardDataState, CardDataStatus> = {
   downloading: {
     state: 'downloading',
     progress: 0.35,
-    bulkUpdatedAt: null,
-    lastCheckedAt: '2026-10-19T01:30:02Z',
+    cardsSyncedAt: null,
+    pricesUpdatedAt: '2026-10-19T01:30:02Z',
     cardCount: 0,
     printingCount: 0,
     error: null,
@@ -26,8 +26,8 @@ export const cardDataStatusSamples: Record<CardDataState, CardDataStatus> = {
   loading: {
     state: 'loading',
     progress: 0.62,
-    bulkUpdatedAt: null,
-    lastCheckedAt: '2026-10-19T01:30:02Z',
+    cardsSyncedAt: null,
+    pricesUpdatedAt: '2026-10-19T01:30:02Z',
     cardCount: 0,
     printingCount: 0,
     error: null,
@@ -35,21 +35,21 @@ export const cardDataStatusSamples: Record<CardDataState, CardDataStatus> = {
   ready: {
     state: 'ready',
     progress: 1,
-    bulkUpdatedAt: '2026-10-18T21:04:31Z',
-    lastCheckedAt: '2026-10-19T01:30:02Z',
-    cardCount: 33_874,
-    printingCount: 101_652,
+    cardsSyncedAt: '2026-10-18T21:04:31Z',
+    pricesUpdatedAt: '2026-10-19T01:30:02Z',
+    cardCount: 812,
+    printingCount: 1_406,
     error: null,
   },
   error: {
     state: 'error',
     progress: 0.48,
-    bulkUpdatedAt: '2026-10-11T21:02:17Z',
-    lastCheckedAt: '2026-10-19T01:30:02Z',
-    cardCount: 33_801,
-    printingCount: 101_390,
+    cardsSyncedAt: '2026-10-11T21:02:17Z',
+    pricesUpdatedAt: '2026-10-19T01:30:02Z',
+    cardCount: 798,
+    printingCount: 1_377,
     error:
-      "Couldn't download the new card data, so the app is still using the data from October 11. Check the internet connection and press Refresh card data to try again.",
+      "Couldn't reach Riftcodex, so the app is still using the card data from October 11. Check the internet connection and press Refresh card data to try again.",
   },
 };
 

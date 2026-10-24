@@ -2,8 +2,8 @@ import { expect, type Page, type Request, test } from '@playwright/test';
 import type { BuyItemChange, BuyList } from '../../src/shared/api/buy-list';
 import { buyItemSample, buyListSample } from '../../src/shared/api/samples/buy-list';
 
-// The Buy list screen with the API mocked from the samples: Soul of Windgrace (item 3, a
-// picked printing), Splendid Reclamation (item 2) and Arcane Signet (item 1), newest first.
+// The Buy list screen with the API mocked from the samples: Swift Ox (item 3, a
+// picked printing), Twilight Flare (item 2) and Ember Signet (item 1), newest first.
 
 type Sent = { method: string; url: string; body: unknown };
 
@@ -40,16 +40,12 @@ test('one row per item, newest first, with its printing, quantity, note and date
 
   const rows = page.getByRole('region', { name: 'Cards to buy' }).locator('tbody tr');
   await expect(rows).toHaveCount(3);
-  await expect(rows.getByRole('link')).toHaveText([
-    'Soul of Windgrace',
-    'Splendid Reclamation',
-    'Arcane Signet',
-  ]);
+  await expect(rows.getByRole('link')).toHaveText(['Swift Ox', 'Twilight Flare', 'Ember Signet']);
 
   const soul = row(page, 3);
-  await expect(soul).toContainText('Edge of Eternities Commander (EOC) #126');
+  await expect(soul).toContainText('Origins (OGN) #126');
   await expect(soul.getByRole('spinbutton', { name: /Quantity of/ })).toHaveValue('1');
-  await expect(soul.getByRole('textbox', { name: /Note for/ })).toHaveValue('For Hearthhull');
+  await expect(soul.getByRole('textbox', { name: /Note for/ })).toHaveValue('For Jinx Burn');
   await expect(soul).toContainText('Oct 18, 2026');
 
   const reclamation = row(page, 2);
@@ -62,7 +58,7 @@ test('a card name opens its card page', async ({ page }) => {
   await page.goto('/buy-list');
   const signet = buyListSample.items[2].card;
   await row(page, 1).getByRole('link', { name: signet.name }).click();
-  await expect(page).toHaveURL(`/cards/${signet.oracleId}`);
+  await expect(page).toHaveURL(`/cards/${signet.id}`);
 });
 
 test('hovering a row shows its card beside the list', async ({ page }) => {
@@ -71,7 +67,7 @@ test('hovering a row shows its card beside the list', async ({ page }) => {
   const preview = page.getByRole('complementary', { name: 'Card preview' }).getByRole('img');
   await expect(preview).toHaveAttribute('alt', buyListSample.items[0].card.name);
   await row(page, 1).hover();
-  await expect(preview).toHaveAttribute('alt', 'Arcane Signet');
+  await expect(preview).toHaveAttribute('alt', 'Ember Signet');
 });
 
 test('editing the quantity sends PATCH when the field loses focus', async ({ page }) => {
@@ -103,7 +99,7 @@ test('a quantity below one is put back, not sent', async ({ page }) => {
 test('editing the note sends PATCH when the field loses focus', async ({ page }) => {
   const sent = await mockBuyList(page);
   await page.goto('/buy-list');
-  const note = row(page, 1).getByRole('textbox', { name: 'Note for Arcane Signet' });
+  const note = row(page, 1).getByRole('textbox', { name: 'Note for Ember Signet' });
   await note.fill('Any foil is fine');
   await note.press('Enter');
   await expect.poll(() => sent).toHaveLength(1);
@@ -115,7 +111,7 @@ test('editing the note sends PATCH when the field loses focus', async ({ page })
 test('Remove sends DELETE', async ({ page }) => {
   const sent = await mockBuyList(page);
   await page.goto('/buy-list');
-  await row(page, 3).getByRole('button', { name: 'Remove Soul of Windgrace' }).click();
+  await row(page, 3).getByRole('button', { name: 'Remove Swift Ox' }).click();
   await expect.poll(() => sent).toHaveLength(1);
   expect(sent[0].method).toBe('DELETE');
   expect(sent[0].url).toMatch(/\/api\/buy-list\/3$/);
@@ -132,7 +128,7 @@ test('a failed change says why', async ({ page }) => {
     }),
   );
   await page.goto('/buy-list');
-  await row(page, 1).getByRole('button', { name: 'Remove Arcane Signet' }).click();
+  await row(page, 1).getByRole('button', { name: 'Remove Ember Signet' }).click();
   await expect(page.getByRole('alert')).toHaveText('This card is no longer on the list');
 });
 
@@ -145,7 +141,7 @@ test('the rows / images switch shows images and is remembered', async ({ page })
 
   const tiles = page.getByRole('region', { name: 'Cards to buy' }).getByRole('listitem');
   await expect(tiles).toHaveCount(3);
-  await expect(tiles.first().getByRole('img')).toHaveAttribute('alt', 'Soul of Windgrace');
+  await expect(tiles.first().getByRole('img')).toHaveAttribute('alt', 'Swift Ox');
   await expect(tiles.first().getByRole('spinbutton')).toHaveValue('1');
   await expect(page.locator('table')).toHaveCount(0);
 

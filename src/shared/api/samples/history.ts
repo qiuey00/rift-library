@@ -2,8 +2,8 @@ import type { DeckRef } from '../decks';
 import type { HistoryDay, MovementReason, MovementRow } from '../history';
 import type { LocationNode } from '../locations';
 import {
-  blackGreenNode,
-  hearthhullDeckBoxNode,
+  chaosCalmNode,
+  jinxBurnDeckBoxNode,
   landsNode,
   locationRef,
   raresBinderNode,
@@ -15,7 +15,7 @@ import { sampleCards as c, type SampleCard } from './stacks';
 // Sample answers for the history area, matching src/shared/api/history.ts. Screen tests mock
 // the API with them; the stub route returns them until #40.
 
-const hearthhullDeck: DeckRef = { id: 1, name: 'Hearthhull' };
+const jinxBurnDeck: DeckRef = { id: 1, name: 'Jinx Burn' };
 
 const movement = (
   id: number,
@@ -51,7 +51,7 @@ export const historyDaySample: HistoryDay = {
       batch: {
         id: 106,
         kind: 'undo',
-        summary: 'Undid: moved Arcane Signet to Rares binder',
+        summary: 'Undid: moved Ember Signet to Rares binder',
         deck: null,
         createdAt: '2026-10-18T22:15:04Z',
         undone: false,
@@ -59,7 +59,7 @@ export const historyDaySample: HistoryDay = {
           movement(
             511,
             '2026-10-18T22:15:04Z',
-            c.arcaneSignetFic,
+            c.emberSignetOgt,
             1,
             raresBinderNode,
             staplesBinderNode,
@@ -73,7 +73,7 @@ export const historyDaySample: HistoryDay = {
       movement: movement(
         510,
         '2026-10-18T22:14:37Z',
-        c.arcaneSignetFic,
+        c.emberSignetOgt,
         1,
         staplesBinderNode,
         raresBinderNode,
@@ -88,7 +88,7 @@ export const historyDaySample: HistoryDay = {
       movement: movement(
         509,
         '2026-10-18T21:30:12Z',
-        c.sylvanLibrary,
+        c.daringBanner,
         1,
         toSortNode,
         raresBinderNode,
@@ -100,7 +100,7 @@ export const historyDaySample: HistoryDay = {
       movement: movement(
         508,
         '2026-10-18T21:05:48Z',
-        c.commandTower,
+        c.targonsPeak,
         3,
         toSortNode,
         landsNode,
@@ -112,45 +112,45 @@ export const historyDaySample: HistoryDay = {
       batch: {
         id: 102,
         kind: 'pick_list',
-        summary: 'Pick list · Hearthhull · 3 cards',
-        deck: hearthhullDeck,
+        summary: 'Pick list · Jinx Burn · 3 cards',
+        deck: jinxBurnDeck,
         createdAt: '2026-10-18T20:10:05Z',
         undone: false,
         movements: [
           movement(
             507,
             '2026-10-18T20:10:40Z',
-            c.commandTower,
+            c.targonsPeak,
             1,
             landsNode,
-            hearthhullDeckBoxNode,
+            jinxBurnDeckBoxNode,
             'assembled',
             {
-              deck: hearthhullDeck,
+              deck: jinxBurnDeck,
             },
           ),
           movement(
             506,
             '2026-10-18T20:10:22Z',
-            c.hearthhull,
+            c.jinxBurn,
             1,
             raresBinderNode,
-            hearthhullDeckBoxNode,
+            jinxBurnDeckBoxNode,
             'assembled',
             {
-              deck: hearthhullDeck,
+              deck: jinxBurnDeck,
             },
           ),
           movement(
             505,
             '2026-10-18T20:10:05Z',
-            c.arcaneSignet,
+            c.emberSignet,
             1,
             staplesBinderNode,
-            hearthhullDeckBoxNode,
+            jinxBurnDeckBoxNode,
             'assembled',
             {
-              deck: hearthhullDeck,
+              deck: jinxBurnDeck,
             },
           ),
         ],
@@ -160,24 +160,16 @@ export const historyDaySample: HistoryDay = {
       kind: 'batch',
       batch: {
         id: 101,
-        kind: 'import',
-        summary: 'Imported 7 cards',
+        kind: 'add',
+        summary: 'Added 7 cards',
         deck: null,
         createdAt: '2026-10-18T19:02:11Z',
         undone: false,
         movements: [
-          movement(504, '2026-10-18T19:02:11Z', c.pickYourPoison, 1, null, toSortNode, 'imported'),
-          movement(503, '2026-10-18T19:02:11Z', c.elementalMascot, 4, null, toSortNode, 'imported'),
-          movement(
-            502,
-            '2026-10-18T19:02:11Z',
-            c.magmabloodArchaicJa,
-            1,
-            null,
-            toSortNode,
-            'imported',
-          ),
-          movement(501, '2026-10-18T19:02:11Z', c.harmonizedTrio, 1, null, toSortNode, 'imported'),
+          movement(504, '2026-10-18T19:02:11Z', c.hextechBonfire, 1, null, toSortNode, 'added'),
+          movement(503, '2026-10-18T19:02:11Z', c.wildShaman, 4, null, toSortNode, 'added'),
+          movement(502, '2026-10-18T19:02:11Z', c.grimCartographerJa, 1, null, toSortNode, 'added'),
+          movement(501, '2026-10-18T19:02:11Z', c.gildedWhelp, 1, null, toSortNode, 'added'),
         ],
       },
     },
@@ -194,10 +186,10 @@ export const historyOlderDaySample: HistoryDay = {
       movement: movement(
         500,
         '2026-10-17T18:20:00Z',
-        c.witherbloomCharm,
+        c.whisperingSurge,
         2,
         null,
-        blackGreenNode,
+        chaosCalmNode,
         'added',
       ),
     },
