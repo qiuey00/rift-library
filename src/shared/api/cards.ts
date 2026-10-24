@@ -15,12 +15,14 @@ import { CardSummary, CardType, Domain, IdParam, PrintingSummary } from './commo
 
 export const CardSearchQuery = z.object({
   /**
-   * Words from the card's name, or a public code such as "OGN-042" or "ogn-042/298" (public
-   * codes come with #8).
+   * The start of any word of the card's name, or a public code such as "OGN-042",
+   * "ogn-42" or "ogn-042/298".
    */
   q: z.string().trim().min(1),
   /** Keeps only cards of this type, such as 'legend' when picking a deck's Legend. */
   type: CardType.optional(),
+  /** Keeps only cards with this supertype, such as 'champion', ignoring case. */
+  supertype: z.string().trim().min(1).optional(),
   /**
    * Keeps only cards whose domains all fit inside these, comma separated, such as
    * 'fury,chaos' for a Fury and Chaos Legend's deck; cards with no domain always fit.
@@ -30,6 +32,10 @@ export const CardSearchQuery = z.object({
     .transform((text) => (text === '' ? [] : text.split(',')))
     .pipe(z.array(Domain))
     .optional(),
+  /** Keeps only cards of this champion, such as 'Jinx', ignoring case. */
+  championTag: z.string().trim().min(1).optional(),
+  /** '1' keeps only cards a deck can hold, leaving out tokens. */
+  deckable: z.literal('1').optional(),
   /** The most results to answer with. */
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

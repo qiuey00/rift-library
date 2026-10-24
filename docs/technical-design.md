@@ -114,6 +114,7 @@ Every core operation keeps Library of Gathering's behavior and code: `moveCopies
 | Change board | Moves a card between the main deck, sideboard and maybe board (DECK-16). Moving between main and sideboard moves no copies; moving to the maybe board puts the copy on the swap list. |
 | Deck checks | Rewritten in `src/server/queries/deck-checks.ts` for the rules in DECK-6. |
 | Add and remove | Quick add writes one add batch per card added. Lowering or removing copies writes a remove batch with the reason and no to location (COL-13). |
+| Card search | Matches the start of any word of a card name, ignoring case, or a public code with or without leading zeros and the set size (`OGN-042`, `ogn-42`, `ogn-042/298`). An exact public code comes first, then names starting with the text, then other word starts, then codes starting with the text. `type`, `supertype`, `domains`, `championTag` and `deckable` narrow it for deck building (FIND-1). |
 | Drag a card in | Removed with `src/server/scryfall/drop.ts` (D-9). |
 
 ## What is removed from the copied code
