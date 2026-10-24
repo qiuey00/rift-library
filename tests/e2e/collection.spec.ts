@@ -10,6 +10,7 @@ import { locationTreeSample } from '../../src/shared/api/samples/locations';
 import {
   collectionValueSample,
   sampleStacks,
+  stacksDomainSample,
   stacksNextPageSample,
   stacksPageSample,
   stacksSearchSample,
@@ -18,9 +19,9 @@ import {
 import type { StacksPage } from '../../src/shared/api/stacks';
 
 // The Collection screen with the API mocked from the samples: GET /api/stacks answers the
-// first page (13 stacks, with a next page), the next page (2 more), or the `t:creature f:foil`
-// search (Blech and Wild Duelist, both foil), or the `trade:yes` search (the Blech in the
-// Trade binder). GET /api/collection/value answers the whole collection's value.
+// first page (13 stacks, with a next page), the next page (2 more), the `domain:chaos` search
+// (every Chaos card), the `trade:yes` search (the Nasus in the Trade binder), or for any other
+// search the `type:unit finish:foil` answer (Nasus and Wild Duelist, both foil). GET /api/collection/value answers the whole collection's value.
 
 // The prices date reads the same wherever the tests run.
 test.use({ timezoneId: 'UTC' });
@@ -43,6 +44,9 @@ async function mockApi(page: Page, firstPage: StacksPage = stacksPageSample) {
       if (url.searchParams.get('cursor')) return route.fulfill({ json: stacksNextPageSample });
       if (url.searchParams.get('q') === 'trade:yes') {
         return route.fulfill({ json: stacksTradeSample });
+      }
+      if (url.searchParams.get('q') === 'domain:chaos') {
+        return route.fulfill({ json: stacksDomainSample });
       }
       if (url.searchParams.get('q')) return route.fulfill({ json: stacksSearchSample });
       return route.fulfill({ json: firstPage });
@@ -85,27 +89,27 @@ test('lists every copy stack with the totals in the header', async ({ page }) =>
   await expect(page.getByRole('row', { name: /Daring Banner/ })).toContainText('Rares binder');
 });
 
-test('typing t:creature f:foil sends that query and shows two chips', async ({ page }) => {
+test('typing type:unit finish:foil sends that query and shows two chips', async ({ page }) => {
   const { stacks } = await mockApi(page);
   await page.goto('/collection');
-  await searchBox(page).fill('t:creature f:foil');
+  await searchBox(page).fill('type:unit finish:foil');
 
-  await expect.poll(() => lastQuery(stacks)).toBe('t:creature f:foil');
-  await expect(chips(page)).toHaveText(['Type: creature', 'Finish: foil']);
+  await expect.poll(() => lastQuery(stacks)).toBe('type:unit finish:foil');
+  await expect(chips(page)).toHaveText(['Type: unit', 'Finish: foil']);
   await expect(bodyRows(page)).toHaveCount(2);
   await expect(page.getByTestId('collection-totals')).toHaveText(
     'The search matches 2 cards in 2 stacks, 0 proxies.',
   );
-  await expect(page).toHaveURL(/\?q=t%3Acreature(\+|%20)f%3Afoil$/);
+  await expect(page).toHaveURL(/\?q=type%3Aunit(\+|%20)finish%3Afoil$/);
 });
 
 test('removing a chip updates the text and the request', async ({ page }) => {
   const { stacks } = await mockApi(page);
   await page.goto('/collection');
-  await searchBox(page).fill('t:creature f:foil');
-  await expect.poll(() => lastQuery(stacks)).toBe('t:creature f:foil');
+  await searchBox(page).fill('type:unit f:foil');
+  await expect.poll(() => lastQuery(stacks)).toBe('type:unit f:foil');
 
-  await page.getByRole('button', { name: 'Remove Type: creature' }).click();
+  await page.getByRole('button', { name: 'Remove Type: unit' }).click();
   await expect(searchBox(page)).toHaveValue('f:foil');
   await expect(chips(page)).toHaveText(['Finish: foil']);
   await expect.poll(() => lastQuery(stacks)).toBe('f:foil');
@@ -122,7 +126,8 @@ test('dropdown filters add chips and the same terms to the text', async ({ page 
   await page.getByLabel('Finish', { exact: true }).selectOption('foil');
   await page.getByLabel('Proxy', { exact: true }).selectOption('real');
   await page.getByLabel('Type', { exact: true }).selectOption('unit');
-  await page.getByLabel('Domain', { exact: true }).selectOption('calm');
+  await page.getByLabel('Rarity', { exact: true }).selectOption('epic');
+  await page.getByRole('group', { name: 'Domain' }).getByRole('button', { name: 'Calm' }).click();
 
   await page.getByRole('combobox', { name: 'Location' }).click();
   await page.getByRole('option', { name: 'Rares binder', exact: true }).click();
@@ -131,12 +136,13 @@ test('dropdown filters add chips and the same terms to the text', async ({ page 
   await page.getByPlaceholder('Search sets').fill('spirit');
   await page.getByRole('option', { name: /^Spiritforged\s*SFD/ }).click();
 
-  const q = 'f:foil is:real t:unit domain:calm loc:"Rares binder" set:sfd';
+  const q = 'finish:foil is:real type:unit rarity:epic domain:calm loc:"Rares binder" set:sfd';
   await expect(searchBox(page)).toHaveValue(q);
   await expect(chips(page)).toHaveText([
     'Finish: foil',
     'Real only',
     'Type: unit',
+    'Rarity: epic',
     'Domain: Calm',
     'Location: Rares binder',
     'Set: SFD',
@@ -146,8 +152,63 @@ test('dropdown filters add chips and the same terms to the text', async ({ page 
   // Changing a dropdown replaces its term rather than adding another.
   await page.getByLabel('Finish', { exact: true }).selectOption('');
   await expect(searchBox(page)).toHaveValue(
-    'is:real t:unit domain:calm loc:"Rares binder" set:sfd',
+    'is:real type:unit rarity:epic domain:calm loc:"Rares binder" set:sfd',
   );
+});
+
+test('the domain icons add and remove domain terms, several at once', async ({ page }) => {
+  const { stacks } = await mockApi(page);
+  await page.goto('/collection');
+  const domains = page.getByRole('group', { name: 'Domain' });
+  await expect(domains.getByRole('img')).toHaveCount(6);
+  const chaos = domains.getByRole('button', { name: 'Chaos' });
+  const calm = domains.getByRole('button', { name: 'Calm' });
+  await expect(chaos).toHaveAttribute('aria-pressed', 'false');
+
+  await chaos.click();
+  await expect(chaos).toHaveAttribute('aria-pressed', 'true');
+  await expect(searchBox(page)).toHaveValue('domain:chaos');
+  await expect(chips(page)).toHaveText(['Domain: Chaos']);
+  await expect.poll(() => lastQuery(stacks)).toBe('domain:chaos');
+  // Nasus, Protector is Chaos and Calm; it matches on either.
+  await expect(bodyRows(page)).toHaveCount(stacksDomainSample.rows.length);
+  await expect(page.getByRole('link', { name: 'Nasus, Protector' }).first()).toBeVisible();
+
+  await calm.click();
+  await expect(searchBox(page)).toHaveValue('domain:chaos domain:calm');
+  await expect(chips(page)).toHaveText(['Domain: Chaos', 'Domain: Calm']);
+
+  await chaos.click();
+  await expect(chaos).toHaveAttribute('aria-pressed', 'false');
+  await expect(calm).toHaveAttribute('aria-pressed', 'true');
+  await expect(searchBox(page)).toHaveValue('domain:calm');
+
+  await page.getByRole('button', { name: 'Remove Domain: Calm' }).click();
+  await expect(calm).toHaveAttribute('aria-pressed', 'false');
+  await expect(searchBox(page)).toHaveValue('');
+});
+
+test('a typed rarity, type or domain shows in its filter', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/collection?q=rarity:showcase%20t:legend%20domain:ORDER');
+  await expect(page.getByLabel('Rarity', { exact: true })).toHaveValue('showcase');
+  await expect(page.getByLabel('Type', { exact: true })).toHaveValue('legend');
+  await expect(
+    page.getByRole('group', { name: 'Domain' }).getByRole('button', { name: 'Order' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(chips(page)).toHaveText(['Rarity: showcase', 'Type: legend', 'Domain: Order']);
+});
+
+test("rows show the card's domains, type and public code", async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/collection');
+  await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
+  const row = page.locator(`tr[data-stack-id="${sampleStacks.nasusProtectorFoil.stackId}"]`);
+  await expect(row.getByRole('img', { name: 'Chaos' })).toBeVisible();
+  await expect(row.getByRole('img', { name: 'Calm' })).toBeVisible();
+  await expect(row.locator('td').nth(2)).toHaveText('Champion unit');
+  await expect(row.locator('td').nth(3)).toHaveText('SFD-176/221');
 });
 
 test('a typed term shows as the dropdown value', async ({ page }) => {
@@ -163,7 +224,7 @@ test('a term the search cannot use says why and is not sent', async ({ page }) =
   await expect(bodyRows(page).first()).toBeVisible();
   const before = stacks.length;
   await searchBox(page).fill('f:shiny');
-  await expect(page.getByRole('alert')).toHaveText('f: takes normal or foil.');
+  await expect(page.getByRole('alert')).toHaveText('finish: takes normal or foil.');
   await page.waitForTimeout(500);
   expect(stacks.length).toBe(before);
 });

@@ -20,9 +20,13 @@ export type CollectionFilter =
   | { kind: 'set'; value: string }
   /** `domain:fury`: one of the card's domains is this one. */
   | { kind: 'domain'; value: Domain }
-  /** `t:unit`: the card's type contains it (any case). */
+  /** `type:unit` (or `t:unit`): the card's type contains it (any case). */
   | { kind: 'type'; value: string }
-  /** `f:normal`, `f:foil`. */
+  /** `supertype:champion`: the card's supertype, such as champion, signature or token. */
+  | { kind: 'supertype'; value: string }
+  /** `rarity:epic`: the printing's rarity, such as common, rare or showcase. */
+  | { kind: 'rarity'; value: string }
+  /** `finish:foil` (or `f:foil`), `finish:normal`. */
   | { kind: 'finish'; value: Finish }
   /** `is:proxy` (true) or `is:real` (false). */
   | { kind: 'proxy'; value: boolean }
@@ -34,9 +38,22 @@ export type CollectionFilter =
   | { kind: 'invalid'; message: string };
 
 const finishes: readonly Finish[] = ['normal', 'foil'];
-const keys = ['set', 'domain', 't', 'f', 'is', 'loc', 'trade'] as const;
+const keys = [
+  'set',
+  'domain',
+  'type',
+  'supertype',
+  'rarity',
+  'finish',
+  'is',
+  'loc',
+  'trade',
+] as const;
 type Key = (typeof keys)[number];
-const isKey = (key: string): key is Key => (keys as readonly string[]).includes(key);
+/** Short keys that read the same as a long one. */
+const aliases: Record<string, Key> = { t: 'type', f: 'finish' };
+const toKey = (key: string): Key | undefined =>
+  (keys as readonly string[]).includes(key) ? (key as Key) : aliases[key];
 
 /** Reads the search text into its terms, in the order they are written. */
 export function parseCollectionQuery(q: string): CollectionTerm[] {
@@ -54,13 +71,13 @@ export function parseCollectionQuery(q: string): CollectionTerm[] {
     const { value, next } = readValue(q, i);
     i = next;
     const text = q.slice(start, i);
-    const key = keyMatch?.[1]?.toLowerCase();
-    if (key && isKey(key)) {
+    const key = keyMatch?.[1] ? toKey(keyMatch[1].toLowerCase()) : undefined;
+    if (key) {
       terms.push({ ...readFilter(key, value), text, start, end: i });
     } else if (keyMatch && value !== '') {
       terms.push({
         kind: 'invalid',
-        message: `${keyMatch[0]} isn't a search term. Use set:, domain:, t:, f:, is:, loc: or trade:.`,
+        message: `${keyMatch[0]} isn't a search term. Use set:, domain:, type:, supertype:, rarity:, finish:, is:, loc: or trade:.`,
         text,
         start,
         end: i,
@@ -94,15 +111,19 @@ function readFilter(key: Key, value: string): CollectionFilter {
   switch (key) {
     case 'set':
       return { kind: 'set', value: value.toUpperCase() };
-    case 't':
+    case 'type':
       return { kind: 'type', value: lower };
+    case 'supertype':
+      return { kind: 'supertype', value: lower };
+    case 'rarity':
+      return { kind: 'rarity', value: lower };
     case 'loc':
       return { kind: 'location', value };
-    case 'f': {
+    case 'finish': {
       const finish = finishes.find((f) => f === lower);
       return finish
         ? { kind: 'finish', value: finish }
-        : { kind: 'invalid', message: 'f: takes normal or foil.' };
+        : { kind: 'invalid', message: 'finish: takes normal or foil.' };
     }
     case 'is':
       if (lower === 'proxy') return { kind: 'proxy', value: true };
@@ -127,8 +148,10 @@ function readFilter(key: Key, value: string): CollectionFilter {
 const examples: Record<Key, string> = {
   set: 'set:ogn',
   domain: 'domain:fury',
-  t: 't:unit',
-  f: 'f:foil',
+  type: 'type:unit',
+  supertype: 'supertype:champion',
+  rarity: 'rarity:epic',
+  finish: 'finish:foil',
   is: 'is:proxy',
   loc: 'loc:"Rares binder"',
   trade: 'trade:yes',
@@ -149,9 +172,13 @@ export function formatCollectionFilter(filter: CollectionFilter): string {
     case 'domain':
       return `domain:${filter.value}`;
     case 'type':
-      return `t:${quote(filter.value)}`;
+      return `type:${quote(filter.value)}`;
+    case 'supertype':
+      return `supertype:${quote(filter.value)}`;
+    case 'rarity':
+      return `rarity:${quote(filter.value)}`;
     case 'finish':
-      return `f:${filter.value}`;
+      return `finish:${filter.value}`;
     case 'proxy':
       return filter.value ? 'is:proxy' : 'is:real';
     case 'location':

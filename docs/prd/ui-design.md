@@ -66,7 +66,7 @@ Unchanged. A location's menu loses Export to Moxfield and gains Export list (EXP
 
 ## Collection, buy list and history
 
-- **Collection:** unchanged, except the filters cover name, set, domain, card type, rarity, finish, proxy, location and trade (COL-8), and key:value search reads `set:ogn`, `domain:fury`, `type:unit` and `rarity:epic`. Import ManaBox CSV is gone; Export CSV stays (PLAT-7).
+- **Collection:** unchanged, except the filters cover name, set, domain, card type, rarity, finish, proxy, location and trade (COL-8), and key:value search reads `set:ogn`, `domain:fury` (any of the card's domains), `type:unit` (or `t:`), `supertype:signature`, `rarity:epic`, `finish:foil` (or `f:`), `is:proxy`, `loc:"Rares binder"` and `trade:yes`. The filter row has the six domain icons as toggle chips (several can be on, and a card must have each), then Type, Rarity, Set, Finish, Proxy, Location and For trade; each adds its key:value to the search and shows as a chip that can be removed. Rows show the card's domain icons, its type (such as "Champion unit") and the printing's public code (such as OGN-042/298) in place of the set and number columns; the Value column stays. Import ManaBox CSV is gone; Export CSV stays (PLAT-7).
 - **Buy list:** unchanged.
 - **History:** unchanged. Removed copies show with a dash for their destination and the reason Jeff gave.
 

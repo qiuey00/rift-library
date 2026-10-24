@@ -48,6 +48,7 @@ const samples: [string, z.ZodType, unknown][] = [
   ['stacksNextPageSample', StacksPage, stacksSamples.stacksNextPageSample],
   ['stacksSearchSample', StacksPage, stacksSamples.stacksSearchSample],
   ['stacksTradeSample', StacksPage, stacksSamples.stacksTradeSample],
+  ['stacksDomainSample', StacksPage, stacksSamples.stacksDomainSample],
   ['stacksByValueSample', StacksPage, stacksSamples.stacksByValueSample],
   ['collectionValueSample', CollectionValue, stacksSamples.collectionValueSample],
   ['locationStacksSample', LocationStacks, stacksSamples.locationStacksSample],

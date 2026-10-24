@@ -13,7 +13,7 @@ import {
   DeckListText,
   DeckListUpdated,
 } from '../../src/shared/api/deck-lists';
-import { DeckRunes, DeckSummary, DeckView, SlotChange } from '../../src/shared/api/decks';
+import { DeckRunes, DeckSummary, SlotChange } from '../../src/shared/api/decks';
 import { DeckListExport } from '../../src/shared/api/exports';
 import {
   deckChangesSample,
@@ -147,14 +147,13 @@ describe('deck list routes', () => {
 });
 
 describe('deck routes added for Riftbound', () => {
-  // STUB until #15.
-  it('PUT /api/decks/:id/runes answers the deck view', async () => {
+  it('PUT /api/decks/:id/runes answers 404 for a deck that doesn’t exist', async () => {
     const res = await api.decks[':id'].runes.$put({
       param: { id: '1' },
       json: { runes: [{ cardId: 172, quantity: 6 }] },
     });
-    expect(res.status).toBe(200);
-    expect(DeckView.parse(await res.json()).deck.name).toBe('Jinx Burn');
+    expect(res.status).toBe(404);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_not_found');
   });
 
   it('PUT /api/decks/:id/runes takes each rune card once', () => {

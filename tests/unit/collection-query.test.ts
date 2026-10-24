@@ -44,13 +44,21 @@ describe('parseCollectionQuery', () => {
     ]);
   });
 
-  it('reads t:', () => {
+  it('reads type:, and t: the same way', () => {
+    expect(filters('type:Unit')).toEqual([{ kind: 'type', value: 'unit' }]);
     expect(filters('t:Unit')).toEqual([{ kind: 'type', value: 'unit' }]);
     expect(filters('t:"champion unit"')).toEqual([{ kind: 'type', value: 'champion unit' }]);
   });
 
-  it('reads f: for each finish', () => {
-    expect(filters('f:foil f:Normal')).toEqual([
+  it('reads supertype: and rarity: in lower case', () => {
+    expect(filters('supertype:Signature rarity:EPIC')).toEqual([
+      { kind: 'supertype', value: 'signature' },
+      { kind: 'rarity', value: 'epic' },
+    ]);
+  });
+
+  it('reads finish: and f: for each finish', () => {
+    expect(filters('finish:foil f:Normal')).toEqual([
       { kind: 'finish', value: 'foil' },
       { kind: 'finish', value: 'normal' },
     ]);
@@ -123,7 +131,9 @@ describe('parseCollectionQuery', () => {
   });
 
   it('marks terms it cannot use as invalid, with a message for Jeff', () => {
-    expect(filters('f:shiny')).toEqual([{ kind: 'invalid', message: 'f: takes normal or foil.' }]);
+    expect(filters('f:shiny')).toEqual([
+      { kind: 'invalid', message: 'finish: takes normal or foil.' },
+    ]);
     expect(filters('is:foil')).toEqual([{ kind: 'invalid', message: 'is: takes proxy or real.' }]);
     expect(filters('domain:green')).toEqual([
       { kind: 'invalid', message: 'domain: takes fury, calm, mind, body, chaos or order.' },
@@ -132,10 +142,14 @@ describe('parseCollectionQuery', () => {
       { kind: 'invalid', message: 'set: needs a value, such as set:ogn.' },
     ]);
     expect(filters('loc:""')[0]?.kind).toBe('invalid');
-    expect(filters('rarity:mythic')).toEqual([
+    expect(filters('t:')).toEqual([
+      { kind: 'invalid', message: 'type: needs a value, such as type:unit.' },
+    ]);
+    expect(filters('mv:3')).toEqual([
       {
         kind: 'invalid',
-        message: "rarity: isn't a search term. Use set:, domain:, t:, f:, is:, loc: or trade:.",
+        message:
+          "mv: isn't a search term. Use set:, domain:, type:, supertype:, rarity:, finish:, is:, loc: or trade:.",
       },
     ]);
   });
@@ -152,8 +166,12 @@ describe('formatCollectionFilter', () => {
     );
     expect(formatCollectionFilter({ kind: 'set', value: 'OGN' })).toBe('set:ogn');
     expect(formatCollectionFilter({ kind: 'domain', value: 'fury' })).toBe('domain:fury');
-    expect(formatCollectionFilter({ kind: 'type', value: 'unit' })).toBe('t:unit');
-    expect(formatCollectionFilter({ kind: 'finish', value: 'normal' })).toBe('f:normal');
+    expect(formatCollectionFilter({ kind: 'type', value: 'unit' })).toBe('type:unit');
+    expect(formatCollectionFilter({ kind: 'supertype', value: 'champion' })).toBe(
+      'supertype:champion',
+    );
+    expect(formatCollectionFilter({ kind: 'rarity', value: 'epic' })).toBe('rarity:epic');
+    expect(formatCollectionFilter({ kind: 'finish', value: 'normal' })).toBe('finish:normal');
     expect(formatCollectionFilter({ kind: 'proxy', value: true })).toBe('is:proxy');
     expect(formatCollectionFilter({ kind: 'proxy', value: false })).toBe('is:real');
     expect(formatCollectionFilter({ kind: 'trade', value: true })).toBe('trade:yes');
@@ -170,6 +188,8 @@ describe('formatCollectionFilter', () => {
       { kind: 'set', value: 'OGN' },
       { kind: 'domain', value: 'chaos' },
       { kind: 'type', value: 'champion unit' },
+      { kind: 'supertype', value: 'signature' },
+      { kind: 'rarity', value: 'showcase' },
       { kind: 'finish', value: 'foil' },
       { kind: 'proxy', value: false },
       { kind: 'location', value: 'Long box' },

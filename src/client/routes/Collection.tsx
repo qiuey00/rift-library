@@ -28,7 +28,7 @@ import { api } from '../api';
 import { AddCardsDialog } from '../components/AddCardsDialog';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { type CopyStackAction, CopyStackTable } from '../components/CopyStackTable';
-import { DOMAIN_WORDS } from '../components/DomainIcon';
+import { DOMAIN_WORDS, DomainIcon } from '../components/DomainIcon';
 import { LocationPicker, useLocationTree } from '../components/LocationPicker';
 import { MoveToDialog } from '../components/MoveToDialog';
 import { Panel } from '../components/Panel';
@@ -44,7 +44,13 @@ import { Input } from '../components/ui/input';
 import { NativeSelect, NativeSelectOption } from '../components/ui/native-select';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { useSetProxy } from '../components/useSetProxy';
-import { chipLabel, findFilter, removeTerm, replaceFilter } from '../lib/collection-search';
+import {
+  chipLabel,
+  findFilter,
+  removeTerm,
+  replaceFilter,
+  toggleDomain,
+} from '../lib/collection-search';
 import { formatCents, pricesUpdated } from '../lib/money';
 import { cn } from '../lib/utils';
 
@@ -73,6 +79,16 @@ const SEARCH_DELAY_MS = 300;
 
 /** The card types the Type filter offers. */
 const cardTypes = ['Legend', 'Unit', 'Spell', 'Gear', 'Battlefield', 'Rune', 'Token'];
+
+/** The rarities the Rarity filter offers. */
+const rarities = ['Common', 'Uncommon', 'Rare', 'Epic', 'Showcase', 'Promo'];
+
+/** The choices of a dropdown, plus a typed value that isn't one of them, so it still shows. */
+function withTyped(choices: string[], typed: string | undefined): string[] {
+  return typed && !choices.some((choice) => choice.toLowerCase() === typed)
+    ? [...choices, typed]
+    : choices;
+}
 
 /** The error message a failed answer carries, written for Jeff. */
 async function failure(res: Response, fallback: string): Promise<Error> {
@@ -414,7 +430,7 @@ function SearchBox({ value, onChange }: { value: string; onChange: (q: string) =
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='Try a name, set:ogn, domain:fury, t:unit, f:foil, is:proxy, loc:"Rares binder"'
+        placeholder='Try a name, domain:fury, type:unit, rarity:epic, set:ogn, finish:foil, loc:"Rares binder"'
         className="pl-9"
         autoComplete="off"
         spellCheck={false}
@@ -443,52 +459,44 @@ function Filters({
   const finish = findFilter(terms, 'finish');
   const proxy = findFilter(terms, 'proxy');
   const type = findFilter(terms, 'type');
-  const domain = findFilter(terms, 'domain');
+  const rarity = findFilter(terms, 'rarity');
   const location = findFilter(terms, 'location');
   const set = findFilter(terms, 'set');
   const forTrade = findFilter(terms, 'trade')?.value === true;
+  const domains = new Set(terms.flatMap((term) => (term.kind === 'domain' ? [term.value] : [])));
   const locationId =
     tree.data?.nodes.find((node) => node.name.toLowerCase() === location?.value.toLowerCase())
       ?.id ?? null;
-  // A typed type that isn't a main type still shows as the dropdown's value.
-  const typeOptions =
-    type && !cardTypes.some((t) => t.toLowerCase() === type.value)
-      ? [...cardTypes, type.value]
-      : cardTypes;
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <Field label="Set" id={`${ids}-set`}>
-        <SetFilter
-          id={`${ids}-set`}
-          sets={sets}
-          value={set?.value}
-          onChange={(code) => onChange(replaceFilter(q, 'set', { kind: 'set', value: code }))}
-        />
-      </Field>
-      <Field label="Domain" id={`${ids}-domain`}>
-        <NativeSelect
-          id={`${ids}-domain`}
-          value={domain?.value ?? ''}
-          onChange={(event) => {
-            const value = Domain.safeParse(event.target.value);
-            onChange(
-              replaceFilter(
-                q,
-                'domain',
-                value.success ? { kind: 'domain', value: value.data } : null,
-              ),
+      <fieldset aria-labelledby={`${ids}-domain`} className="flex flex-col gap-1">
+        <span id={`${ids}-domain`} className="font-medium text-muted-foreground text-xs">
+          Domain
+        </span>
+        <div className="flex h-10 items-center gap-1">
+          {Domain.options.map((value) => {
+            const on = domains.has(value);
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={on}
+                aria-label={DOMAIN_WORDS[value]}
+                title={DOMAIN_WORDS[value]}
+                onClick={() => onChange(toggleDomain(q, value))}
+                className={cn(
+                  'inline-flex size-9 items-center justify-center rounded-full border-2 text-[22px] transition-opacity',
+                  on ? 'border-primary' : 'border-transparent hover:bg-[#f4f6fa]',
+                  domains.size > 0 && !on && 'opacity-40 hover:opacity-100',
+                )}
+              >
+                <DomainIcon domain={value} />
+              </button>
             );
-          }}
-        >
-          <NativeSelectOption value="">Any domain</NativeSelectOption>
-          {Domain.options.map((value) => (
-            <NativeSelectOption key={value} value={value}>
-              {DOMAIN_WORDS[value]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
+          })}
+        </div>
+      </fieldset>
       <Field label="Type" id={`${ids}-type`}>
         <NativeSelect
           id={`${ids}-type`}
@@ -504,12 +512,42 @@ function Filters({
           }
         >
           <NativeSelectOption value="">Any type</NativeSelectOption>
-          {typeOptions.map((name) => (
+          {withTyped(cardTypes, type?.value).map((name) => (
             <NativeSelectOption key={name} value={name.toLowerCase()}>
               {name}
             </NativeSelectOption>
           ))}
         </NativeSelect>
+      </Field>
+      <Field label="Rarity" id={`${ids}-rarity`}>
+        <NativeSelect
+          id={`${ids}-rarity`}
+          value={rarity?.value ?? ''}
+          onChange={(event) =>
+            onChange(
+              replaceFilter(
+                q,
+                'rarity',
+                event.target.value === '' ? null : { kind: 'rarity', value: event.target.value },
+              ),
+            )
+          }
+        >
+          <NativeSelectOption value="">Any rarity</NativeSelectOption>
+          {withTyped(rarities, rarity?.value).map((name) => (
+            <NativeSelectOption key={name} value={name.toLowerCase()}>
+              {name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </Field>
+      <Field label="Set" id={`${ids}-set`}>
+        <SetFilter
+          id={`${ids}-set`}
+          sets={sets}
+          value={set?.value}
+          onChange={(code) => onChange(replaceFilter(q, 'set', { kind: 'set', value: code }))}
+        />
       </Field>
       <Field label="Finish" id={`${ids}-finish`}>
         <NativeSelect

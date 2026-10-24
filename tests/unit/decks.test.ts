@@ -9,6 +9,7 @@ import { copyStacks, deckSlots, decks, locations } from '../../src/server/db/sch
 import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { AppError } from '../../src/server/errors';
 import { deckList, deckView } from '../../src/server/queries/decks';
+import { demandWarnings } from '../../src/server/queries/demand';
 import {
   addSlot,
   createDeck,
@@ -19,8 +20,10 @@ import {
   renameDeck,
   replaceSlots,
   setLegend,
+  setRunes,
   setSlotPrinting,
   setSlotQuantity,
+  setSlotTags,
 } from '../../src/server/services/decks';
 import type { Domain, LocationType } from '../../src/shared/api/common';
 import { ErrorBody } from '../../src/shared/api/common';
@@ -518,6 +521,182 @@ describe('deleting decks', () => {
   });
 });
 
+describe('boards', () => {
+  const on = (board: DeckSlotInput['board'], cardId: number, quantity = 1): DeckSlotInput => ({
+    cardId,
+    board,
+    quantity,
+  });
+
+  it('gives each board’s slots their status, runes always available', () => {
+    const jinx = card('jinx', { legend: true });
+    const champ = card('champ');
+    const inBox = card('inBox');
+    const free = card('free');
+    const elsewhere = card('elsewhere');
+    const gone = card('gone');
+    const field = card('field');
+    const fury = card('fury', { rune: true });
+    const { id, boxId } = deck('A', [
+      on('legend', jinx),
+      on('champion', champ),
+      on('main', inBox),
+      on('main', free),
+      on('main', elsewhere),
+      on('sideboard', gone),
+      on('battlefield', field),
+      on('rune', fury, 6),
+      on('maybe', free),
+    ]);
+    const other = deck('B', [on('main', elsewhere)]);
+    stack(jinx, boxId);
+    stack(inBox, boxId);
+    stack(champ, place('Binder'));
+    stack(free, place('Long box'));
+    stack(elsewhere, other.boxId);
+    stack(field, boxId);
+
+    expect(view(id).slots.map((s) => [s.board, s.card.name, s.status])).toEqual([
+      ['legend', 'jinx', 'in_box'],
+      ['champion', 'champ', 'free'],
+      ['main', 'inBox', 'in_box'],
+      ['main', 'free', 'free'],
+      ['main', 'elsewhere', 'other_decks'],
+      ['battlefield', 'field', 'in_box'],
+      ['rune', 'fury', 'rune'],
+      ['sideboard', 'gone', 'missing'],
+      ['maybe', 'free', null],
+    ]);
+    expect(slotFor(id, elsewhere).where.otherDecks.map((d) => d.name)).toEqual(['B']);
+    expect(view(id).deck.counts).toEqual({
+      inBox: 3,
+      free: 2,
+      otherDecks: 1,
+      missing: 1,
+      runes: 6,
+    });
+  });
+
+  it('counts demand across two decks, leaving out maybe boards and runes', () => {
+    const signet = card('signet');
+    const fury = card('fury', { rune: true });
+    stack(signet, place('Binder'), 2);
+    deck('A', [on('main', signet), on('rune', fury, 6), on('maybe', signet, 3)]);
+    deck('B', [on('sideboard', signet), on('rune', fury, 6)]);
+    expect(demandWarnings(db, [signet, fury]).size).toBe(0);
+
+    deck('C', [on('main', signet)]);
+    expect(demandWarnings(db, [signet, fury]).get(signet)).toMatchObject({
+      demand: 3,
+      owned: 2,
+      shortage: 1,
+    });
+    expect(demandWarnings(db, [fury]).size).toBe(0);
+  });
+
+  it('is partly assembled while the sideboard is partly pulled, runes and maybe left out', () => {
+    const main1 = card('main1');
+    const side = card('side');
+    const fury = card('fury', { rune: true });
+    const maybe = card('maybe');
+    const { id, boxId } = deck('A', [
+      on('main', main1),
+      on('sideboard', side, 2),
+      on('rune', fury, 12),
+      on('maybe', maybe),
+    ]);
+    stack(main1, boxId);
+    stack(side, boxId);
+    expect(view(id).deck.state).toBe('partly_assembled');
+    expect(slotFor(id, side, 'sideboard')).toMatchObject({ status: 'missing', inBoxQuantity: 1 });
+
+    stack(side, boxId, 1, { proxy: true });
+    expect(view(id).deck.state).toBe('assembled');
+  });
+
+  it('merges a main deck slot into the sideboard slot, keeping both slots’ tags', () => {
+    const ring = card('ring');
+    const { id } = deck('A', [on('main', ring, 2), on('sideboard', ring)]);
+    const mainSlot = slotFor(id, ring).id;
+    const sideSlot = slotFor(id, ring, 'sideboard').id;
+    setSlotTags(db, id, mainSlot, ['Removal', 'Early']);
+    setSlotTags(db, id, sideSlot, ['removal', 'Matchup']);
+
+    expect(moveSlotBoard(db, id, mainSlot, 'sideboard')).toBe(sideSlot);
+    expect(view(id).slots).toHaveLength(1);
+    expect(slotFor(id, ring, 'sideboard')).toMatchObject({
+      quantity: 3,
+      tags: ['Early', 'Matchup', 'Removal'],
+    });
+  });
+
+  it('refuses to move the Legend, champion, battlefield or rune slots', () => {
+    const jinx = card('jinx', { legend: true });
+    const champ = card('champ');
+    const field = card('field');
+    const fury = card('fury', { rune: true });
+    const { id } = deck('A', [
+      on('legend', jinx),
+      on('champion', champ),
+      on('battlefield', field),
+      on('rune', fury, 6),
+    ]);
+    expect(refusal(() => moveSlotBoard(db, id, slotFor(id, jinx, 'legend').id, 'main'))).toEqual({
+      status: 400,
+      code: 'board_fixed',
+    });
+    for (const [cardId, board] of [
+      [champ, 'champion'],
+      [field, 'battlefield'],
+      [fury, 'rune'],
+    ] as const) {
+      expect(
+        refusal(() => moveSlotBoard(db, id, slotFor(id, cardId, board).id, 'sideboard')),
+      ).toMatchObject({ code: 'board_fixed' });
+    }
+    expect(view(id).slots.map((s) => s.board)).toEqual([
+      'legend',
+      'champion',
+      'battlefield',
+      'rune',
+    ]);
+  });
+
+  it('sets rune counts, a count of 0 taking the rune off', () => {
+    const fury = card('fury', { rune: true });
+    const chaos = card('chaos', { rune: true });
+    const calm = card('calm', { rune: true });
+    const ring = card('ring');
+    const { id } = deck('A', [on('rune', calm, 4)]);
+
+    setRunes(db, id, [
+      { cardId: fury, quantity: 6 },
+      { cardId: chaos, quantity: 6 },
+    ]);
+    expect(view(id).boards.rune).toBe(16);
+
+    setRunes(db, id, [
+      { cardId: fury, quantity: 8 },
+      { cardId: calm, quantity: 0 },
+    ]);
+    const runes = view(id).slots.map((s) => [s.card.name, s.quantity, s.status]);
+    expect(runes).toEqual([
+      ['fury', 8, 'rune'],
+      ['chaos', 6, 'rune'],
+    ]);
+    expect(view(id).deck.counts.runes).toBe(14);
+
+    expect(refusal(() => setRunes(db, id, [{ cardId: ring, quantity: 2 }]))).toEqual({
+      status: 400,
+      code: 'not_a_rune',
+    });
+    expect(refusal(() => setRunes(db, 999, [{ cardId: fury, quantity: 2 }]))).toEqual({
+      status: 404,
+      code: 'deck_not_found',
+    });
+  });
+});
+
 // The same typed client the screens use (src/client/api.ts), answered by the app in memory.
 const api = hc<AppType>('http://localhost', {
   fetch: (input: RequestInfo | URL, init?: RequestInit) => app.request(input, init),
@@ -603,6 +782,31 @@ describe('decks routes', () => {
 
     const removed = await api.decks[':id'].slots[':slotId'].$delete({ param: slot });
     expect(removed.status).toBe(204);
+  });
+
+  it('sets rune counts and refuses to move the Legend', async () => {
+    const jinx = card('jinx', { legend: true });
+    const fury = card('fury', { rune: true });
+    const { id } = deck('A', [{ cardId: jinx, board: 'legend', quantity: 1 }]);
+    const param = { id: String(id) };
+
+    const res = await api.decks[':id'].runes.$put({
+      param,
+      json: { runes: [{ cardId: fury, quantity: 6 }] },
+    });
+    const updated = await body(res, DeckView);
+    expect(updated.boards.rune).toBe(6);
+    expect(updated.slots.find((s) => s.board === 'rune')?.status).toBe('rune');
+
+    const legendSlot = updated.slots.find((s) => s.board === 'legend')?.id ?? 0;
+    const moved = await api.decks[':id'].slots[':slotId'].$patch({
+      param: { id: String(id), slotId: String(legendSlot) },
+      json: { board: 'main' },
+    });
+    expect((await body(moved, ErrorBody, 400)).error).toMatchObject({
+      code: 'board_fixed',
+      message: 'The Legend can’t move to another board.',
+    });
   });
 
   it('refuses to delete a deck whose box holds copies', async () => {

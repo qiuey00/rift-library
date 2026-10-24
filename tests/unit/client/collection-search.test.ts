@@ -4,6 +4,7 @@ import {
   findFilter,
   removeTerm,
   replaceFilter,
+  toggleDomain,
 } from '../../../src/client/lib/collection-search';
 import { parseCollectionQuery } from '../../../src/shared/collection-query';
 
@@ -29,15 +30,26 @@ describe('replaceFilter', () => {
 
   it('replaces every term of the same kind', () => {
     expect(
-      replaceFilter('f:foil signet f:normal', 'finish', { kind: 'finish', value: 'normal' }),
-    ).toBe('signet f:normal');
-    expect(replaceFilter('domain:fury', 'domain', { kind: 'domain', value: 'calm' })).toBe(
-      'domain:calm',
+      replaceFilter('f:foil signet finish:normal', 'finish', { kind: 'finish', value: 'normal' }),
+    ).toBe('signet finish:normal');
+    expect(replaceFilter('rarity:rare', 'rarity', { kind: 'rarity', value: 'epic' })).toBe(
+      'rarity:epic',
     );
   });
 
   it('removes the kind with null', () => {
     expect(replaceFilter('is:real t:rune', 'proxy', null)).toBe('t:rune');
+  });
+});
+
+describe('toggleDomain', () => {
+  it('adds a domain at the end, keeping the domains already picked', () => {
+    expect(toggleDomain('', 'fury')).toBe('domain:fury');
+    expect(toggleDomain('signet domain:fury', 'calm')).toBe('signet domain:fury domain:calm');
+  });
+
+  it('removes a domain already picked, however it was typed', () => {
+    expect(toggleDomain('domain:FURY signet domain:calm', 'fury')).toBe('signet domain:calm');
   });
 });
 
@@ -52,13 +64,15 @@ describe('findFilter', () => {
 describe('chipLabel', () => {
   it('says what each term means', () => {
     const labels = parseCollectionQuery(
-      'bolt set:ogn domain:fury t:unit f:foil is:proxy is:real loc:"Rares binder" f:shiny',
+      'bolt set:ogn domain:fury t:unit supertype:champion rarity:epic f:foil is:proxy is:real loc:"Rares binder" f:shiny',
     ).map(chipLabel);
     expect(labels).toEqual([
       'Name: bolt',
       'Set: OGN',
       'Domain: Fury',
       'Type: unit',
+      'Supertype: champion',
+      'Rarity: epic',
       'Finish: foil',
       'Proxies only',
       'Real only',
