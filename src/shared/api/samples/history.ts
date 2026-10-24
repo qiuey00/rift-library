@@ -1,3 +1,4 @@
+import type { RemovalReason } from '../copies';
 import type { DeckRef } from '../decks';
 import type { HistoryDay, MovementReason, MovementRow } from '../history';
 import type { LocationNode } from '../locations';
@@ -25,7 +26,11 @@ const movement = (
   from: LocationNode | null,
   to: LocationNode | null,
   reason: MovementReason,
-  { deck = null, undoneAt = null }: { deck?: DeckRef | null; undoneAt?: string | null } = {},
+  {
+    deck = null,
+    undoneAt = null,
+    removalReason = null,
+  }: { deck?: DeckRef | null; undoneAt?: string | null; removalReason?: RemovalReason | null } = {},
 ): MovementRow => ({
   id,
   createdAt,
@@ -35,6 +40,7 @@ const movement = (
   from: from && locationRef(from),
   to: to && locationRef(to),
   reason,
+  removalReason,
   deck,
   undoneAt,
 });
@@ -177,10 +183,26 @@ export const historyDaySample: HistoryDay = {
   nextBefore: '2026-10-17',
 };
 
-/** GET /api/history?before=2026-10-17&offset=420: the oldest day, with one added card. */
+/**
+ * GET /api/history?before=2026-10-17&offset=420: the oldest day, with one added card and two
+ * copies of it sold.
+ */
 export const historyOlderDaySample: HistoryDay = {
   day: '2026-10-17',
   entries: [
+    {
+      kind: 'movement',
+      movement: movement(
+        499,
+        '2026-10-17T20:45:00Z',
+        c.whisperingSurge,
+        2,
+        chaosCalmNode,
+        null,
+        'removed',
+        { removalReason: 'sold' },
+      ),
+    },
     {
       kind: 'movement',
       movement: movement(

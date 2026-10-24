@@ -35,7 +35,11 @@ export const SetProxyBody = z.object({
 });
 export type SetProxyBody = z.infer<typeof SetProxyBody>;
 
-/** POST /api/stacks/add → `ActionResult`. Adds to the alike stack in the location, or makes one. */
+/**
+ * POST /api/stacks/add → `ActionResult`. Adds to the alike stack in the location, or makes one,
+ * in an add batch of its own, so quick add can undo one card (COL-5). Errors: 404
+ * `printing_not_found`; 400 `finish_not_available` when the printing doesn't come in the finish.
+ */
 export const AddCopiesBody = z.object({
   /** The printing. */
   printingId: z.string().min(1),

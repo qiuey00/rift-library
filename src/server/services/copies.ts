@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, ne, type SQL } from 'drizzle-orm';
 import type { CopyDetails, Finish } from '../../shared/api/common';
+import type { RemovalReason } from '../../shared/api/copies';
 import type { Db } from '../db/database';
 import { copyStacks, locations, movementBatches, movements, printings } from '../db/schema';
 import { AppError } from '../errors';
@@ -115,6 +116,8 @@ function locationType(db: Db, id: number) {
 
 type MovementLinks = {
   reason: Reason;
+  /** Why copies were removed by hand (COL-13), with the reason `removed`. */
+  removalReason?: RemovalReason;
   batchId: number;
   deckId?: number;
   slotId?: number;
@@ -326,6 +329,7 @@ function writeMovement(
       cameFromBefore: m.cameFromBefore,
       cameFromAfter: m.cameFromAfter,
       reason: links.reason,
+      removalReason: links.removalReason ?? null,
       deckId: links.deckId ?? null,
       slotId: links.slotId ?? null,
       pickedBefore: m.pickedBefore ?? null,
@@ -335,13 +339,11 @@ function writeMovement(
     .get().id;
 }
 
-/** The printing exists in the card data. */
-export function printingExists(db: Db, printingId: string): boolean {
-  return (
-    db
-      .select({ id: printings.riftcodexId })
-      .from(printings)
-      .where(eq(printings.riftcodexId, printingId))
-      .get() !== undefined
-  );
+/** The finishes the printing comes in, or undefined when it isn't in the card data. */
+export function printingFinishes(db: Db, printingId: string): Finish[] | undefined {
+  return db
+    .select({ finishes: printings.finishes })
+    .from(printings)
+    .where(eq(printings.riftcodexId, printingId))
+    .get()?.finishes;
 }

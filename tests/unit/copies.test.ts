@@ -20,6 +20,7 @@ import {
   setProxy,
 } from '../../src/server/services/copies';
 import { ActionResult, ErrorBody } from '../../src/shared/api/common';
+import { HistoryDay } from '../../src/shared/api/history';
 
 const client = hc<AppType>('http://localhost', {
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => app.request(input, init),
@@ -448,5 +449,143 @@ describe('copies routes', () => {
     });
     expect(res.status).toBe(404);
     expect(ErrorBody.parse(await res.json()).error.code).toBe('printing_not_found');
+  });
+});
+
+describe('quick add and removing copies (COL-5, COL-13)', () => {
+  const json = async (res: Response) => ActionResult.parse(await res.json());
+  const FOILLESS = 'printing-wild-shaman';
+
+  const add = (
+    overrides: { printingId?: string; finish?: 'normal' | 'foil'; quantity?: number } = {},
+  ) =>
+    client.stacks.add.$post({
+      json: {
+        printingId: SIGNET,
+        quantity: 1,
+        finish: 'normal',
+        condition: 'near_mint',
+        language: 'en',
+        misprint: false,
+        altered: false,
+        isProxy: false,
+        locationId: binder,
+        ...overrides,
+      },
+    });
+
+  const remove = (stackId: number, quantity: number) =>
+    client.copies.remove.$post({ json: { stackId, quantity, reason: 'sold' } });
+
+  const undo = (batchId: number) =>
+    client.batches[':id'].undo.$post({ param: { id: String(batchId) } });
+
+  beforeEach(() => {
+    const cardId = insertCard(db, { name: 'Wild Shaman' });
+    insertPrinting(db, { riftcodexId: FOILLESS, cardId, finishes: ['normal'] });
+  });
+
+  it('adds into the alike stack, each card in its own add batch', async () => {
+    const there = stack({ quantity: 2 });
+    const first = await json(await add({ quantity: 3 }));
+    const second = await json(await add());
+    expect(first.batchId).not.toBe(second.batchId);
+    expect(stacks()).toEqual([expect.objectContaining({ id: there, quantity: 6 })]);
+    expect(
+      db
+        .select()
+        .from(movementBatches)
+        .all()
+        .filter((b) => b.kind === 'add')
+        .map((b) => b.id),
+    ).toEqual([first.batchId, second.batchId]);
+
+    // Undo of one add takes out only those copies.
+    await json(await undo(second.batchId ?? 0));
+    expect(getStack(there)?.quantity).toBe(5);
+  });
+
+  it('refuses a foil of a printing that has no foil', async () => {
+    const res = await add({ printingId: FOILLESS, finish: 'foil' });
+    expect(res.status).toBe(400);
+    expect(ErrorBody.parse(await res.json()).error).toEqual({
+      code: 'finish_not_available',
+      message: 'This printing of Wild Shaman doesn’t come in foil',
+    });
+    expect(stacks()).toEqual([]);
+    expect(allMovements()).toEqual([]);
+
+    expect((await add({ printingId: FOILLESS })).status).toBe(200);
+  });
+
+  it('lowers a stack in a remove batch with the reason and no to location', async () => {
+    const source = stack({ quantity: 3 });
+    const result = await json(await remove(source, 2));
+    expect(result.message).toBe('Removed 2 Ember Signet (sold)');
+    expect(getStack(source)?.quantity).toBe(1);
+    expect(db.select().from(movementBatches).all().at(-1)).toMatchObject({
+      id: result.batchId,
+      kind: 'remove',
+    });
+    expect(allMovements()).toEqual([
+      expect.objectContaining({
+        batchId: result.batchId,
+        reason: 'removed',
+        removalReason: 'sold',
+        fromLocationId: binder,
+        toLocationId: null,
+        quantity: 2,
+      }),
+    ]);
+
+    // History answers the reason.
+    const res = await client.history.$get({ query: { offset: '0' } });
+    const day = HistoryDay.parse(await res.json());
+    expect(day.entries).toEqual([
+      {
+        kind: 'movement',
+        movement: expect.objectContaining({ reason: 'removed', removalReason: 'sold', to: null }),
+      },
+    ]);
+  });
+
+  it('removes all of a stack, and undo puts it back with its came-from', async () => {
+    const source = stack({ quantity: 2, locationId: row, cameFromLocationId: box });
+    const result = await json(await remove(source, 2));
+    expect(result.message).toBe('Removed 2 Ember Signet (sold)');
+    expect(stacks()).toEqual([]);
+
+    const undone = await json(await undo(result.batchId ?? 0));
+    expect(undone.message).toBe('Undid: removed 2 Ember Signet from Lands');
+    expect(stacks()).toEqual([
+      expect.objectContaining({ quantity: 2, locationId: row, cameFromLocationId: box }),
+    ]);
+    expect(allMovements().at(-1)).toMatchObject({ reason: 'undo', removalReason: null });
+  });
+
+  it('undo of a partial remove merges the copies back into their stack', async () => {
+    const source = stack({ quantity: 3 });
+    const result = await json(await remove(source, 1));
+    await json(await undo(result.batchId ?? 0));
+    expect(stacks()).toEqual([expect.objectContaining({ id: source, quantity: 3 })]);
+  });
+
+  it('refuses to remove copies in a deck box', async () => {
+    const inDeck = stack({ locationId: deckBox, cameFromLocationId: binder });
+    const res = await remove(inDeck, 1);
+    expect(res.status).toBe(409);
+    expect(ErrorBody.parse(await res.json()).error).toEqual({
+      code: 'in_deck',
+      message: 'These copies are in a deck. Take them out first.',
+    });
+    expect(getStack(inDeck)?.quantity).toBe(1);
+    expect(allMovements()).toEqual([]);
+  });
+
+  it('answers 409 stale_copy when the stack no longer holds the copies', async () => {
+    const source = stack({ quantity: 1 });
+    expect((await remove(source, 2)).status).toBe(409);
+    expect((await remove(source + 100, 1)).status).toBe(409);
+    expect(getStack(source)?.quantity).toBe(1);
   });
 });

@@ -7,9 +7,14 @@ import {
   SetProxyBody,
 } from '../../shared/api/copies';
 import { LocationIdParams } from '../../shared/api/locations';
-import { removeCopiesResultSample } from '../../shared/api/samples/copies';
 import { getDb } from '../db/database';
-import { addToCollection, markProxy, moveContents, moveStacks } from '../services/moves';
+import {
+  addToCollection,
+  markProxy,
+  moveContents,
+  moveStacks,
+  removeFromCollection,
+} from '../services/moves';
 import { validate } from '../validate';
 
 // Mounted at /api in src/server/app.ts. Chain each route onto this instance, as in
@@ -31,7 +36,6 @@ export const copiesRoutes = new Hono()
   .post('/stacks/add', validate('json', AddCopiesBody), (c) =>
     c.json(addToCollection(getDb(), c.req.valid('json'))),
   )
-  // STUB until #10
   .post('/copies/remove', validate('json', RemoveCopiesBody), (c) =>
-    c.json(removeCopiesResultSample),
+    c.json(removeFromCollection(getDb(), c.req.valid('json'))),
   );

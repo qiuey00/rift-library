@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CardSummary, Id, IdParam, LocationRef, PrintingSummary } from './common';
+import { RemovalReason } from './copies';
 import { DeckRef } from './decks';
 
 // The history area: every movement, one day at a time. Routes in src/server/routes/history.ts.
@@ -34,6 +35,8 @@ export const MovementRow = z.object({
   /** null when the copies were removed. */
   to: LocationRef.nullable(),
   reason: MovementReason,
+  /** Why the copies were removed by hand; null unless `reason` is `removed`. */
+  removalReason: RemovalReason.nullable(),
   deck: DeckRef.nullable(),
   /** When it was undone; null while it stands. */
   undoneAt: z.iso.datetime().nullable(),

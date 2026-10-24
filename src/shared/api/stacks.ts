@@ -63,10 +63,18 @@ export const LocationStacksQuery = z.object({
 });
 export type LocationStacksQuery = z.infer<typeof LocationStacksQuery>;
 
-/** GET /api/locations/:id/stacks: the location (as in the tree) and its stacks. */
+/**
+ * GET /api/locations/:id/stacks: the location (as in the tree), its stacks, and the stacks out
+ * in decks from it.
+ */
 export const LocationStacks = z.object({
   location: LocationNode,
   rows: z.array(StackRow),
+  /**
+   * Stacks in deck boxes whose came-from location is this location or one inside it, whatever
+   * `includeChildren` says. Each row's `inDeck` names its deck.
+   */
+  outInDecks: z.array(StackRow),
 });
 export type LocationStacks = z.infer<typeof LocationStacks>;
 

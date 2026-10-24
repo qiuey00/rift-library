@@ -201,6 +201,7 @@ describe('GET /api/history', () => {
             forTrade: false,
           },
           reason: 'moved',
+          removalReason: null,
           deck: null,
           undoneAt: null,
         },
