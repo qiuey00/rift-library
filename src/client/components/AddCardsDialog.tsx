@@ -235,6 +235,7 @@ function AddCardsForm({
       isProxy,
       location: location?.path ?? '',
     };
+    const submitted = text;
     add.mutate(
       {
         printingId: match.printing.printingId,
@@ -256,8 +257,9 @@ function AddCardsForm({
             { ...line, key, batchId: result.batchId, phase: 'added' },
             ...lines,
           ]);
-          // Ready for the next card: every field and the location stay as they are.
-          setText('');
+          // Ready for the next card: every field and the location stay as they are. If Jeff
+          // already started typing the next card while this add was on its way, keep that.
+          setText((now) => (now === submitted ? '' : now));
           searchRef.current?.focus();
         },
       },
