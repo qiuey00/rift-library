@@ -62,7 +62,7 @@ Unchanged, except that the header shows the card's domains, type, energy, might 
 
 ## Locations
 
-Unchanged. A location's menu loses Export to Moxfield and gains Export list (EXP-2), and the contents table gains Lower or remove… on selected rows (COL-13).
+Unchanged. A location's menu loses Export to Moxfield and gains Export list (EXP-2), and the contents table gains Lower or remove… on selected rows (COL-13). It takes one stack at a time and is greyed out for a stack in a deck box; its dialog asks how many to remove (all by default) and a reason (Sold, Traded, Lost, Miscounted), and the undo bar names what was removed. The Collection and the card page's Copies list offer it too. Below the contents, copies that came from the location and now sit in a deck box show in their own group, Out in decks. History shows a removal with a dash for its destination and the reason beside the Removed chip.
 
 ## Collection, buy list and history
 

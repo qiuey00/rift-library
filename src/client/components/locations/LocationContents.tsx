@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRightLeft, ChevronRight, Plus, ShoppingCart, Upload } from 'lucide-react';
+import { ArrowRightLeft, ChevronRight, Plus, ShoppingCart, Trash2, Upload } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { StackRow } from '../../../shared/api/common';
 import type { LocationNode } from '../../../shared/api/locations';
@@ -12,6 +12,7 @@ import { type CopyStackAction, CopyStackTable } from '../CopyStackTable';
 import { LocationTile } from '../LocationTile';
 import { MoveToDialog } from '../MoveToDialog';
 import { Panel } from '../Panel';
+import { RemoveCopiesDialog, removeBlockedReason } from '../RemoveCopiesDialog';
 import { TradeTag } from '../TradeTag';
 import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
@@ -52,6 +53,7 @@ export function LocationContents({
   });
 
   const [moving, setMoving] = useState<StackRow[] | null>(null);
+  const [removing, setRemoving] = useState<StackRow | null>(null);
   const [buying, setBuying] = useState<StackRow | null>(null);
   const [adding, setAdding] = useState(false);
   const proxy = useSetProxy();
@@ -73,6 +75,12 @@ export function LocationContents({
       icon: ShoppingCart,
       // The buy list takes one card at a time: the first selected one, in its printing.
       onClick: (selected) => setBuying(selected[0] ?? null),
+    },
+    {
+      label: 'Lower or remove…',
+      icon: Trash2,
+      onClick: (selected) => setRemoving(selected[0] ?? null),
+      disabledReason: removeBlockedReason,
     },
   ];
 
@@ -163,10 +171,34 @@ export function LocationContents({
         />
       )}
 
+      {stacks.data && stacks.data.outInDecks.length > 0 && (
+        <section aria-labelledby={`${switchId}-out`} className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h3 id={`${switchId}-out`} className="font-bold text-[17px]">
+              Out in decks
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {outInDecksNote(stacks.data.outInDecks)}
+            </p>
+          </div>
+          <CopyStackTable
+            rows={stacks.data.outInDecks}
+            actions={actions}
+            viewKey="locations-out-view"
+            showValue
+          />
+        </section>
+      )}
+
       <MoveToDialog
         open={moving !== null}
         onOpenChange={(open) => !open && setMoving(null)}
         stacks={moving ?? []}
+      />
+      <RemoveCopiesDialog
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+        stack={removing}
       />
       {buying && (
         <AddToBuyListDialog
@@ -179,6 +211,12 @@ export function LocationContents({
       <AddCardsDialog open={adding} onOpenChange={setAdding} defaultLocationId={location.id} />
     </section>
   );
+}
+
+/** Such as "3 cards from here sit in deck boxes. They come back with the put-away list." */
+function outInDecksNote(rows: StackRow[]) {
+  const cards = rows.reduce((sum, row) => sum + row.quantity, 0);
+  return `${plural(cards, 'card')} from here ${cards === 1 ? 'sits' : 'sit'} in deck boxes. They come back with the put-away list.`;
 }
 
 /**

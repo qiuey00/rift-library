@@ -164,8 +164,10 @@ test('selecting a location shows its contents and puts it in the address', async
   await expect(page).toHaveURL(/\/locations\?selected=6$/);
   await expect(page.getByRole('heading', { level: 2, name: 'Rares binder' })).toBeVisible();
   await expect(page.getByTestId('location-total')).toHaveText('180 cards · proxies not counted');
-  await expect(page.locator('tbody tr[data-stack-id]')).toHaveCount(3);
-  await expect(page.getByRole('columnheader', { name: 'Where it is' })).toHaveCount(0);
+  // The location's own stacks; its Out in decks group is a table of its own.
+  const own = page.locator('table').first();
+  await expect(own.locator('tbody tr[data-stack-id]')).toHaveCount(3);
+  await expect(own.getByRole('columnheader', { name: 'Where it is' })).toHaveCount(0);
   await expect(page.getByRole('switch', { name: 'Include child locations' })).toBeDisabled();
   expect(stacks.at(-1)?.pathname).toBe('/api/locations/6/stacks');
 });
@@ -439,7 +441,7 @@ test('values show on rows, the selected location and the collection', async ({ p
   await expect(page.getByText('Marked for trade. These cards are still yours')).toBeVisible();
 
   // The stacks table has a Value column.
-  await expect(page.getByRole('columnheader', { name: 'Value' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Value' }).first()).toBeVisible();
   const first = locationStacksSample.rows[0];
   if (!first) throw new Error('sample has rows');
   await expect(page.locator(`tbody tr[data-stack-id="${first.stackId}"]`)).toContainText(
