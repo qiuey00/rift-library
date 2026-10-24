@@ -12,7 +12,7 @@ import {
   toCardSummary,
   toPrintingSummary,
 } from './card-summaries';
-import { BOARD_ORDER } from './decks';
+import { BOARD_ORDER, PULLED_BOARDS } from './decks';
 import { effectiveColor, isForTrade, locationPaths } from './locations';
 
 // The put-away list: cards leave a deck box the way they came in, back to the spot they left.
@@ -104,9 +104,9 @@ function cardOf(stack: BoxStack): CardSummary {
 }
 
 /**
- * The deck's state from what its box holds, by the deck queries' rule: maybe board and rune
- * slots don't count; copies in the box are shared out among slots of that card, in board
- * order. Not assembled while no counted slot has a copy in the box, assembled when
+ * The deck's state from what its box holds, by the deck queries' rule: only the pulled
+ * boards count (PULLED_BOARDS), and never runes; copies in the box are shared out among slots
+ * of that card, in board order. Not assembled while no counted slot has a copy in the box, assembled when
  * every counted slot is full, partly assembled otherwise.
  */
 export function deckState(db: Db, deck: DeckRow): DeckState {
@@ -115,7 +115,11 @@ export function deckState(db: Db, deck: DeckRow): DeckState {
       SELECT s.id, s.board, s.quantity, s.card_id AS cardId
       FROM deck_slots AS s
       JOIN cards AS c ON c.id = s.card_id
-      WHERE s.deck_id = ${deck.id} AND s.board <> 'maybe' AND c.type <> 'rune'`)
+      WHERE s.deck_id = ${deck.id} AND c.type <> 'rune'
+        AND s.board IN (${sql.join(
+          PULLED_BOARDS.map((board) => sql`${board}`),
+          sql`, `,
+        )})`)
     .sort((a, b) => BOARD_ORDER[a.board] - BOARD_ORDER[b.board] || a.id - b.id);
   const inBox = new Map(
     db

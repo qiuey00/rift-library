@@ -91,9 +91,10 @@ test('shows each location in order, then other deck boxes, missing cards and run
   await expect(page.getByRole('region', { name: 'Long box › Chaos & Calm' })).toContainText(
     'pull 4 here',
   );
-  await expect(page.getByRole('region', { name: 'Runes' })).toContainText(
-    '8 Calm Rune, 3 Fury Rune, 5 Chaos Rune',
-  );
+  // One line of counts in domain order, each with its domain icon.
+  const runes = page.getByRole('region', { name: 'Runes' }).getByTestId('rune-count');
+  await expect(runes).toHaveText(['Fury3 Fury Rune', 'Calm8 Calm Rune', 'Chaos5 Chaos Rune']);
+  await expect(runes.first().getByRole('img', { name: 'Fury' })).toBeVisible();
   await expect(line(page, '118-1')).toContainText('Lux Control becomes partly assembled');
 });
 

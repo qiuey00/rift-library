@@ -228,9 +228,13 @@ test('4. Jinx Burn is assembled from the pick list, borrowing a copy and adding 
   // The real Unbound Volley is suggested over the proxy next to it.
   const unboundVolley = walk.locator('li[data-walk-line]', { hasText: 'Unbound Volley' });
   await expect(unboundVolley).not.toContainText('Proxy');
-  await expect(page.getByRole('region', { name: 'Runes' })).toContainText(
-    '1 Body Rune, 8 Calm Rune, 5 Chaos Rune, 3 Fury Rune',
-  );
+  // Runes close the list in domain order, each with its domain icon.
+  await expect(page.getByRole('region', { name: 'Runes' }).getByTestId('rune-count')).toHaveText([
+    'Fury3 Fury Rune',
+    'Calm8 Calm Rune',
+    'Body1 Body Rune',
+    'Chaos5 Chaos Rune',
+  ]);
 
   await tickEveryLine(page, walk, 'Lee Sin Combo');
 

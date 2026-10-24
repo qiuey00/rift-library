@@ -14,7 +14,7 @@ import {
 import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { destinationFor, putAwayList } from '../../src/server/queries/put-away';
 import { createBatch, moveCopies } from '../../src/server/services/copies';
-import { ErrorBody } from '../../src/shared/api/common';
+import { type Board, ErrorBody } from '../../src/shared/api/common';
 import { PutAwayResponse, ReturnResult } from '../../src/shared/api/put-away';
 
 const client = hc<AppType>('http://localhost', {
@@ -89,10 +89,11 @@ function slot(
   cardId: number,
   quantity = 1,
   pickedPrintingId: string | null = null,
+  board: Board = 'main',
 ) {
   return db
     .insert(deckSlots)
-    .values({ deckId, cardId, board: 'main', quantity, pickedPrintingId })
+    .values({ deckId, cardId, board, quantity, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
@@ -234,6 +235,24 @@ describe('putAwayList', () => {
     expect(putAwayList(db, jinxBurn)?.deck.state).toBe('partly_assembled');
     pull(stack(FARSEEK, chaosCalm), 1, jinxBurnBox, jinxBurn);
     expect(putAwayList(db, jinxBurn)?.deck.state).toBe('assembled');
+  });
+
+  it('counts the legend, battlefield and sideboard slots, but not the maybe board', () => {
+    slot(jinxBurn, signetCard, 1, null, 'legend');
+    slot(jinxBurn, ironInsightCard, 1, null, 'battlefield');
+    slot(jinxBurn, bogCard, 1, null, 'sideboard');
+    slot(jinxBurn, runeCard, 1, null, 'maybe');
+    pull(stack(SIGNET, binder), 1, jinxBurnBox, jinxBurn);
+    pull(stack(FARSEEK, chaosCalm), 1, jinxBurnBox, jinxBurn);
+    expect(putAwayList(db, jinxBurn)?.deck.state).toBe('partly_assembled');
+    pull(stack(BOG, lands), 1, jinxBurnBox, jinxBurn);
+    const list = putAwayList(db, jinxBurn);
+    expect(list?.deck.state).toBe('assembled');
+    expect(list?.groups.flatMap((g) => g.lines.map((l) => l.card.name))).toEqual([
+      'Iron Insight',
+      'Eager Steppe',
+      'Ember Signet',
+    ]);
   });
 
   it('answers 404 for a deck that does not exist', async () => {

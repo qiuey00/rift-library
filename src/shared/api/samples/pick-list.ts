@@ -100,9 +100,10 @@ export const pickListSample: PickListResponse = {
       // Added in the app rather than from a deck list, so there is no printing hint.
       { slotId: 120, card: cards.nasusTrickster, quantity: 1, hint: null },
     ],
+    // In domain order: Fury, Calm, Mind, Body, Chaos, Order.
     runes: [
-      { card: cards.calmRune, quantity: 8 },
       { card: cards.furyRune, quantity: 3 },
+      { card: cards.calmRune, quantity: 8 },
       { card: cards.chaosRune, quantity: 5 },
     ],
     totals: { lines: 15, cards: 15 },

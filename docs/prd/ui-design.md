@@ -54,7 +54,7 @@ The deck view answers "can I build this today, and from where?" without a single
 
 ## Pick list, put-away list and swap list
 
-Unchanged, except that the legend, champion and battlefields are ordinary lines in their location's group, and runes close the pick list as one line of counts per domain (ASM-6).
+Unchanged, except that the legend, champion and battlefields are ordinary lines in their location's group, and runes close the pick list as one line of counts per domain in domain order (Fury, Calm, Mind, Body, Chaos, Order), each with its domain icon, such as "6 Fury Rune · 6 Chaos Rune" (ASM-6). The swap list shows its runes the same way.
 
 ## Card page
 

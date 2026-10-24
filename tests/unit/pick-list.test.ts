@@ -6,7 +6,7 @@ import { type OpenDb, setDb } from '../../src/server/db/database';
 import { copyStacks, deckSlots, decks, locations } from '../../src/server/db/schema';
 import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { pickList } from '../../src/server/queries/pick-list';
-import type { Board, Finish, LocationType } from '../../src/shared/api/common';
+import type { Board, CardType, Domain, Finish, LocationType } from '../../src/shared/api/common';
 import { type PickList, PickListResponse } from '../../src/shared/api/pick-list';
 
 // The pick list worked out from rows inserted straight into a fresh database.
@@ -34,8 +34,16 @@ function location(name: string, type: LocationType = 'binder', parentId?: number
   return db.insert(locations).values({ name, type, parentId, position }).returning().get().id;
 }
 
-function card(name: string, options: { rune?: boolean } = {}) {
-  return insertCard(db, { name, type: options.rune ? 'rune' : 'unit' });
+function card(
+  name: string,
+  options: { rune?: boolean; type?: CardType; supertype?: string; domains?: Domain[] } = {},
+) {
+  return insertCard(db, {
+    name,
+    type: options.rune ? 'rune' : (options.type ?? 'unit'),
+    supertype: options.supertype,
+    domains: options.domains,
+  });
 }
 
 function printing(cardId: number, setCode: string, collectorNumber: string) {
@@ -248,21 +256,89 @@ describe('pickList', () => {
     });
   });
 
-  it('lists runes at the end as counts to add', () => {
-    const calmRune = card('Calm Rune', { rune: true });
-    const mindRune = card('Mind Rune', { rune: true });
-    printing(calmRune, 'fdn', '1');
+  it('lists runes at the end as counts per domain, in domain order', () => {
+    const chaosRune = card('Chaos Rune', { rune: true, domains: ['chaos'] });
+    const furyRune = card('Fury Rune', { rune: true, domains: ['fury'] });
+    // A rune copy in storage is never pulled: runes aren't tracked (D-15).
+    stack(printing(furyRune, 'ogn', '1'), location('Binder'));
     const { id } = deck('Test');
-    slot(id, mindRune, { quantity: 9 });
-    slot(id, calmRune, { quantity: 12 });
-    slot(id, calmRune, { board: 'sideboard', quantity: 1 });
+    slot(id, chaosRune, { board: 'rune', quantity: 6 });
+    slot(id, furyRune, { board: 'rune', quantity: 6 });
     const pick = list(id);
-    expect(pick.runes.map((b) => [b.card.name, b.quantity])).toEqual([
-      ['Calm Rune', 13],
-      ['Mind Rune', 9],
+    expect(pick.runes.map((r) => [r.quantity, r.card.name, r.card.domains])).toEqual([
+      [6, 'Fury Rune', ['fury']],
+      [6, 'Chaos Rune', ['chaos']],
     ]);
     expect(pick.groups).toEqual([]);
     expect(pick.totals).toEqual({ lines: 0, cards: 0 });
+  });
+
+  it('builds a full Riftbound deck: legend, champion, main, battlefields and sideboard, runes last', () => {
+    const shelf = location('Shelf', 'box', undefined, 1);
+    const binder = location('Binder', 'binder', undefined, 0);
+    const jinx = card('Jinx, Loose Cannon', { type: 'legend', domains: ['fury', 'chaos'] });
+    const champion = card('Jinx, Demolitionist', { supertype: 'champion', domains: ['fury'] });
+    const blast = card('Fierce Blast', { type: 'spell', domains: ['fury'] });
+    const scheme = card('Grim Scheme', { type: 'spell', domains: ['chaos'] });
+    const peak = card("Targon's Peak", { type: 'battlefield' });
+    const steppe = card('Grim Steppe', { type: 'battlefield' });
+    const temple = card('Ninefold Temple', { type: 'battlefield' });
+    const gust = card('Twilight Gust', { type: 'spell', domains: ['chaos'] });
+    const maybe = card('Vast Scout');
+    const furyRune = card('Fury Rune', { rune: true, domains: ['fury'] });
+    const chaosRune = card('Chaos Rune', { rune: true, domains: ['chaos'] });
+    stack(printing(jinx, 'ogn', '1'), binder);
+    stack(printing(champion, 'ogn', '2'), binder);
+    stack(printing(blast, 'ogn', '3'), shelf, { quantity: 3 });
+    stack(printing(scheme, 'ogn', '4'), shelf, { quantity: 3 });
+    stack(printing(peak, 'ogn', '5'), binder);
+    stack(printing(steppe, 'ogn', '6'), binder);
+    stack(printing(temple, 'ogn', '7'), shelf);
+    stack(printing(gust, 'ogn', '8'), shelf, { quantity: 2 });
+    stack(printing(maybe, 'ogn', '9'), shelf);
+    const { id } = deck('Jinx Burn');
+    slot(id, jinx, { board: 'legend' });
+    slot(id, champion, { board: 'champion' });
+    slot(id, blast, { quantity: 3 });
+    slot(id, scheme, { quantity: 3 });
+    slot(id, peak, { board: 'battlefield' });
+    slot(id, steppe, { board: 'battlefield' });
+    slot(id, temple, { board: 'battlefield' });
+    slot(id, gust, { board: 'sideboard', quantity: 2 });
+    slot(id, maybe, { board: 'maybe' });
+    slot(id, chaosRune, { board: 'rune', quantity: 6 });
+    slot(id, furyRune, { board: 'rune', quantity: 6 });
+
+    const pick = list(id);
+    expect(
+      pick.groups.map((g) => [g.location.path, g.lines.map((l) => [l.card.name, l.quantity])]),
+    ).toEqual([
+      [
+        'Binder',
+        [
+          ['Jinx, Loose Cannon', 1],
+          ['Jinx, Demolitionist', 1],
+          ["Targon's Peak", 1],
+          ['Grim Steppe', 1],
+        ],
+      ],
+      [
+        'Shelf',
+        [
+          ['Fierce Blast', 3],
+          ['Grim Scheme', 3],
+          ['Ninefold Temple', 1],
+          ['Twilight Gust', 2],
+        ],
+      ],
+    ]);
+    expect(pick.missing).toEqual([]);
+    expect(pick.runes.map((r) => `${r.quantity} ${r.card.name}`)).toEqual([
+      '6 Fury Rune',
+      '6 Chaos Rune',
+    ]);
+    expect(pick.totals).toEqual({ lines: 8, cards: 13 });
+    expect(PickListResponse.shape.pickList.parse(pick)).toEqual(pick);
   });
 
   it('offers the last copy from another deck’s box when two decks want it', () => {

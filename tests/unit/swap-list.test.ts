@@ -191,12 +191,43 @@ describe('swapList', () => {
     expect(list.takeOut.count).toBe(1);
   });
 
-  it('takes out maybe board cards in the box', async () => {
+  it('takes out a card moved to the maybe board', async () => {
     buildDeck();
     db.$client.prepare("UPDATE deck_slots SET board = 'maybe' WHERE card_id = ?").run(baloths);
-    expect(takeOut(await getSwap())).toEqual([
-      ['Long box › Chaos & Calm', [['Swift Skirmisher', 1]]],
-    ]);
+    const list = await getSwap();
+    expect(takeOut(list)).toEqual([['Long box › Chaos & Calm', [['Swift Skirmisher', 1]]]]);
+    expect(list.counts).toEqual({ takeOut: 1, pullIn: 0 });
+  });
+
+  it('moves nothing when a card moves between main and sideboard', async () => {
+    buildDeck();
+    db.$client.prepare("UPDATE deck_slots SET board = 'sideboard' WHERE card_id = ?").run(baloths);
+    db.$client
+      .prepare("UPDATE deck_slots SET board = 'sideboard', quantity = 1 WHERE card_id = ?")
+      .run(ironInsight);
+    slot(ironInsight, 1, 'main');
+    const list = await getSwap();
+    expect(list.takeOut).toEqual({ groups: [], count: 0 });
+    expect(list.pullIn.totals).toEqual({ lines: 0, cards: 0 });
+    expect(list.counts).toEqual({ takeOut: 0, pullIn: 0 });
+    expect(list.deck.state).toBe('assembled');
+  });
+
+  it('keeps legend, champion and battlefield copies and adds runes as counts', async () => {
+    buildDeck();
+    const champion = card('printing-jinx-champion', 'Jinx, Demolitionist');
+    const battlefield = card('printing-peak', "Targon's Peak");
+    const rune = insertCard(db, { name: 'Fury Rune', type: 'rune', domains: ['fury'] });
+    slot(champion, 1, 'champion');
+    slot(battlefield, 1, 'battlefield');
+    slot(rune, 6, 'rune');
+    pull(stack('printing-jinx-champion', binder), 1);
+    pull(stack('printing-peak', binder), 1);
+    const list = await getSwap();
+    expect(list.takeOut.count).toBe(0);
+    expect(list.pullIn.totals).toEqual({ lines: 0, cards: 0 });
+    expect(list.pullIn.runes.map((r) => [r.card.name, r.quantity])).toEqual([['Fury Rune', 6]]);
+    expect(list.deck.state).toBe('assembled');
   });
 
   it('takes out proxies first, then printings no slot picked', async () => {
