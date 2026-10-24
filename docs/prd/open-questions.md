@@ -26,6 +26,10 @@ These were asked in the [Rift Library port plan](https://claude.ai/artifact/ECca
 - [x] Should runes work like basic lands? Yes (D-15).
 - [x] Rewrite the docs first? Yes, before any code (D-10).
 
+## Answered on 2026-10-24
+
+- [x] The sideboard size the checks warn on: at most 10 cards, from Riot's Tournament Rules updated 2026-10-09 (D-42).
+
 ## Waiting on later work
 
 These need work or a file rather than an answer now.
@@ -35,5 +39,4 @@ These need work or a file rather than an answer now.
 | The deck list format for import and export | Jeff's sample deck lists, asked for when the Decks step starts | Concepts and Data Model: Deck lists; DECK-14, EXP-1 |
 | A CSV import of the collection | Jeff's sample CSV, asked for again at the Collection step | COL-14 |
 | Which finishes each printing comes in | Riftcodex has no finish field; checking TCGplayer's price entries against Jeff's real cards | Concepts and Data Model: Card data |
-| The sideboard size the checks warn on | Riot's current tournament rules; sources found so far say 8 or 10 | DECK-6 |
 | Riftcodex's paging, rate limits and how often it updates | Calling the API from Jeff's computer, since this cloud environment can't reach it | Technical design: Card data |

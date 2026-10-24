@@ -269,6 +269,30 @@ test('Undo on an Added line takes back that add only', async ({ page }) => {
   await expect(page.locator('[data-slot=undo-bar]')).toHaveCount(0);
 });
 
+test('typing the next card before an add finishes keeps what was typed', async ({ page }) => {
+  await mockApi(page);
+  // Hold the add's answer until the next search is typed (the last route added wins).
+  let answer = () => {};
+  const held = new Promise<void>((resolve) => {
+    answer = resolve;
+  });
+  await page.route('**/api/stacks/add', async (route) => {
+    await held;
+    const result: ActionResult = { message: 'Added', batchId: 301 };
+    return route.fulfill({ json: result });
+  });
+  const dialog = await openFromTopBar(page);
+
+  await search(dialog, 'ember', /Ember Signet/);
+  await searchBox(dialog).press('Enter');
+  await searchBox(dialog).fill('gilded');
+  answer();
+
+  await expect(addedLines(dialog)).toHaveCount(1);
+  await expect(searchBox(dialog)).toHaveValue('gilded');
+  await expect(printings(dialog).getByRole('option').first()).toHaveAccessibleName(/Gilded Whelp/);
+});
+
 test('Close returns to the screen underneath, which refreshes', async ({ page }) => {
   const { stacks } = await mockApi(page);
   const dialog = await openFromTopBar(page);
