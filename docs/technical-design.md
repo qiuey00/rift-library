@@ -110,7 +110,15 @@ Maybe:
 1 Senna, Outlaw OGN-089
 ```
 
-A line is a quantity, a card name, an optional public code (the printing hint), an optional `*F*` for foil and any number of tags, each starting with `#` (tags can't contain `#`, so a tag can have spaces). Names match the name key, then fuzzy matching through Riftcodex. Lines with no heading go to the main deck, blank lines are ignored, and repeated names on one board merge into one slot. The export writes the same format, board by board, each line with its picked printing (or printing hint) and tags (EXP-1). `src/shared/api/samples/deck-lists.ts` has a full deck in this format, Jinx Rebels.
+A line is a quantity, a card name, an optional public code (the printing hint), an optional `*F*` for foil and any number of tags, each starting with `#` (tags can't contain `#`, so a tag can have spaces). `parseDeckList` in `src/server/decklists/parse.ts` also reads `3x` quantities, a code in brackets, a line with no quantity as one card, `//` comments, and heading spellings such as "Battlefields (3):", "Chosen Champion", "Main deck", "Side" and "Maybeboard". Lines with no heading go to the main deck, blank lines are ignored, and repeated names on one board merge into one slot (the first line with a code gives the printing hint, and the tags are added up). The export writes the same format, board by board, each line with its picked printing (or printing hint) and tags (EXP-1). `src/shared/api/samples/deck-lists.ts` has a full deck in this format, Jinx Rebels.
+
+How the import reads a list (#19):
+
+- **Matching** (`src/server/decklists/match.ts`): Jeff's fix, then the name key, then the public code, then `lookupCardsByName` through Riftcodex, once per unknown name. When Riftcodex can't be reached the preview answers `lookupFailed` and lists the names to fix or skip. A code that names another card's printing stays the hint but names no printing.
+- **Boards:** runes and battlefields listed on the main deck go to the rune and battlefield boards, so a list with no headings still reads right.
+- **Legend and Chosen Champion** (DECK-15): the preview proposes the first card on the Legend board, else the first Legend on the main deck, and the first card on the champion board, else the first champion unit on the main deck with the Legend's champion tag. A proposal from the main deck takes one card from its line, with that line's hint and tags. The deck gets exactly one of each: other cards on those two boards are left out, and create puts in the ones Jeff confirmed or picked.
+- **Previews** (`src/server/decklists/previews.ts`) are kept in memory for an hour, until the deck is made, or until the server restarts.
+- **Update** replaces the slots with `replaceSlots`: cards that stay keep their picked printing, and a list with no tags at all keeps the deck's tags. It answers `needsSwap` when the deck box holds copies, that is when the deck is assembled or partly assembled (CHG-2).
 
 The API (shapes in `src/shared/api/deck-lists.ts`, #14):
 

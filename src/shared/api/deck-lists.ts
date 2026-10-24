@@ -66,7 +66,8 @@ export const ListedSlot = z.object({
   printing: PrintingSummary.nullable(),
   /** The merged lines' tags, repeats merged, sorted by name ignoring case. */
   tags: z.array(Tag),
-  lineNumbers: z.array(LineNumber).min(1),
+  /** The lines merged into the slot; empty for a slot the deck has now that the list removes. */
+  lineNumbers: z.array(LineNumber),
 });
 export type ListedSlot = z.infer<typeof ListedSlot>;
 
