@@ -12,13 +12,13 @@ describe('pricesUpdated', () => {
 
   it('says today, yesterday, or the date', () => {
     expect(pricesUpdated(new Date(2026, 9, 20, 1, 0).toISOString(), now)).toBe(
-      'TCGplayer prices, updated today',
+      'TCGplayer prices via TCGCSV, updated today',
     );
     expect(pricesUpdated(new Date(2026, 9, 19, 23, 0).toISOString(), now)).toBe(
-      'TCGplayer prices, updated yesterday',
+      'TCGplayer prices via TCGCSV, updated yesterday',
     );
     expect(pricesUpdated(new Date(2026, 9, 12, 9, 0).toISOString(), now)).toBe(
-      'TCGplayer prices, updated Oct 12, 2026',
+      'TCGplayer prices via TCGCSV, updated Oct 12, 2026',
     );
   });
 

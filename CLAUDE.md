@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-ManaBox, Moxfield and Scryfall are gone (#3). Card data comes from Riftcodex (#7): the server syncs every card and set when it starts with no cards and once the last sync is 24 hours old, and `RIFTCODEX=off` (set by the unit and browser tests) keeps it from calling Riftcodex at all. The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no checks until #16. The decks, deck checks and deck list shapes are in (#14): `DeckView.boards` counts each board, and the `deck-lists` routes and deck list exports are stubs until #19 and #20. Deck boards are in (#15): `PUT /api/decks/:id/runes` sets rune counts, only main, sideboard and maybe slots move between boards, and demand, state and counts look at the legend, champion, main, battlefield and sideboard boards (`PULLED_BOARDS`). Quick add refuses a finish the printing doesn't come in, and removing copies by hand (COL-13) is in (#10). The rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
+ManaBox, Moxfield and Scryfall are gone (#3). Card data comes from Riftcodex (#7): the server syncs every card and set when it starts with no cards and once the last sync is 24 hours old, and `RIFTCODEX=off` (set by the unit and browser tests) keeps it from calling Riftcodex at all. The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no checks until #16. The decks, deck checks and deck list shapes are in (#14): `DeckView.boards` counts each board, and the `deck-lists` routes and deck list exports are stubs until #19 and #20. Deck boards are in (#15): `PUT /api/decks/:id/runes` sets rune counts, only main, sideboard and maybe slots move between boards, and demand, state and counts look at the legend, champion, main, battlefield and sideboard boards (`PULLED_BOARDS`). Prices are in (#25): after each card sync, and once prices are 24 hours old, `src/server/tcgcsv/` reads TCGplayer market prices from TCGCSV (category 89), matched by `printings.tcgplayer_id`, and the subtypes listed become each printing's finishes. Quick add refuses a finish the printing doesn't come in, and removing copies by hand (COL-13) is in (#10). The rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
 
 ## Docs
 
@@ -23,6 +23,7 @@ src/server/routes/       one file per area
 src/server/services/     the rules (one database transaction per action)
 src/server/queries/      worked-out values
 src/server/riftcodex/    card data from Riftcodex: fetch, grouping into cards, writing, the sync and name lookups
+src/server/tcgcsv/       TCGplayer prices from TCGCSV: fetch, matching by product id and writing
 src/server/db/           Drizzle schema and migrations
 src/client/api.ts        the typed API client
 src/client/router.tsx    every screen address, inside the app frame
@@ -32,7 +33,7 @@ src/client/components/ui/  shadcn/ui parts
 src/client/styles.css    Tailwind, the look's colors and the fonts
 tests/unit/              Vitest
 tests/e2e/               Playwright
-tests/fixtures/          made-up card data and a collection for the browser tests, and saved Riftcodex answers
+tests/fixtures/          made-up card data and a collection for the browser tests, and saved Riftcodex and TCGCSV answers
 data/                    the database and downloads (not in git)
 docs/                    technical design, PRD and UI docs (the source)
 ```

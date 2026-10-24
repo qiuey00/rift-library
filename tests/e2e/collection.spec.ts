@@ -334,7 +334,7 @@ test('the header shows the collection value with proxies left out', async ({ pag
   await page.goto('/collection');
   await expect(page.getByTestId('collection-value')).toHaveText('$3,184.50');
   await expect(page.getByTestId('collection-value-note')).toHaveText(
-    '3,007 cards · 214 with no price · proxies not counted · TCGplayer prices, updated yesterday',
+    '3,007 cards · 214 with no price · proxies not counted · TCGplayer prices via TCGCSV, updated yesterday',
   );
 });
 

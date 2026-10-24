@@ -76,8 +76,9 @@ Prices are TCGplayer market prices (D-8, VAL-1), from TCGCSV's daily files, whic
 
 1. Once a day, after the card sync, the server reads `GET https://tcgcsv.com/tcgplayer/89/groups` (one group per set, such as Origins, Spiritforged, Unleashed, Vendetta and Radiance, plus promos), then `GET https://tcgcsv.com/tcgplayer/89/<groupId>/prices` for each group.
 2. Each price entry has a productId, a subTypeName (Normal or Foil) and a marketPrice in dollars. The server matches productId to a printing's tcgplayer\_id and stores the market price in whole cents as price\_normal or price\_foil, empty when there is none.
-3. The subtypes that appear for a printing become its finishes. A printing with no price entries offers both normal and foil.
-4. A stack's value is its quantity times the price for its finish, as in Library of Gathering; proxies and stacks with no price count as zero, and real copies with no price are counted.
+3. The subtypes that appear for a printing become its finishes. A printing with no price entries offers both normal and foil. A subtype with no market price still counts as a finish, with no price.
+4. A group that fails to load is skipped and its printings keep their old prices; printings no loaded group lists keep theirs too until an update where every group loads. If the groups list or every group fails, nothing changes. A failed update is logged and tried again at the next hourly check, since the server also updates prices on their own once they are 24 hours old (or were never loaded). The code is in `src/server/tcgcsv/`, and `RIFTCODEX=off` turns it off with the card sync.
+5. A stack's value is its quantity times the price for its finish, as in Library of Gathering; proxies and stacks with no price count as zero, and real copies with no price are counted.
 
 ## Deck lists
 
