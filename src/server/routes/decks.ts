@@ -10,7 +10,6 @@ import {
   SlotInput,
   SlotTags,
 } from '../../shared/api/decks';
-import { deckViewSample } from '../../shared/api/samples/decks';
 import { getDb } from '../db/database';
 import { AppError } from '../errors';
 import { deckList, deckSummary, deckView, slotRow } from '../queries/decks';
@@ -23,6 +22,7 @@ import {
   removeSlot,
   renameDeck,
   setLegend,
+  setRunes,
   setSlotPrinting,
   setSlotQuantity,
   setSlotTags,
@@ -70,8 +70,12 @@ export const decksRoutes = new Hono()
     setLegend(db, id, c.req.valid('json').legendId);
     return c.json(found(deckView(db, id)));
   })
-  // STUB until #15: set the deck's rune counts.
-  .put('/decks/:id/runes', deckParam, validate('json', DeckRunes), (c) => c.json(deckViewSample))
+  .put('/decks/:id/runes', deckParam, validate('json', DeckRunes), (c) => {
+    const { id } = c.req.valid('param');
+    const db = getDb();
+    setRunes(db, id, c.req.valid('json').runes);
+    return c.json(found(deckView(db, id)));
+  })
   .post('/decks/:id/slots', deckParam, validate('json', SlotInput), (c) => {
     const { id } = c.req.valid('param');
     const db = getDb();

@@ -247,9 +247,16 @@ export const BOARD_ORDER: Record<Board, number> = {
   maybe: 6,
 };
 
+/**
+ * The boards whose cards are pulled into the deck box, count toward demand and decide the
+ * deck's state (DECK-9, DECK-10, D-29). The rune board is always available and the maybe board
+ * is never pulled.
+ */
+export const PULLED_BOARDS: Board[] = ['legend', 'champion', 'main', 'battlefield', 'sideboard'];
+
 /** Runes are always available, as basic lands were in Library of Gathering (D-15). */
-export function isRune(card: Pick<CardRow, 'type'>): boolean {
-  return card.type === 'rune';
+export function isRune(card: Pick<CardRow, 'type'>, board?: Board): boolean {
+  return card.type === 'rune' || board === 'rune';
 }
 
 /** Every slot of one deck with its status, in board order, plus the deck's counts and state. */
@@ -285,16 +292,15 @@ function workOut(deck: DeckRow, slots: SlotWithCard[], held: Holdings) {
     };
     rows.set(slot.id, row);
     if (slot.board === 'maybe') continue; // never pulled
-
-    const inBox = Math.min(left.get(card.id) ?? 0, slot.quantity);
-    left.set(card.id, (left.get(card.id) ?? 0) - inBox);
-    row.inBoxQuantity = inBox;
-
-    if (isRune(card)) {
+    if (isRune(card, slot.board)) {
       row.status = 'rune';
       counts.runes += slot.quantity;
       continue;
     }
+
+    const inBox = Math.min(left.get(card.id) ?? 0, slot.quantity);
+    left.set(card.id, (left.get(card.id) ?? 0) - inBox);
+    row.inBoxQuantity = inBox;
 
     tracked += 1;
     if (inBox > 0 || (pile?.quantity ?? 0) > 0) touched += 1;
