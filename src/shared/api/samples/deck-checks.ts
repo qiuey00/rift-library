@@ -4,7 +4,7 @@ import { deckRefs } from './decks';
 
 // Deck checks with a check for each of Riftbound's deck rules, several of them warnings, so
 // screens can show both, and the demand warning for Ember Signet. The warnings name cards a
-// messier list would have. The server answers no checks until #16.
+// messier list would have.
 
 const { jinxBurn, luxControl, ahriMidrange, annieAggro } = deckRefs;
 
@@ -19,7 +19,7 @@ export const emberSignetDemand: DemandWarning = {
 
 const jinx = cards.jinxLooseCannon;
 
-/** GET /api/decks/1/checks: Jinx Burn keeps four rules and breaks five. */
+/** GET /api/decks/1/checks: Jinx Burn keeps five rules and breaks five. */
 export const deckChecksSample: DeckChecks = {
   checks: [
     { code: 'legend', result: 'pass', message: 'The Legend is Jinx, Loose Cannon.', cards: [] },
@@ -66,6 +66,7 @@ export const deckChecksSample: DeckChecks = {
       cards: [],
     },
     { code: 'sideboard', result: 'pass', message: 'The deck has no sideboard.', cards: [] },
+    { code: 'deckable', result: 'pass', message: 'Every card can go in a deck.', cards: [] },
   ],
   demand: [emberSignetDemand],
 };
