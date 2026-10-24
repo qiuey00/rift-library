@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import type { CardSearchResponse } from '../../src/shared/api/cards';
+import type { DeckCheck } from '../../src/shared/api/deck-checks';
 import type {
   DeckListCreate,
   DeckListPreview,
@@ -22,23 +23,36 @@ import { deckViewSample, jinxBurn } from '../../src/shared/api/samples/decks';
 
 const typo = deckListPreviewSample.unmatched[0];
 
+/** A deck check that warns, in place of the sample's passing domains check. */
+const domainsWarning: DeckCheck = {
+  code: 'domains',
+  result: 'warn',
+  message: 'Fiora, Guardian in the sideboard is Order, outside Fury and Chaos.',
+  cards: [],
+};
+const sample: DeckListPreview = {
+  ...deckListPreviewSample,
+  checks: deckListPreviewSample.checks.map((check) =>
+    check.code === 'domains' ? domainsWarning : check,
+  ),
+};
+
 /** The preview sample, with the request's fix or skip for the misspelled line applied. */
 function previewFor(request: DeckListPreviewRequest): DeckListPreview {
   const fixed = request.fixes?.some((fix) => fix.lineNumber === typo.lineNumber);
   const skipped = request.skips?.includes(typo.lineNumber);
-  if (!fixed && !skipped) return deckListPreviewSample;
+  if (!fixed && !skipped) return sample;
   return {
-    ...deckListPreviewSample,
+    ...sample,
     previewId: fixed ? 'dlp_fixed' : 'dlp_skipped',
-    lines: deckListPreviewSample.lines.map((line) =>
+    lines: sample.lines.map((line) =>
       line.lineNumber === typo.lineNumber ? { ...line, kind: fixed ? 'card' : 'skipped' } : line,
     ),
     boards: {
-      ...deckListPreviewSample.boards,
-      sideboard: deckListPreviewSample.boards.sideboard + (fixed ? typo.quantity : 0),
+      ...sample.boards,
+      sideboard: sample.boards.sideboard + (fixed ? typo.quantity : 0),
     },
     unmatched: [],
-    checks: deckListPreviewSample.checks.filter((check) => !fixed || check.code !== 'sideboard'),
   };
 }
 
@@ -122,7 +136,7 @@ test('pasted lines are tagged by board, and Unknown when no card matches', async
   await expect(review.getByLabel('Deck name')).toHaveValue('Jinx, Loose Cannon');
   await expect(review).toContainText('1 name didn’t match a card');
   await expect(review.getByRole('list', { name: 'Warnings' })).toContainText(
-    'The sideboard has 6 cards; it needs 8.',
+    domainsWarning.message,
   );
   await expect(review.getByRole('button', { name: 'Create deck' })).toBeDisabled();
   await expect(review).toContainText('Fix or skip the name that didn’t match first.');
