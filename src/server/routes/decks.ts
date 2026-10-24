@@ -44,11 +44,16 @@ function found<T>(value: T | undefined): T {
 export const decksRoutes = new Hono()
   .get('/decks', (c) => c.json({ decks: deckList(getDb()) }))
   .post('/decks', validate('json', NewDeck), (c) => {
-    const { name, legendId } = c.req.valid('json');
+    const { name, legendId, championId } = c.req.valid('json');
     const db = getDb();
     const id = createDeck(db, {
       name,
-      slots: [{ cardId: legendId, board: 'legend', quantity: 1 }],
+      slots: [
+        { cardId: legendId, board: 'legend', quantity: 1 },
+        ...(championId !== undefined
+          ? [{ cardId: championId, board: 'champion' as const, quantity: 1 }]
+          : []),
+      ],
     });
     return c.json(found(deckSummary(db, id)), 201);
   })

@@ -44,7 +44,13 @@ describe('card samples', () => {
       PrintingSummary.parse(printing);
     }
     CardSearchResult.parse(s.emberSignetResult);
-    for (const search of [s.emberSearch, s.publicCodeSearch, s.legendSearch, s.emptySearch]) {
+    for (const search of [
+      s.emberSearch,
+      s.publicCodeSearch,
+      s.legendSearch,
+      s.championSearch,
+      s.emptySearch,
+    ]) {
       CardSearchResponse.parse(search);
     }
     for (const details of [s.emberSignetDetails, s.gildedWhelpDetails, s.emberSanctumDetails]) {

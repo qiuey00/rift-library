@@ -734,6 +734,31 @@ describe('decks routes', () => {
     expect((await body(gone, ErrorBody, 404)).error.code).toBe('deck_not_found');
   });
 
+  it('creates a deck with its Chosen Champion', async () => {
+    const jinx = card('jinxLooseCannon', { legend: true, domains: ['fury', 'chaos'] });
+    const rebel = card('jinxRebel', { domains: ['fury', 'chaos'] });
+    const created = await body(
+      await api.decks.$post({ json: { name: 'Jinx Burn', legendId: jinx, championId: rebel } }),
+      DeckSummary,
+      201,
+    );
+    expect(created.legend?.id).toBe(jinx);
+    expect(created.champion?.id).toBe(rebel);
+    const view = await body(
+      await api.decks[':id'].$get({ param: { id: String(created.id) } }),
+      DeckView,
+    );
+    expect(view.slots.map((slot) => [slot.card.id, slot.board, slot.quantity])).toEqual([
+      [jinx, 'legend', 1],
+      [rebel, 'champion', 1],
+    ]);
+
+    const unknown = await api.decks.$post({
+      json: { name: 'Jinx Burn', legendId: jinx, championId: 9999 },
+    });
+    expect((await body(unknown, ErrorBody, 400)).error.code).toBe('card_not_found');
+  });
+
   it('lists opened decks newest first, never-opened last', async () => {
     const a = deck('A', []);
     const b = deck('B', []);
