@@ -89,6 +89,24 @@ export const emberSanctum: CardSummary = {
   imageUrl: 'https://images.example.com/riftbound/c75eeb97-3249-4762-84b0-387f27fb255f.webp',
 };
 
+/** Ember Sanctum's one printing. */
+export const emberSanctumPrintings: PrintingSummary[] = [
+  {
+    printingId: 'c75eeb97-3249-4762-84b0-387f27fb255f',
+    publicCode: 'OGN-287/298',
+    setCode: 'OGN',
+    setName: 'Origins',
+    collectorNumber: '287',
+    rarity: 'uncommon',
+    imageUrl: 'https://images.example.com/riftbound/c75eeb97-3249-4762-84b0-387f27fb255f.webp',
+    alternateArt: false,
+    overnumbered: false,
+    signature: false,
+    finishes: ['normal', 'foil'],
+    unitPrice: { normal: null, foil: null },
+  },
+];
+
 export const emberLighthouse: CardSummary = {
   id: 330,
   name: 'Ember Lighthouse',
@@ -143,7 +161,10 @@ export const gildedWhelp: CardSummary = {
   imageUrl: 'https://images.example.com/riftbound/617208ff-dd9b-44fd-a740-d3188081e5cc.webp',
 };
 
-/** Gilded Whelp's printings, newest first (all three came out on the same day). */
+/**
+ * Gilded Whelp's printings, newest first (all three came out on the same day): one plain, one
+ * overnumbered, and one alternate art signature printing.
+ */
 export const gildedWhelpPrintings: PrintingSummary[] = [
   {
     printingId: '617208ff-dd9b-44fd-a740-d3188081e5cc',
@@ -168,7 +189,7 @@ export const gildedWhelpPrintings: PrintingSummary[] = [
     rarity: 'rare',
     imageUrl: 'https://images.example.com/riftbound/c8f1baae-dd81-4e10-841e-15531ea1ffaa.webp',
     alternateArt: false,
-    overnumbered: false,
+    overnumbered: true,
     signature: false,
     finishes: ['normal', 'foil'],
     unitPrice: { normal: null, foil: null },
@@ -181,9 +202,9 @@ export const gildedWhelpPrintings: PrintingSummary[] = [
     collectorNumber: '52p',
     rarity: 'rare',
     imageUrl: 'https://images.example.com/riftbound/7bf58206-b7b6-45e7-b99a-9de1c58c5c96.webp',
-    alternateArt: false,
+    alternateArt: true,
     overnumbered: false,
-    signature: false,
+    signature: true,
     finishes: ['normal', 'foil'],
     unitPrice: { normal: null, foil: null },
   },
@@ -202,6 +223,9 @@ export const emberSearch: CardSearchResponse = {
     { ...poroEmberRetriever, owned: 1, free: 1 },
   ],
 };
+
+/** GET /api/cards?q=OGN-053: a public code finds the card with that printing. */
+export const publicCodeSearch: CardSearchResponse = { results: [emberSignetResult] };
 
 /** GET /api/cards?q=jinx&type=legend */
 export const legendSearch: CardSearchResponse = {
@@ -223,6 +247,17 @@ export const gildedWhelpDetails: CardDetailsResponse = {
   card: { ...gildedWhelp, rulesText: 'When you play me, draw 1.', deckable: true },
   printings: gildedWhelpPrintings,
   counts: { owned: 1, proxies: 0, inDecks: 0, free: 1 },
+};
+
+/** GET /api/cards/331: a battlefield, whose image shows in landscape. */
+export const emberSanctumDetails: CardDetailsResponse = {
+  card: {
+    ...emberSanctum,
+    rulesText: 'When you conquer here, draw 1.\nUnits here have +1 might.',
+    deckable: true,
+  },
+  printings: emberSanctumPrintings,
+  counts: { owned: 2, proxies: 0, inDecks: 0, free: 2 },
 };
 
 /** The 404 GET /api/cards/:id answers for a card the card data doesn't have. */

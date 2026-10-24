@@ -1,5 +1,6 @@
 import { type SQL, sql } from 'drizzle-orm';
 import type { LocationRef, LocationType } from '../../shared/api/common';
+import type { RemovalReason } from '../../shared/api/copies';
 import type { DeckRef } from '../../shared/api/decks';
 import type {
   BatchKind,
@@ -42,6 +43,7 @@ type MovementRecord = CardRecord &
     fromLocationId: number | null;
     toLocationId: number | null;
     reason: MovementReason;
+    removalReason: RemovalReason | null;
     deckId: number | null;
     undoneAt: string | null;
   };
@@ -49,7 +51,7 @@ type MovementRecord = CardRecord &
 const columns = sql`
   m.id, m.batch_id AS batchId, m.created_at AS createdAt, m.quantity,
   m.from_location_id AS fromLocationId, m.to_location_id AS toLocationId, m.reason,
-  m.deck_id AS deckId, m.undone_at AS undoneAt,
+  m.removal_reason AS removalReason, m.deck_id AS deckId, m.undone_at AS undoneAt,
   ${cardColumnsSql}, ${printingColumnsSql}`;
 
 const from = sql`
@@ -325,6 +327,7 @@ function toMovementRow(record: MovementRecord, places: Places, summaries: Summar
     from: place(record.fromLocationId),
     to: place(record.toLocationId),
     reason: record.reason,
+    removalReason: record.removalReason,
     deck: summaries.deck(record.deckId),
     undoneAt: record.undoneAt,
   };

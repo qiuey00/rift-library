@@ -3,11 +3,14 @@ import type { CardDataStatus } from '../../src/shared/api/card-data';
 import { cardDataStatusSamples } from '../../src/shared/api/samples/card-data';
 import {
   cardNotFoundError,
+  emberSanctum,
+  emberSanctumDetails,
   emberSearch,
   emberSignet,
   emberSignetDetails,
   gildedWhelp,
   gildedWhelpDetails,
+  publicCodeSearch,
 } from '../../src/shared/api/samples/cards';
 
 // A 1×1 PNG stands in for the card images; tests never reach the network.
@@ -22,7 +25,7 @@ async function mockApi(page: Page, status: CardDataStatus = cardDataStatusSample
   );
   await page.route('**/api/card-data/status', (route) => route.fulfill({ json: status }));
   await page.route(/\/api\/cards\?/, (route) => route.fulfill({ json: emberSearch }));
-  for (const details of [emberSignetDetails, gildedWhelpDetails]) {
+  for (const details of [emberSignetDetails, gildedWhelpDetails, emberSanctumDetails]) {
     await page.route(`**/api/cards/${details.card.id}`, (route) =>
       route.fulfill({ json: details }),
     );
@@ -190,4 +193,72 @@ test('a card the card data lacks says so', async ({ page }) => {
   await page.goto(`/cards/${missing}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Card not found');
   await expect(page.getByRole('main')).toContainText(cardNotFoundError.error.message);
+});
+
+test('search results show the domain icons, type and counts', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  await searchBox(page).fill('ember');
+  const poro = options(page).filter({ hasText: 'Poro, Ember Retriever' });
+  await expect(poro.getByRole('img', { name: 'Fury' })).toBeVisible();
+  await expect(poro.getByRole('img', { name: 'Calm' })).toBeVisible();
+  await expect(poro).toContainText('Unit');
+  await expect(poro).toContainText('1 owned');
+  await expect(poro).toContainText('1 free');
+});
+
+test('typing a public code finds the card and marks that printing', async ({ page }) => {
+  await mockApi(page);
+  let asked = '';
+  await page.route(/\/api\/cards\?/, (route) => {
+    asked = new URL(route.request().url()).searchParams.get('q') ?? '';
+    return route.fulfill({ json: publicCodeSearch });
+  });
+  await page.goto('/');
+  await searchBox(page).fill('ogn-053');
+
+  await expect(options(page)).toHaveCount(1);
+  await expect(options(page).first()).toContainText('Ember Signet');
+  await expect(options(page).first()).toContainText('OGN-053');
+  expect(asked).toBe('ogn-053');
+
+  await searchBox(page).press('Enter');
+  await expect(page).toHaveURL(`/cards/${emberSignet.id}?printing=OGN-053`);
+  const marked = page.getByRole('main').locator('tbody tr[aria-current="true"]');
+  await expect(marked).toHaveCount(1);
+  await expect(marked).toContainText('OGN-053/298');
+});
+
+test('the card page shows the stats, rules text and printing tags', async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/cards/${gildedWhelp.id}`);
+  const main = page.getByRole('main');
+  const header = main.locator('header');
+  await expect(header.locator('[data-stat="energy"]')).toHaveText('Energy1');
+  await expect(header.locator('[data-stat="might"]')).toHaveText('Might1');
+  await expect(header.locator('[data-stat="power"]')).toHaveText('Power1');
+  await expect(main.getByTestId('rules-text')).toHaveText('When you play me, draw 1.');
+
+  const rows = main.getByRole('table').first().locator('tbody tr');
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0).locator('[data-tag]')).toHaveCount(0);
+  await expect(rows.nth(1).locator('[data-tag]')).toHaveText(['Overnumbered']);
+  await expect(rows.nth(2).locator('[data-tag]')).toHaveText(['Alternate art', 'Signature']);
+  await expect(rows.nth(2)).toContainText('SFX-52p/52');
+});
+
+test('a battlefield shows its image in landscape', async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/cards/${emberSanctum.id}`);
+  const main = page.getByRole('main');
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Ember Sanctum');
+  await expect(main.locator('header').getByText('Battlefield', { exact: true })).toBeVisible();
+  // A battlefield has no energy, might or power.
+  await expect(main.locator('[data-stat]')).toHaveCount(0);
+  await expect(main.getByTestId('rules-text')).toContainText('When you conquer here, draw 1.');
+
+  const image = main.getByRole('img', { name: 'Ember Sanctum' });
+  await expect(image).toBeVisible();
+  const box = await image.boundingBox();
+  expect(box && Math.abs(box.width / box.height - 680 / 488)).toBeLessThan(0.01);
 });

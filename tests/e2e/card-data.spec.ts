@@ -119,3 +119,11 @@ test('a refresh the server turns down shows why', async ({ page }) => {
   await page.getByRole('button', { name: 'Refresh card data' }).click();
   await expect(page.getByRole('alert')).toHaveText(refreshRunningError.error.message);
 });
+
+test("Settings shows Riot's legal notice", async ({ page }) => {
+  await mockStatus(page, cardDataStatusSamples.ready);
+  await page.goto('/settings');
+  await expect(page.getByRole('region', { name: 'Legal' })).toHaveText(
+    "LegalRift Library isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.",
+  );
+});

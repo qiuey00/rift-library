@@ -63,7 +63,7 @@ async function mockApi(page: Page) {
       const json = url.pathname.includes('/2/')
         ? children
           ? locationStacksWithChildrenSample
-          : { location: locationStacksWithChildrenSample.location, rows: [] }
+          : { location: locationStacksWithChildrenSample.location, rows: [], outInDecks: [] }
         : locationStacksSample;
       return route.fulfill({ json });
     },

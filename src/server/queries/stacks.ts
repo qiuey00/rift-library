@@ -300,10 +300,16 @@ export function locationStacks(db: Db, id: number, includeChildren: boolean): Lo
   if (!location) {
     throw new AppError(404, 'location_not_found', 'That location no longer exists.');
   }
-  const ids = includeChildren ? [id, ...descendantIds(db, id)] : [id];
+  const withChildren = [id, ...descendantIds(db, id)];
+  const ids = includeChildren ? withChildren : [id];
   return {
     location,
     rows: stackRows(db, sql`s.location_id IN (${sql.join(ids, sql`, `)})`),
+    outInDecks: stackRows(
+      db,
+      sql`s.came_from_location_id IN (${sql.join(withChildren, sql`, `)})
+        AND s.location_id IN (SELECT id FROM locations WHERE type = 'deck_box')`,
+    ),
   };
 }
 

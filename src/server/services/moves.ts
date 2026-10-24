@@ -1,6 +1,11 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { ActionResult } from '../../shared/api/common';
-import type { AddCopiesBody, MoveContentsBody, MoveCopiesBody } from '../../shared/api/copies';
+import type {
+  AddCopiesBody,
+  MoveContentsBody,
+  MoveCopiesBody,
+  RemoveCopiesBody,
+} from '../../shared/api/copies';
 import type { Db } from '../db/database';
 import { cards, copyStacks, decks, locations, printings } from '../db/schema';
 import { AppError } from '../errors';
@@ -9,7 +14,8 @@ import {
   addCopies,
   createBatch,
   moveCopies,
-  printingExists,
+  printingFinishes,
+  removeCopies,
   StaleCopyError,
   setProxy,
 } from './copies';
@@ -146,16 +152,51 @@ export function markProxy(db: Db, stackIds: number[], isProxy: boolean): ActionR
   };
 }
 
-/** POST /api/stacks/add. */
+/** POST /api/stacks/add. Each call is its own batch, so quick add can undo one card. */
 export function addToCollection(db: Db, body: AddCopiesBody): ActionResult {
   return db.transaction((tx) => {
     const location = liveLocation(tx, body.locationId);
-    if (!printingExists(tx, body.printingId)) {
+    const finishes = printingFinishes(tx, body.printingId);
+    if (!finishes) {
       throw new AppError(404, 'printing_not_found', 'That printing is not in the card data');
+    }
+    if (!finishes.includes(body.finish)) {
+      throw new AppError(
+        400,
+        'finish_not_available',
+        `This printing of ${cardName(tx, body.printingId)} doesn’t come in ${body.finish}`,
+      );
     }
     const batchId = createBatch(tx, 'add');
     addCopies(tx, { ...body, reason: 'added', batchId, deckId: deckOfBox(tx, location.id) });
     const name = cardName(tx, body.printingId);
     return { message: `Added ${body.quantity} ${name} to ${location.name}`, batchId };
+  });
+}
+
+/**
+ * POST /api/copies/remove. Lowers the stack, or removes it, in a remove batch whose movement
+ * has no to location and keeps the reason (COL-13).
+ */
+export function removeFromCollection(db: Db, body: RemoveCopiesBody): ActionResult {
+  return db.transaction((tx) => {
+    const stack = tx.select().from(copyStacks).where(eq(copyStacks.id, body.stackId)).get();
+    if (!stack || stack.quantity < body.quantity) throw new StaleCopyError();
+    const location = tx
+      .select({ type: locations.type })
+      .from(locations)
+      .where(eq(locations.id, stack.locationId))
+      .get();
+    if (location?.type === 'deck_box') {
+      throw new AppError(409, 'in_deck', 'These copies are in a deck. Take them out first.');
+    }
+    const batchId = createBatch(tx, 'remove');
+    removeCopies(tx, stack.id, body.quantity, {
+      reason: 'removed',
+      removalReason: body.reason,
+      batchId,
+    });
+    const what = describeCopies(tx, [{ printingId: stack.printingId, quantity: body.quantity }]);
+    return { message: `Removed ${what} (${body.reason})`, batchId };
   });
 }
