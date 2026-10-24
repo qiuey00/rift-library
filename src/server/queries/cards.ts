@@ -1,6 +1,6 @@
 import { type SQL, sql } from 'drizzle-orm';
 import type { CardCounts, CardDetailsResponse, CardSearchResult } from '../../shared/api/cards';
-import type { CardType, Domain } from '../../shared/api/common';
+import type { Board, CardType, Domain } from '../../shared/api/common';
 import type { Db } from '../db/database';
 import {
   type CardRecord,
@@ -90,6 +90,8 @@ export type CardSearchOptions = {
   championTag?: string;
   /** Only cards a deck can hold (no tokens). */
   deckable?: boolean;
+  /** Only cards that can go on this board of a deck (see `boardFilter`). */
+  board?: Board;
   limit: number;
 };
 
@@ -134,6 +136,7 @@ export function searchCards(db: Db, options: CardSearchOptions): CardSearchResul
   if (options.deckable !== undefined) {
     filters.push(sql`AND c.deckable = ${options.deckable ? 1 : 0}`);
   }
+  if (options.board) filters.push(boardFilter(options.board));
   if (options.domains !== undefined) {
     // Every one of the card's domains must be among the given ones.
     const allowed = options.domains.length === 0 ? sql`''` : sql.join(options.domains, sql`, `);
@@ -169,6 +172,29 @@ export function searchCards(db: Db, options: CardSearchOptions): CardSearchResul
     const counts = toCounts(row);
     return { ...toCardSummary(row), owned: counts.owned, free: counts.free };
   });
+}
+
+/**
+ * The cards a deck's board can hold: the Legend board takes Champion Legends, the Chosen
+ * Champion board champion units, the battlefield and rune boards their own type, and the
+ * main deck, sideboard and maybe boards any deckable card that isn't a legend, battlefield
+ * or rune.
+ */
+function boardFilter(board: Board): SQL {
+  switch (board) {
+    case 'legend':
+      return sql`AND c.type = 'legend'`;
+    case 'champion':
+      return sql`AND c.type = 'unit' AND c.supertype = 'champion' COLLATE NOCASE`;
+    case 'battlefield':
+      return sql`AND c.type = 'battlefield'`;
+    case 'rune':
+      return sql`AND c.type = 'rune'`;
+    case 'main':
+    case 'sideboard':
+    case 'maybe':
+      return sql`AND c.deckable = 1 AND c.type NOT IN ('legend', 'battlefield', 'rune', 'token')`;
+  }
 }
 
 /** One card with its printings (by set and number) and copy counts; undefined if it isn't known. */

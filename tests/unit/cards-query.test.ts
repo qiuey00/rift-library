@@ -189,6 +189,127 @@ describe('card search', () => {
   });
 });
 
+describe('card search for building a deck', () => {
+  let db: OpenDb;
+
+  beforeEach(() => {
+    db = createTestDb();
+    addCard(db, {
+      name: 'Jinx, Loose Cannon',
+      type: 'legend',
+      domains: ['fury', 'chaos'],
+      championTag: 'Jinx',
+    });
+    addCard(db, {
+      name: 'Lux, Lady of Luminosity',
+      type: 'legend',
+      domains: ['order', 'mind'],
+      championTag: 'Lux',
+    });
+    addCard(db, {
+      name: 'Jinx, Rebel',
+      type: 'unit',
+      supertype: 'champion',
+      domains: ['chaos'],
+      championTag: 'Jinx',
+    });
+    addCard(db, {
+      name: 'Jinx, Demolitionist',
+      type: 'unit',
+      supertype: 'champion',
+      domains: ['fury'],
+      championTag: 'Jinx',
+    });
+    addCard(db, {
+      name: 'Lux, Crownguard',
+      type: 'unit',
+      supertype: 'champion',
+      domains: ['order'],
+      championTag: 'Lux',
+    });
+    addCard(db, {
+      name: "Jinx's Super Mega Death Rocket",
+      type: 'spell',
+      supertype: 'signature',
+      domains: ['fury'],
+      championTag: 'Jinx',
+    });
+    addCard(db, { name: 'Zaun Warrens', type: 'battlefield' });
+    addCard(db, { name: 'Zaun Streets', type: 'battlefield' });
+    addCard(db, { name: 'Zaun Chemtank', type: 'gear', domains: ['chaos'] });
+    addCard(db, { name: 'Zaun Fury Rune', type: 'rune', supertype: 'basic', domains: ['fury'] });
+    addCard(db, { name: 'Zaun Firestarter', type: 'unit', domains: ['fury'] });
+    addCard(db, { name: 'Zaun Lightseeker', type: 'unit', domains: ['order'] });
+    addCard(db, {
+      name: 'Zaun Rocket',
+      type: 'token',
+      supertype: 'token',
+      domains: ['fury'],
+      deckable: false,
+    });
+    setDb(db);
+  });
+
+  async function search(query: Parameters<typeof client.cards.$get>[0]['query']) {
+    const res = await client.cards.$get({ query });
+    expect(res.status).toBe(200);
+    return names(CardSearchResponse.parse(await res.json()).results);
+  }
+
+  it('finds only Champion Legends for the Legend', async () => {
+    expect(await search({ q: 'jinx', board: 'legend' })).toEqual(['Jinx, Loose Cannon']);
+    expect(await search({ q: 'l', board: 'legend' })).toEqual([
+      'Lux, Lady of Luminosity',
+      'Jinx, Loose Cannon',
+    ]);
+  });
+
+  it("finds only champion units with the Legend's champion tag for the Chosen Champion", async () => {
+    expect(await search({ q: 'jinx', board: 'champion', championTag: 'Jinx' })).toEqual([
+      'Jinx, Demolitionist',
+      'Jinx, Rebel',
+    ]);
+    expect(await search({ q: 'lux', board: 'champion', championTag: 'Jinx' })).toEqual([]);
+    // The same search with the filters #8 added.
+    expect(
+      await search({ q: 'jinx', type: 'unit', supertype: 'champion', championTag: 'jinx' }),
+    ).toEqual(['Jinx, Demolitionist', 'Jinx, Rebel']);
+  });
+
+  it('finds only battlefields for the battlefields', async () => {
+    expect(await search({ q: 'zaun', board: 'battlefield' })).toEqual([
+      'Zaun Streets',
+      'Zaun Warrens',
+    ]);
+    expect(await search({ q: 'zaun', type: 'battlefield' })).toEqual([
+      'Zaun Streets',
+      'Zaun Warrens',
+    ]);
+  });
+
+  it("finds deckable cards within the Legend's domains for the main deck and sideboard", async () => {
+    for (const board of ['main', 'sideboard'] as const) {
+      // No legends, battlefields, runes or tokens, and nothing outside Fury and Chaos.
+      expect(await search({ q: 'zaun', board, domains: 'fury,chaos' })).toEqual([
+        'Zaun Chemtank',
+        'Zaun Firestarter',
+      ]);
+      // Champion units and signature cards of the Legend's champion are main deck cards too.
+      expect(await search({ q: 'jinx', board, domains: 'fury,chaos' })).toEqual([
+        "Jinx's Super Mega Death Rocket",
+        'Jinx, Demolitionist',
+        'Jinx, Rebel',
+      ]);
+    }
+  });
+
+  it('refuses a board it does not know with 400 invalid_request', async () => {
+    const res = await app.request('/api/cards?q=jinx&board=graveyard');
+    expect(res.status).toBe(400);
+    expect(ErrorBody.parse(await res.json()).error.code).toBe('invalid_request');
+  });
+});
+
 describe('copy counts and card details', () => {
   let db: OpenDb;
   let cardId: number;
