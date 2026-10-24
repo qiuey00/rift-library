@@ -66,8 +66,8 @@ describe('CopyStackTable columns', () => {
     expect(headers).toEqual([
       '',
       'Card',
-      'Set',
-      'No.',
+      'Type',
+      'Code',
       'Finish',
       'Cond.',
       'Lang.',
@@ -88,8 +88,8 @@ describe('CopyStackTable columns', () => {
       .getAllByRole('cell')
       .map((td) => td.textContent);
     expect(cells.slice(2)).toEqual([
-      'SFD',
-      '#176',
+      'Champion unit',
+      'SFD-176/221',
       'Foil',
       'NM',
       '',

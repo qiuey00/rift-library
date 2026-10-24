@@ -1,3 +1,4 @@
+import type { Domain } from '../../shared/api/common';
 import {
   type CollectionFilter,
   type CollectionTerm,
@@ -10,7 +11,7 @@ import { DOMAIN_WORDS } from '../components/DomainIcon';
 // the text, and removing a chip or picking a dropdown filter writes the text again.
 
 /** The filters a dropdown (or the For trade chip) sets. Each holds at most one term of its kind. */
-export type DropdownKind = 'set' | 'domain' | 'type' | 'finish' | 'proxy' | 'location' | 'trade';
+export type DropdownKind = 'set' | 'type' | 'rarity' | 'finish' | 'proxy' | 'location' | 'trade';
 
 type FilterOf<K extends CollectionFilter['kind']> = Extract<CollectionFilter, { kind: K }>;
 
@@ -34,8 +35,22 @@ export function replaceFilter(
     .join(' ');
 }
 
+/**
+ * The search text with the domain chip flipped: its term added at the end when it isn't
+ * there, every term for it removed when it is. Several domains can be picked at once, and a
+ * card must have each of them.
+ */
+export function toggleDomain(q: string, domain: Domain): string {
+  const terms = parseCollectionQuery(q);
+  const on = terms.some((term) => term.kind === 'domain' && term.value === domain);
+  if (on) return join(terms.filter((term) => term.kind !== 'domain' || term.value !== domain));
+  return [join(terms), formatCollectionFilter({ kind: 'domain', value: domain })]
+    .filter((part) => part !== '')
+    .join(' ');
+}
+
 /** The first term of a kind in the search text, which a dropdown shows as its value. */
-export function findFilter<K extends DropdownKind>(
+export function findFilter<K extends CollectionFilter['kind']>(
   terms: CollectionTerm[],
   kind: K,
 ): FilterOf<K> | undefined {
@@ -53,6 +68,10 @@ export function chipLabel(term: CollectionTerm): string {
       return `Domain: ${DOMAIN_WORDS[term.value]}`;
     case 'type':
       return `Type: ${term.value}`;
+    case 'supertype':
+      return `Supertype: ${term.value}`;
+    case 'rarity':
+      return `Rarity: ${term.value}`;
     case 'finish':
       return `Finish: ${term.value}`;
     case 'proxy':

@@ -230,6 +230,10 @@ function condition(db: Db, filter: CollectionFilter): SQL {
       return sql`EXISTS (SELECT 1 FROM json_each(c.domains) WHERE value = ${filter.value})`;
     case 'type':
       return sql`instr(lower(c.type), ${filter.value}) > 0`;
+    case 'supertype':
+      return sql`c.supertype = ${filter.value} COLLATE NOCASE`;
+    case 'rarity':
+      return sql`p.rarity = ${filter.value} COLLATE NOCASE`;
     case 'finish':
       return sql`s.finish = ${filter.value}`;
     case 'proxy':

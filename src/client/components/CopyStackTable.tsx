@@ -19,6 +19,7 @@ import {
 } from 'react';
 import { Link } from 'react-router';
 import type { Finish, StackRow } from '../../shared/api/common';
+import { TYPE_WORDS } from '../lib/card-text';
 import { formatCents } from '../lib/money';
 import { cn } from '../lib/utils';
 import { DomainIcons } from './DomainIcon';
@@ -77,8 +78,8 @@ const helper = createColumnHelper<typeof features, StackRow>();
 const columnLook: Record<string, { width?: string; className?: string; header: ReactNode }> = {
   select: { width: '44px', header: null },
   card: { header: 'Card' },
-  set: { width: '96px', header: 'Set' },
-  number: { width: '72px', header: 'No.' },
+  type: { width: '128px', header: 'Type' },
+  code: { width: '112px', header: 'Code' },
   finish: { width: '84px', header: 'Finish' },
   condition: { width: '76px', header: 'Cond.' },
   language: { width: '64px', header: 'Lang.' },
@@ -109,12 +110,23 @@ function CardName({ row }: { row: StackRow }) {
   );
 }
 
-function SetSymbol({ row }: { row: StackRow }) {
+/** The printing's public code, such as OGN-042/298, with its set's name on hover. */
+function PublicCode({ row }: { row: StackRow }) {
   return (
-    <span className="whitespace-nowrap" title={row.printing.setName}>
-      {row.printing.setCode}
+    <span className="whitespace-nowrap tabular-nums" title={row.printing.setName}>
+      {row.printing.publicCode}
     </span>
   );
+}
+
+/** The card's supertype and type, such as "Champion unit" or "Spell". */
+function CardTypeWords({ row }: { row: StackRow }) {
+  const type = TYPE_WORDS[row.card.type];
+  const supertype = row.card.supertype;
+  const words = supertype
+    ? `${supertype.charAt(0).toUpperCase()}${supertype.slice(1)} ${type.toLowerCase()}`
+    : type;
+  return <span className="block truncate text-muted-foreground">{words}</span>;
 }
 
 /** The location's tile and full path, opening it on the Locations screen. */
@@ -160,13 +172,8 @@ function buildColumns(
         );
       },
     }),
-    helper.display({ id: 'set', cell: ({ row }) => <SetSymbol row={row.original} /> }),
-    helper.display({
-      id: 'number',
-      cell: ({ row }) => (
-        <span className="tabular-nums">#{row.original.printing.collectorNumber}</span>
-      ),
-    }),
+    helper.display({ id: 'type', cell: ({ row }) => <CardTypeWords row={row.original} /> }),
+    helper.display({ id: 'code', cell: ({ row }) => <PublicCode row={row.original} /> }),
     helper.display({ id: 'finish', cell: ({ row }) => finishWords[row.original.finish] }),
     helper.display({
       id: 'condition',
