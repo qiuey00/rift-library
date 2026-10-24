@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
 // Card data: the cards and printings synced from Riftcodex, prices from TCGCSV, and the
-// Refresh card data button. Nothing loads card data until the Riftcodex sync (#7).
+// Refresh card data button. The server syncs from Riftcodex when it starts with no cards and
+// once the last sync is 24 hours old.
 //
 //   GET  /api/card-data/status   → CardDataStatus
 //   POST /api/card-data/refresh  → CardDataStatus, as the refresh starts; it runs in the
 //                                  background, so ask for the status to follow it.
-//                                  409 `refresh_running` while a sync runs.
+//                                  409 `refresh_running` while a sync runs, and
+//                                  409 `card_data_sync_off` when RIFTCODEX=off (tests).
 
 /**
  * - idle: no card data yet and nothing running (the first start, before the sync begins).

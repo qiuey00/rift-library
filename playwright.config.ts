@@ -8,6 +8,9 @@ import { defineConfig, devices } from '@playwright/test';
 process.env.E2E_DATA_DIR ??= mkdtempSync(path.join(tmpdir(), 'log-e2e-'));
 process.env.E2E_FLOWS_DATA_DIR ??= mkdtempSync(path.join(tmpdir(), 'log-e2e-flows-'));
 
+/** Never call Riftcodex during tests: no card data sync and no card lookups. */
+const OFFLINE = { RIFTCODEX: 'off' };
+
 export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: Boolean(process.env.CI),
@@ -32,14 +35,14 @@ export default defineConfig({
   webServer: [
     {
       command: 'npx tsx tests/e2e/global-setup.ts && npm start',
-      env: { DATA_DIR: process.env.E2E_DATA_DIR },
+      env: { DATA_DIR: process.env.E2E_DATA_DIR, ...OFFLINE },
       url: 'http://127.0.0.1:4300/api/health',
       reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: 'npx tsx tests/e2e/global-setup.ts && npx tsx tests/e2e/flows/server.ts',
-      env: { DATA_DIR: process.env.E2E_FLOWS_DATA_DIR },
+      env: { DATA_DIR: process.env.E2E_FLOWS_DATA_DIR, ...OFFLINE },
       url: 'http://127.0.0.1:4301/api/health',
       reuseExistingServer: false,
       timeout: 120_000,

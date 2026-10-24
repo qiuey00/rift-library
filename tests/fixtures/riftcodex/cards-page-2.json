@@ -1,0 +1,344 @@
+{
+  "items": [
+    {
+      "id": "7cbd5a0f1888487fc5be5acb",
+      "name": "Jinx, Demolitionist (Overnumbered)",
+      "riftbound_id": "ven-168-166",
+      "tcgplayer_id": "706047",
+      "collector_number": 168,
+      "attributes": {
+        "energy": 3,
+        "might": 4,
+        "power": 1
+      },
+      "classification": {
+        "type": "Unit",
+        "supertype": "Champion",
+        "rarity": "Rare",
+        "domain": ["Fury"]
+      },
+      "text": {
+        "rich": "<p>Accelerate. Assault 2. When you play me, discard 2.</p>",
+        "plain": "Accelerate. Assault 2. When you play me, discard 2.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "VEN",
+        "label": "Vendetta"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ven-168-166.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Unit: Jinx, Demolitionist (Overnumbered)."
+      },
+      "tags": ["Jinx"],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Jinx, Demolitionist Overnumbered",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": true,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "0ebd3d123b0431969a773710",
+      "name": "Jinx - Demolitionist",
+      "riftbound_id": "ogn-030-298",
+      "tcgplayer_id": "652802",
+      "collector_number": 30,
+      "attributes": {
+        "energy": 3,
+        "might": 4,
+        "power": 1
+      },
+      "classification": {
+        "type": "Unit",
+        "supertype": "Champion",
+        "rarity": "Rare",
+        "domain": ["Fury"]
+      },
+      "text": {
+        "rich": "<p>Accelerate. Assault 2. When you play me, discard 2.</p>",
+        "plain": "Accelerate. Assault 2. When you play me, discard 2.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-030-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Unit: Jinx - Demolitionist."
+      },
+      "tags": ["Jinx", "Zaun"],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Jinx Demolitionist",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "ca25808aa5247df3c7d790b8",
+      "name": "Fury Rune",
+      "riftbound_id": "ogn-007-298",
+      "tcgplayer_id": "652777",
+      "collector_number": 7,
+      "attributes": {
+        "energy": null,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Rune",
+        "supertype": "Basic",
+        "rarity": "Common",
+        "domain": ["Fury"]
+      },
+      "text": {
+        "rich": "",
+        "plain": "",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-007-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Rune: Fury Rune."
+      },
+      "tags": [],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Fury Rune",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "b1c67b44a0d334b1c557619e",
+      "name": "Fury Rune",
+      "riftbound_id": "ven-r01",
+      "tcgplayer_id": "706028",
+      "collector_number": 1,
+      "attributes": {
+        "energy": null,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Rune",
+        "supertype": "Basic",
+        "rarity": "Common",
+        "domain": ["Fury"]
+      },
+      "text": {
+        "rich": "",
+        "plain": "",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "VEN",
+        "label": "Vendetta"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ven-r01.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Rune: Fury Rune."
+      },
+      "tags": [],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Fury Rune",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "3aeaab4f26d5513a24c8ed5e",
+      "name": "Gold // Buff",
+      "riftbound_id": "sfd-t03",
+      "tcgplayer_id": "",
+      "collector_number": 3,
+      "attributes": {
+        "energy": null,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Gear",
+        "supertype": "Token",
+        "rarity": "Common",
+        "domain": ["Colorless"]
+      },
+      "text": {
+        "rich": "",
+        "plain": "",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "SFD",
+        "label": "Spiritforged"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/sfd-t03.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Gear: Gold // Buff."
+      },
+      "tags": [],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Gold // Buff",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "6214510e24eb4e3ebb6c03e5",
+      "name": "Grove of the God-Willow",
+      "riftbound_id": "ogn-280-298",
+      "tcgplayer_id": "653078",
+      "collector_number": 280,
+      "attributes": {
+        "energy": null,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Battlefield",
+        "supertype": null,
+        "rarity": "Uncommon",
+        "domain": ["Colorless"]
+      },
+      "text": {
+        "rich": "<p>When you hold here, channel 1 rune exhausted.</p>",
+        "plain": "When you hold here, channel 1 rune exhausted.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-280-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Battlefield: Grove of the God-Willow."
+      },
+      "tags": [],
+      "orientation": "landscape",
+      "metadata": {
+        "clean_name": "Grove of the God-Willow",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "de96213b63fa33e49c4a5109",
+      "name": "Acceptable Losses",
+      "riftbound_id": "ogn-179-298",
+      "tcgplayer_id": "652968",
+      "collector_number": 179,
+      "attributes": {
+        "energy": 1,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Spell",
+        "supertype": null,
+        "rarity": "Uncommon",
+        "domain": ["Chaos"]
+      },
+      "text": {
+        "rich": "<p>Each player kills one of their gear.</p>",
+        "plain": "Each player kills one of their gear.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-179-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Spell: Acceptable Losses."
+      },
+      "tags": [],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Acceptable Losses",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "1d21e2715a77cc40d0527d90",
+      "name": "Acceptable Losses",
+      "riftbound_id": "opp-179-298",
+      "tcgplayer_id": "662870",
+      "collector_number": 179,
+      "attributes": {
+        "energy": 1,
+        "might": null,
+        "power": null
+      },
+      "classification": {
+        "type": "Spell",
+        "supertype": null,
+        "rarity": "Promo",
+        "domain": ["Order"]
+      },
+      "text": {
+        "rich": "<p>Each player kills one of their gear.</p>",
+        "plain": "Each player kills one of their gear.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OPP",
+        "label": "Organized Play"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/opp-179-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Spell: Acceptable Losses."
+      },
+      "tags": [],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Acceptable Losses",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    }
+  ],
+  "total": 14,
+  "page": 2,
+  "size": 100,
+  "pages": 2
+}

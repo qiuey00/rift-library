@@ -1,0 +1,134 @@
+{
+  "items": [
+    {
+      "id": "2b6af4864cd410ba0aba00f0",
+      "name": "Jinx - Rebel",
+      "riftbound_id": "ogn-202-298",
+      "tcgplayer_id": "652993",
+      "collector_number": 202,
+      "attributes": {
+        "energy": 5,
+        "might": 5,
+        "power": 1
+      },
+      "classification": {
+        "type": "Unit",
+        "supertype": "Champion",
+        "rarity": "Epic",
+        "domain": ["Chaos"]
+      },
+      "text": {
+        "rich": "<p>When you discard one or more cards, ready me and give me +1 Might this turn.</p>",
+        "plain": "When you discard one or more cards, ready me and give me +1 Might this turn.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-202-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Unit: Jinx - Rebel."
+      },
+      "tags": ["Jinx", "Zaun"],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Jinx Rebel",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "b6f9a2b822a98dfaf86cd94f",
+      "name": "Jinx - Rebel (Alternate Art)",
+      "riftbound_id": "ogn-202a-298",
+      "tcgplayer_id": "652994",
+      "collector_number": 202,
+      "attributes": {
+        "energy": 5,
+        "might": 5,
+        "power": 1
+      },
+      "classification": {
+        "type": "Unit",
+        "supertype": "Champion",
+        "rarity": "Showcase",
+        "domain": ["Chaos"]
+      },
+      "text": {
+        "rich": "<p>When you discard one or more cards, ready me and give me +1 Might this turn.</p>",
+        "plain": "When you discard one or more cards, ready me and give me +1 Might this turn.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "OGN",
+        "label": "Origins"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/ogn-202a-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Unit: Jinx - Rebel (Alternate Art)."
+      },
+      "tags": ["Jinx", "Zaun"],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Jinx Rebel Alternate Art",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": true,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    },
+    {
+      "id": "7aed778420737e04894e326e",
+      "name": "Jinx - Rebel",
+      "riftbound_id": "pr-202-298",
+      "tcgplayer_id": "678052",
+      "collector_number": 202,
+      "attributes": {
+        "energy": 5,
+        "might": 5,
+        "power": 1
+      },
+      "classification": {
+        "type": "Unit",
+        "supertype": "Champion",
+        "rarity": "Promo",
+        "domain": ["Chaos"]
+      },
+      "text": {
+        "rich": "<p>When you discard one or more cards, ready me and give me +1 Might this turn.</p>",
+        "plain": "When you discard one or more cards, ready me and give me +1 Might this turn.",
+        "flavour": null
+      },
+      "set": {
+        "set_id": "PR",
+        "label": "Promo"
+      },
+      "media": {
+        "image_url": "https://cmsassets.rgpub.io/sanity/images/fixture/pr-202-298.png",
+        "artist": "Riftcodex Fixture",
+        "accessibility_text": "Riftbound Unit: Jinx - Rebel."
+      },
+      "tags": ["Jinx", "Zaun"],
+      "orientation": "portrait",
+      "metadata": {
+        "clean_name": "Jinx Rebel",
+        "updated_on": "2026-07-10T22:45:08.861364+00:00",
+        "alternate_art": false,
+        "overnumbered": false,
+        "signature": false
+      },
+      "new": false
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "size": 100,
+  "pages": 1
+}
