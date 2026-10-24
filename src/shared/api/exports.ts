@@ -39,9 +39,22 @@ export const DeckListExport = z.object({
   /** Such as "Jinx Burn.txt". */
   fileName: z.string(),
   text: z.string(),
-  /** Cards on the list, by quantity. */
+  /** Cards on the list, by quantity, runes and the maybe board left out. */
   cardCount: z.number().int().nonnegative(),
+  /** Runes on the list; 0 for a location. */
+  runeCount: z.number().int().nonnegative(),
+  /** Cards on the maybe board; 0 for a location, or when `maybe` is '0'. */
+  maybeCount: z.number().int().nonnegative(),
   /** Card lines on the list, headings left out. */
   lineCount: z.number().int().nonnegative(),
 });
 export type DeckListExport = z.infer<typeof DeckListExport>;
+
+/** GET /api/exports/decks/:id/deck-list(.txt) query. */
+export const DeckListExportQuery = z.object({
+  /** '1' (the default) writes each slot's tags, such as "#Removal". */
+  tags: z.enum(['0', '1']).default('1'),
+  /** '1' (the default) adds the maybe board. */
+  maybe: z.enum(['0', '1']).default('1'),
+});
+export type DeckListExportQuery = z.infer<typeof DeckListExportQuery>;

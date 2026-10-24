@@ -21,6 +21,7 @@ import {
   deckListCreatedSample,
   deckListPreviewSample,
   deckListUpdatedSample,
+  deckPlainExportSample,
   jinxRebelsText,
   jinxRebelsTypoText,
   locationExportSample,
@@ -41,6 +42,7 @@ describe('deck list samples', () => {
     ['changes', DeckChanges, deckChangesSample],
     ['update', DeckListUpdated, deckListUpdatedSample],
     ['deck export', DeckListExport, deckExportSample],
+    ['plain deck export', DeckListExport, deckPlainExportSample],
     ['location export', DeckListExport, locationExportSample],
   ] as const)('the %s sample parses', (_name, schema, sample) => {
     expect(() => (schema as z.ZodType).parse(sample)).not.toThrow();
@@ -94,11 +96,17 @@ describe('deck list samples', () => {
     ]);
     expect(jinxRebelsText).toContain('3 Sun Disc OGN-');
     expect(jinxRebelsText).toMatch(/^3 Sun Disc OGN-\d+ #energy rock #Ramp$/m);
-    const cardLines = deckExportSample.text.split('\n').filter((line) => /^\d/.test(line));
-    expect(cardLines).toHaveLength(deckExportSample.lineCount);
-    expect(cardLines.reduce((n, line) => n + Number.parseInt(line, 10), 0)).toBe(
-      deckExportSample.cardCount,
-    );
+    for (const sample of [deckExportSample, deckPlainExportSample]) {
+      const cardLines = sample.text.split('\n').filter((line) => /^\d/.test(line));
+      expect(cardLines).toHaveLength(sample.lineCount);
+      expect(cardLines.reduce((n, line) => n + Number.parseInt(line, 10), 0)).toBe(
+        sample.cardCount + sample.runeCount + sample.maybeCount,
+      );
+    }
+    expect(deckExportSample.maybeCount).toBeGreaterThan(0);
+    expect(deckPlainExportSample.maybeCount).toBe(0);
+    expect(deckPlainExportSample.text).not.toContain('#');
+    expect(deckPlainExportSample.text).not.toContain('Maybe:');
   });
 });
 
@@ -201,6 +209,15 @@ describe('deck list exports', () => {
 
   it('refuses an id that isn’t a number', async () => {
     const res = await app.request('/api/exports/decks/abc/deck-list');
+    expect(res.status).toBe(400);
+  });
+
+  it('takes the tags and maybe options and refuses anything but 0 or 1', async () => {
+    for (const query of ['tags=0&maybe=0', 'tags=1&maybe=0', '']) {
+      const res = await app.request(`/api/exports/decks/1/deck-list.txt?${query}`);
+      expect(res.status, query).toBe(200);
+    }
+    const res = await app.request('/api/exports/decks/1/deck-list?tags=yes');
     expect(res.status).toBe(400);
   });
 });

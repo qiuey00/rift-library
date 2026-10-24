@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { IdParam } from '../../shared/api/common';
+import { DeckListExportQuery } from '../../shared/api/exports';
 import { deckExportSample, locationExportSample } from '../../shared/api/samples/deck-lists';
 import { getDb } from '../db/database';
 import { collectionCsv, collectionCsvFileName } from '../services/exports/collection-csv';
@@ -32,15 +33,16 @@ function streamOf(pieces: Generator<string>): ReadableStream<Uint8Array> {
 // Mounted at /api in src/server/app.ts. Chain each route onto this instance, as in
 // `new Hono().get(...).post(...)`, so the typed client in src/client/api.ts sees it.
 const idParam = validate('param', z.object({ id: IdParam }));
+const deckListQuery = validate('query', DeckListExportQuery);
 
 export const exportsRoutes = new Hono()
   .get('/exports/collection.csv', (c) =>
     c.body(streamOf(collectionCsv(getDb())), 200, attachment('text/csv', collectionCsvFileName())),
   )
   // STUB until #20: write the deck's list (EXP-1).
-  .get('/exports/decks/:id/deck-list', idParam, (c) => c.json(deckExportSample))
+  .get('/exports/decks/:id/deck-list', idParam, deckListQuery, (c) => c.json(deckExportSample))
   // STUB until #20.
-  .get('/exports/decks/:id/deck-list.txt', idParam, (c) =>
+  .get('/exports/decks/:id/deck-list.txt', idParam, deckListQuery, (c) =>
     c.body(deckExportSample.text, 200, attachment('text/plain', deckExportSample.fileName)),
   )
   // STUB until #20: write the location's list (EXP-2).

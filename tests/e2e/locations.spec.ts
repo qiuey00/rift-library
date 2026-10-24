@@ -489,8 +489,12 @@ test('Export list opens the dialog from the header and the menu', async ({ page 
   await page.getByRole('button', { name: 'Export list' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export Trade binder' });
   await expect(dialog).toBeVisible();
-  // Coming soon until the deck list export (#24).
-  await expect(dialog.getByText('Coming soon.')).toBeVisible();
+  await expect(dialog.getByText('Trade', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Proxies are left out.')).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'Download .txt' })).toHaveAttribute(
+    'href',
+    '/api/exports/locations/12/deck-list.txt',
+  );
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 

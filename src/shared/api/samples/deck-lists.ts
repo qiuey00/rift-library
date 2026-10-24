@@ -246,12 +246,15 @@ export const deckListUpdatedSample: DeckListUpdated = {
   needsSwap: true,
 };
 
-/** GET /api/exports/decks/1/deck-list: Jinx Burn, board by board, as the import reads it. */
-export const deckExportSample: DeckListExport = (() => {
+/** Jinx Burn's deck list export, with or without its tags and maybe board. */
+function deckExportOf({ tags, maybe }: { tags: boolean; maybe: boolean }): DeckListExport {
   const out: string[] = [];
   let cardCount = 0;
+  let runeCount = 0;
+  let maybeCount = 0;
   let lineCount = 0;
   for (const board of boardOrder) {
+    if (board === 'maybe' && !maybe) continue;
     const slots = deckViewSample.slots.filter((slot) => slot.board === board);
     if (slots.length === 0) continue;
     if (out.length > 0) out.push('');
@@ -259,13 +262,28 @@ export const deckExportSample: DeckListExport = (() => {
     for (const slot of slots) {
       const code = slot.pickedPrinting?.publicCode.split('/')[0];
       const hint = code ? { publicCode: code, foil: slot.hint?.foil ?? false } : slot.hint;
-      out.push(lineFor(slot.card.name, slot.quantity, hint, slot.tags));
-      cardCount += slot.quantity;
+      out.push(lineFor(slot.card.name, slot.quantity, hint, tags ? slot.tags : []));
+      if (board === 'rune') runeCount += slot.quantity;
+      else if (board === 'maybe') maybeCount += slot.quantity;
+      else cardCount += slot.quantity;
       lineCount += 1;
     }
   }
-  return { fileName: 'Jinx Burn.txt', text: `${out.join('\n')}\n`, cardCount, lineCount };
-})();
+  return {
+    fileName: 'Jinx Burn.txt',
+    text: `${out.join('\n')}\n`,
+    cardCount,
+    runeCount,
+    maybeCount,
+    lineCount,
+  };
+}
+
+/** GET /api/exports/decks/1/deck-list: Jinx Burn, board by board, as the import reads it. */
+export const deckExportSample = deckExportOf({ tags: true, maybe: true });
+
+/** GET /api/exports/decks/1/deck-list?tags=0&maybe=0: Jinx Burn with no tags or maybe board. */
+export const deckPlainExportSample = deckExportOf({ tags: false, maybe: false });
 
 /**
  * GET /api/exports/locations/12/deck-list: the trade binder, one line per printing and finish.
@@ -281,5 +299,7 @@ export const locationExportSample: DeckListExport = {
     '',
   ].join('\n'),
   cardCount: 7,
+  runeCount: 0,
+  maybeCount: 0,
   lineCount: 4,
 };

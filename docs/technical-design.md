@@ -119,7 +119,7 @@ The API (shapes in `src/shared/api/deck-lists.ts`, #14):
 | `POST /api/deck-lists/preview` | Takes `{ text, fixes?, skips?, deckId? }` and writes nothing. Answers every line with its kind and board, the matched slots, cards per board, the proposed Legend and Chosen Champion, unmatched lines, the deck checks and, with a deck id, what would change, under a preview id that lasts until the server restarts. |
 | `POST /api/deck-lists/:previewId/create` | Takes the name, Legend and Chosen Champion (or none) Jeff confirmed and makes the deck from the preview (DECK-14, DECK-15). An unknown preview answers 404 `preview_not_found`. |
 | `POST /api/decks/:id/deck-list` | Takes `{ text, fixes?, skips? }` and replaces the deck's slots, keeping the picked printing and tags of unchanged cards (CHG-1). Answers the deck and whether a swap list is needed. |
-| `GET /api/exports/decks/:id/deck-list` | The deck as `{ fileName, text, cardCount, lineCount }` (EXP-1); `.../deck-list.txt` sends the text as a file. |
+| `GET /api/exports/decks/:id/deck-list?tags=&maybe=` | The deck as `{ fileName, text, cardCount, runeCount, maybeCount, lineCount }` (EXP-1); `tags=0` leaves out the tags and `maybe=0` the maybe board (both default to `1`), and `cardCount` leaves out runes and the maybe board. `.../deck-list.txt` sends the text as a file. |
 | `GET /api/exports/locations/:id/deck-list` | A location and every location inside it, one line per printing and finish with its quantity, proxies left out (EXP-2); `.../deck-list.txt` sends the file. |
 
 ## Core operations
