@@ -389,6 +389,25 @@ describe('GET /api/locations/:id/stacks', () => {
     ]);
   });
 
+  it('answers the stacks out in decks from it and the locations inside it', async () => {
+    const { longBox, lands, basics, binder, deckBox, spareBox, stacks } = seed();
+    // Pulled from a location two levels down into another deck box.
+    const fromBasics = addStack('Wild Shaman-OGS-22', spareBox, 1, { cameFrom: basics });
+
+    const outIds = (body: LocationStacks) => body.outInDecks.map((row) => row.stackId);
+    const box = LocationStacks.parse(await (await get(longBox)).json());
+    expect(stackIds(box)).toEqual([stacks.discSfd]);
+    expect(outIds(box)).toEqual([stacks.discInDeck, fromBasics]);
+    expect(box.outInDecks[0]?.inDeck).toEqual({
+      deckId: expect.any(Number),
+      deckName: 'Lux Control',
+    });
+    expect(box.outInDecks[0]?.location.id).toBe(deckBox);
+
+    expect(outIds(LocationStacks.parse(await (await get(lands)).json()))).toEqual([fromBasics]);
+    expect(outIds(LocationStacks.parse(await (await get(binder)).json()))).toEqual([]);
+  });
+
   it('answers an empty location', async () => {
     const empty = addLocation('Empty box', 'box');
     const body = LocationStacks.parse(await (await get(empty, '1')).json());

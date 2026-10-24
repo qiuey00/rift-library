@@ -2,7 +2,7 @@
 
 A local web app that tracks where every physical Riftbound card is, and builds and takes apart decks from those locations. It runs only on Jeff's computer: one Node server on 127.0.0.1:4300 serves the screens and the API. It starts from a copy of the [library-of-gathering-v2](https://github.com/qiuey00/library-of-gathering-v2) code (D-2). The design is in `docs/technical-design.md`, and the product docs (PRD, UI Design, decisions, glossary) are in `docs/prd/`; see `docs/README.md`.
 
-ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no warnings until #16, and the rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
+ManaBox, Moxfield and Scryfall are gone (#3): the app starts with empty card tables and no outside card source until the Riftcodex sync (#7). The Riftbound schema is in (#5): cards, printings and card data status tables, the seven boards, runes in place of basic lands and the Legend in place of the commander. Deck checks answer no warnings until #16. Quick add refuses a finish the printing doesn't come in, and removing copies by hand (COL-13) is in (#10). The rest of the build is listed in the tracking issue, [#27](https://github.com/qiuey00/rift-library/issues/27).
 
 ## Docs
 

@@ -588,10 +588,14 @@ export const collectionValueSample: CollectionValue = {
   pricesUpdatedAt: '2026-10-18T21:04:31Z',
 };
 
-/** GET /api/locations/6/stacks: the Rares binder, which has no children. */
+/**
+ * GET /api/locations/6/stacks: the Rares binder, which has no children. Its Jinx Burn Legend is
+ * out in the Jinx Burn deck.
+ */
 export const locationStacksSample: LocationStacks = {
   location: raresBinderNode,
   rows: [s.wildDuelistFoil, s.daringBanner, s.sunkenInsight],
+  outInDecks: [s.jinxBurnFoil],
 };
 
 /** GET /api/locations/2/stacks?includeChildren=1: the Long box and its sections. */
@@ -604,6 +608,7 @@ export const locationStacksWithChildrenSample: LocationStacks = {
     s.grimCartographerJapanese,
     s.whisperingSurge,
   ],
+  outInDecks: [],
 };
 
 /** GET /api/cards/:oracleId/copies for Ember Signet: in two deck boxes and the Staples binder. */
