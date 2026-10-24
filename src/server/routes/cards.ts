@@ -9,8 +9,8 @@ import { validate } from '../validate';
 // `new Hono().get(...).post(...)`, so the typed client in src/client/api.ts sees it.
 export const cardsRoutes = new Hono()
   .get('/cards', validate('query', CardSearchQuery), (c) => {
-    const { q, type, domains, limit } = c.req.valid('query');
-    const results = searchCards(getDb(), { q, type, domains, limit });
+    const { deckable, ...query } = c.req.valid('query');
+    const results = searchCards(getDb(), { ...query, deckable: deckable === '1' || undefined });
     return c.json({ results });
   })
   .get('/cards/:id', validate('param', CardParams), (c) => {

@@ -106,25 +106,67 @@ describe('card search', () => {
   });
 
   it('reads % and _ as plain text', () => {
-    expect(names(searchCards(db, { q: '%', limit: 20 }))).toEqual(['100% Off']);
+    expect(names(searchCards(db, { q: '100%', limit: 20 }))).toEqual(['100% Off']);
+    expect(searchCards(db, { q: '1_0', limit: 20 })).toEqual([]);
     expect(searchCards(db, { q: '_', limit: 20 })).toEqual([]);
   });
 
+  it('matches the start of any word of the name, not the middle of one', () => {
+    expect(names(searchCards(db, { q: 'cannon', limit: 20 }))).toEqual(['Jinx, Loose Cannon']);
+    expect(names(searchCards(db, { q: 'LOOSE CAN', limit: 20 }))).toEqual(['Jinx, Loose Cannon']);
+    expect(searchCards(db, { q: 'annon', limit: 20 })).toEqual([]);
+    expect(searchCards(db, { q: 'storm', limit: 20 })).toEqual([]);
+  });
+
   it('keeps only cards of the type asked for', () => {
-    expect(names(searchCards(db, { q: 'n', type: 'legend', limit: 20 }))).toEqual([
-      'Jinx, Loose Cannon',
+    // Lux starts with "l", so it comes before Jinx, whose second word does.
+    expect(names(searchCards(db, { q: 'l', type: 'legend', limit: 20 }))).toEqual([
       'Lux, Lady of Luminosity',
+      'Jinx, Loose Cannon',
     ]);
   });
 
   it('keeps only cards whose domains fit inside the ones asked for', () => {
-    const found = (domains: ('fury' | 'calm' | 'mind' | 'body' | 'chaos' | 'order')[]) =>
-      names(searchCards(db, { q: 'e', domains, limit: 20 }));
+    const found = (domains: Domain[]) =>
+      ['ember', 'jinx', 'lux', 'terminate'].flatMap((q) =>
+        names(searchCards(db, { q, domains, limit: 20 })),
+      );
     // Ember Signet has no domain, so it always fits; Lux (Order and Mind) doesn't fit Fury
     // and Chaos.
     expect(found(['fury', 'chaos'])).toEqual(['Ember Signet', 'Jinx, Loose Cannon', 'Terminate']);
     expect(found([])).toEqual(['Ember Signet']);
     expect(found(['chaos', 'fury'])).toEqual(found(['fury', 'chaos']));
+  });
+
+  it('keeps only cards with the supertype, champion and deckability asked for', () => {
+    addCard(db, { name: 'Jinx, Rebel', type: 'unit', supertype: 'Champion', championTag: 'Jinx' });
+    addCard(db, { name: 'Jinx Rocket Token', type: 'unit', supertype: 'Token', deckable: false });
+    expect(names(searchCards(db, { q: 'jinx', supertype: 'champion', limit: 20 }))).toEqual([
+      'Jinx, Rebel',
+    ]);
+    expect(names(searchCards(db, { q: 'jinx', championTag: 'JINX', limit: 20 }))).toEqual([
+      'Jinx, Loose Cannon',
+      'Jinx, Rebel',
+    ]);
+    expect(names(searchCards(db, { q: 'jinx', deckable: true, limit: 20 }))).toEqual([
+      'Jinx, Loose Cannon',
+      'Jinx, Rebel',
+    ]);
+    expect(names(searchCards(db, { q: 'jinx', deckable: false, limit: 20 }))).toEqual([
+      'Jinx Rocket Token',
+    ]);
+  });
+
+  it('takes the deck building filters through the API', async () => {
+    addCard(db, { name: 'Jinx, Rebel', type: 'unit', supertype: 'Champion', championTag: 'Jinx' });
+    addCard(db, { name: 'Jinx Rocket Token', type: 'unit', supertype: 'Token', deckable: false });
+    setDb(db);
+    const res = await client.cards.$get({
+      query: { q: 'jinx', supertype: 'Champion', championTag: 'jinx', deckable: '1' },
+    });
+    expect(names(CardSearchResponse.parse(await res.json()).results)).toEqual(['Jinx, Rebel']);
+    const all = await client.cards.$get({ query: { q: 'jinx' } });
+    expect(CardSearchResponse.parse(await all.json()).results).toHaveLength(3);
   });
 
   it('answers through the API in the schema', async () => {
@@ -182,10 +224,34 @@ describe('copy counts and card details', () => {
     addStack(db, sfd, deckBox, 1, true); // a proxy in a deck
   });
 
-  it('finds a card by its public code, in any case', () => {
-    expect(names(searchCards(db, { q: 'ogn-053', limit: 20 }))).toEqual(['Ember Signet']);
+  it('finds a card by its public code, in any case, with or without the set size', () => {
+    expect(names(searchCards(db, { q: 'OGN-053', limit: 20 }))).toEqual(['Ember Signet']);
+    expect(names(searchCards(db, { q: 'ogn-053/298', limit: 20 }))).toEqual(['Ember Signet']);
     expect(names(searchCards(db, { q: 'SFD-012/', limit: 20 }))).toEqual(['Ember Signet']);
     expect(searchCards(db, { q: 'OGN-054', limit: 20 })).toEqual([]);
+  });
+
+  it('finds a public code typed without its leading zeros', () => {
+    expect(names(searchCards(db, { q: 'ogn-53', limit: 20 }))).toEqual(['Ember Signet']);
+    expect(names(searchCards(db, { q: 'sfd-12/298', limit: 20 }))).toEqual(['Ember Signet']);
+    expect(searchCards(db, { q: 'sfd-1', limit: 20 })).toEqual([]);
+  });
+
+  it('puts the exact public code before codes that only start with the text', () => {
+    const whelp = addCard(db, { name: 'Ash Whelp', type: 'unit' });
+    addPrinting(db, whelp, { setCode: 'OGN', collectorNumber: '5' });
+    // OGN-005 is the code typed; OGN-053 (Ember Signet) only starts with "OGN-05".
+    expect(names(searchCards(db, { q: 'ogn-05', limit: 20 }))).toEqual([
+      'Ash Whelp',
+      'Ember Signet',
+    ]);
+  });
+
+  it('reads a variant letter in a public code', () => {
+    const jinx = addCard(db, { name: 'Jinx, Demolitionist', type: 'unit' });
+    addPrinting(db, jinx, { setCode: 'OGN', collectorNumber: '202a', publicCode: 'OGN-202a/298' });
+    expect(names(searchCards(db, { q: 'OGN-202A', limit: 20 }))).toEqual(['Jinx, Demolitionist']);
+    expect(searchCards(db, { q: 'OGN-202b', limit: 20 })).toEqual([]);
   });
 
   it('counts owned and free across printings in search results', () => {
