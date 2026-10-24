@@ -202,27 +202,19 @@ function DeckTiles({ decks }: { decks: DeckSummary[] }) {
             data-testid="deck-tile"
             className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground transition-shadow hover:border-[#9fb3e6] hover:shadow-[0_6px_18px_rgba(23,26,33,0.10)]"
           >
-            <div className="flex h-[260px] items-center justify-center gap-2 bg-muted p-3">
-              {[deck.legend, deck.champion]
-                .flatMap((card) => (card ? [card] : []))
-                .map((card) =>
-                  card.imageUrl ? (
-                    <img
-                      key={card.id}
-                      src={card.imageUrl}
-                      alt={card.name}
-                      loading="lazy"
-                      className="h-full min-w-0 rounded-[4.75%/3.5%] object-contain"
-                    />
-                  ) : (
-                    <span
-                      key={card.id}
-                      className="flex aspect-[488/680] h-full items-center justify-center rounded-lg border border-border bg-card p-3 text-center font-serif text-lg"
-                    >
-                      {card.name}
-                    </span>
-                  ),
-                )}
+            <div className="flex h-[260px] items-center justify-center bg-muted p-3">
+              {deck.legend?.imageUrl ? (
+                <img
+                  src={deck.legend.imageUrl}
+                  alt={deck.legend.name}
+                  loading="lazy"
+                  className="h-full min-w-0 rounded-[4.75%/3.5%] object-contain"
+                />
+              ) : (
+                <span className="flex aspect-[488/680] h-full items-center justify-center rounded-lg border border-border bg-card p-3 text-center font-serif text-lg">
+                  {deck.legend?.name ?? 'No Legend yet'}
+                </span>
+              )}
             </div>
             <div className="flex flex-1 flex-col gap-3 px-[18px] pt-3.5 pb-4">
               <div className="flex flex-col gap-0.5">

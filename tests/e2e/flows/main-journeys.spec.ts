@@ -178,7 +178,10 @@ test('2. the Jinx Burn deck is added with statuses and paths', async ({ page }) 
   // Targon's Peak is in both binders.
   await expect(deckRow(page, "Targon's Peak")).toContainText('+1 more');
   await expect(deckRow(page, 'Wary Sweep')).toContainText('Missing');
-  await expect(deckRow(page, 'Calm Rune')).toContainText('Rune');
+  // Runes are counts beside the Legend, with no status.
+  await expect(
+    page.getByRole('group', { name: 'Runes' }).locator('li', { hasText: 'Calm Rune' }),
+  ).toContainText('8');
 });
 
 test('3. a second deck sharing Ember Signet is built in the app and assembled first', async ({
@@ -196,11 +199,11 @@ test('3. a second deck sharing Ember Signet is built in the app and assembled fi
   decks.leeSinBlindMonk = Number(new URL(page.url()).pathname.split('/').at(-1));
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Edit deck' });
-  await panel.getByLabel('Add card', { exact: true }).fill('ember signet');
-  await panel.getByRole('button', { name: 'Ember Signet' }).click();
-  await expect(panel.getByRole('status')).toHaveText('Added Ember Signet to the main board.');
-  await panel.getByRole('button', { name: 'Done editing' }).click();
+  const main = page.getByRole('region', { name: 'Main deck' });
+  await main.getByLabel('Add to main deck', { exact: true }).fill('ember signet');
+  await main.getByRole('button', { name: 'Ember Signet', exact: true }).click();
+  await expect(main.getByRole('status')).toHaveText('Added Ember Signet to the main deck.');
+  await page.getByRole('button', { name: 'Done editing' }).click();
   await expect(deckRow(page, 'Ember Signet')).toContainText('Free');
 
   await deckHeader(page).getByRole('link', { name: 'Assemble' }).click();
@@ -349,13 +352,13 @@ test('7. after re-assembling, changing two cards goes through the swap list', as
     await page.getByRole('menuitem', { name: 'Remove' }).click();
     await expect(deckRow(page, name)).toHaveCount(0);
   }
-  const panel = page.getByRole('region', { name: 'Edit deck' });
+  const main = page.getByRole('region', { name: 'Main deck' });
   for (const name of ['Solar Adept', 'Proud Trapper']) {
-    await panel.getByLabel('Add card', { exact: true }).fill(name.toLowerCase());
-    await panel.getByRole('button', { name }).click();
-    await expect(panel.getByRole('status')).toHaveText(`Added ${name} to the main board.`);
+    await main.getByLabel('Add to main deck', { exact: true }).fill(name.toLowerCase());
+    await main.getByRole('button', { name, exact: true }).click();
+    await expect(main.getByRole('status')).toHaveText(`Added ${name} to the main deck.`);
   }
-  await panel.getByRole('button', { name: 'Done editing' }).click();
+  await page.getByRole('button', { name: 'Done editing' }).click();
   await page
     .getByRole('status', { name: 'Swap list' })
     .getByRole('link', { name: 'Open swap list' })

@@ -40,9 +40,11 @@ test('a tile per deck, in the server order, with pills and bars', async ({ page 
   await expect(jinxBurn.getByRole('img', { name: 'Fury' })).toBeVisible();
   await expect(jinxBurn.getByRole('img', { name: 'Chaos' })).toBeVisible();
 
-  // A deck with a Chosen Champion shows it beside the Legend.
-  const partners = tiles(page).last();
-  await expect(partners.locator('img')).toHaveCount(2);
+  // The tile shows only the Legend's image; the Chosen Champion is named under the deck name.
+  const leeSin = tiles(page).last();
+  await expect(leeSin.locator('img')).toHaveCount(1);
+  await expect(leeSin.getByRole('img', { name: 'Lee Sin, Blind Monk' })).toBeVisible();
+  await expect(leeSin).toContainText('Lee Sin, Blind Monk and Lee Sin, Centered');
 
   await jinxBurn.click();
   await expect(page).toHaveURL(`/decks/${deckListSample.decks[0].id}`);

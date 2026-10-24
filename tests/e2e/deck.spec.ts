@@ -1,8 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 import type { NewBuyItems } from '../../src/shared/api/buy-list';
-import type { DeckSummary } from '../../src/shared/api/decks';
+import type { DeckSummary, DeckView, SlotRow } from '../../src/shared/api/decks';
 import { buyListSample } from '../../src/shared/api/samples/buy-list';
 import { emberSignetDetails, emberSignetPrintings } from '../../src/shared/api/samples/cards';
+import { cards } from '../../src/shared/api/samples/deck-cards';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
 import { deckViewSample, jinxBurn, slotSample } from '../../src/shared/api/samples/decks';
 
@@ -21,10 +22,32 @@ async function mockDeck(page: Page, deck: Partial<DeckSummary> = {}) {
 }
 
 const row = (page: Page, slotId: number) => page.locator(`li[data-slot-id="${slotId}"]`);
-const group = (page: Page, name: string, panel = 'Decklist') =>
+const group = (page: Page, name: string, panel = 'Main deck') =>
   page.getByRole('region', { name: panel }).getByRole('region', { name, exact: true });
-const groupNames = (page: Page) =>
-  page.getByRole('region', { name: 'Decklist' }).getByRole('heading', { level: 2 });
+const groupNames = (page: Page, panel = 'Main deck') =>
+  page.getByRole('region', { name: panel, exact: true }).getByRole('heading', { level: 3 });
+
+/**
+ * Jinx Burn with a Chosen Champion and a sideboard: Jinx, Rebel as the champion, and Swift Ox
+ * (119) and Dusk Lash (121) moved to the sideboard.
+ */
+function fullDeck(): DeckView {
+  const view = structuredClone(deckViewSample);
+  const champion: SlotRow = {
+    ...structuredClone(slotSample),
+    id: 190,
+    card: cards.jinxRebel,
+    board: 'champion',
+    status: 'in_box',
+    inBoxQuantity: 1,
+    tags: [],
+  };
+  view.slots.splice(1, 0, champion);
+  for (const slot of view.slots) if (slot.id === 119 || slot.id === 121) slot.board = 'sideboard';
+  view.deck = { ...view.deck, champion: cards.jinxRebel };
+  view.boards = { ...view.boards, champion: 1, main: 72, sideboard: 2 };
+  return view;
+}
 
 test.beforeEach(async ({ page }) => {
   await mockDeck(page);
@@ -137,9 +160,9 @@ test('rows show only the cards until Show status is turned on', async ({ page })
   const toggle = page.getByRole('button', { name: 'Show status' });
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await expect(row(page, 119)).toContainText('Swift Ox');
-  await expect(page.getByRole('region', { name: 'Decklist' }).locator('[data-status]')).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('region', { name: 'Main deck' }).locator('[data-status]'),
+  ).toHaveCount(0);
   await expect(row(page, 160)).not.toContainText('Proxy');
 
   await toggle.click();
@@ -173,12 +196,13 @@ test('rows show each status, with location paths and the other decks', async ({ 
   // Missing. Rows carry no Add to buy list link; it is on the right-click menu.
   await expect(row(page, 119)).toContainText('Missing');
   await expect(
-    page.getByRole('region', { name: 'Decklist' }).getByText('Add to buy list'),
+    page.getByRole('region', { name: 'Main deck' }).getByText('Add to buy list'),
   ).toHaveCount(0);
 
-  // Runes show a grey count; maybe board rows have no status.
-  await expect(row(page, 125)).toContainText('8Calm Rune');
-  await expect(row(page, 125)).toContainText('Rune');
+  // Battlefields show their status too; runes have none, nor do maybe board rows.
+  await expect(row(page, 117)).toContainText('In deck box');
+  await expect(row(page, 125)).toContainText('Calm Rune');
+  await expect(row(page, 125).locator('[data-status]')).toHaveCount(0);
   await expect(row(page, 185).locator('[data-status]')).toHaveCount(0);
 
   // The name opens the card page.
@@ -186,28 +210,102 @@ test('rows show each status, with location paths and the other decks', async ({ 
   await expect(page).toHaveURL(/\/cards\/\d+$/);
 });
 
-test('Group by Type puts cards in deck list order, with the boards after the main deck', async ({
+test('every board renders: Legend, champion and runes, battlefields, main deck, sideboard, maybe', async ({
   page,
 }) => {
+  await page.route('**/api/decks/1', (route) => route.fulfill({ json: fullDeck() }));
+  await page.goto('/decks/1');
+
+  const leaders = page.getByRole('region', { name: 'Legend, Chosen Champion and runes' });
+  await expect(leaders.getByRole('img', { name: 'Jinx, Loose Cannon' })).toBeVisible();
+  await expect(leaders.getByRole('img', { name: 'Jinx, Rebel' })).toBeVisible();
+  // Side by side.
+  const legendBox = await row(page, 101).boundingBox();
+  const championBox = await row(page, 190).boundingBox();
+  expect(championBox?.x).toBeGreaterThan((legendBox?.x ?? 0) + (legendBox?.width ?? 0));
+  expect(Math.abs((championBox?.y ?? 0) - (legendBox?.y ?? 0))).toBeLessThan(2);
+
+  const runes = leaders.getByRole('group', { name: 'Runes' });
+  await expect(runes).toContainText('17 of 12');
+  await expect(runes.getByRole('listitem')).toHaveText([
+    /^1.*Body Rune$/,
+    /^8.*Calm Rune$/,
+    /^5.*Chaos Rune$/,
+    /^3.*Fury Rune$/,
+  ]);
+
+  const battlefields = page.getByRole('region', { name: 'Battlefields' });
+  await expect(battlefields.getByRole('heading', { level: 2 })).toHaveText('Battlefields3 of 3');
+  await expect(battlefields.locator('li[data-slot-id]')).toHaveCount(3);
+  // Landscape tiles in one row.
+  const tile = await row(page, 117).locator('a').boundingBox();
+  expect(tile?.width).toBeGreaterThan(tile?.height ?? Infinity);
+
+  await expect(
+    page.getByRole('region', { name: 'Main deck' }).getByRole('heading', { level: 2 }),
+  ).toHaveText('Main deck72 cards');
+  const sideboard = page.getByRole('region', { name: 'Sideboard', exact: true });
+  await expect(sideboard.getByRole('heading', { level: 2 })).toHaveText('Sideboard2 cards');
+  await expect(sideboard.locator('li a')).toHaveText(['Swift Ox', 'Dusk Lash']);
+  await expect(page.getByRole('region', { name: 'Maybe board', exact: true })).toBeVisible();
+
+  // Panels in order, top to bottom.
+  const tops = await Promise.all(
+    [
+      'Legend, Chosen Champion and runes',
+      'Battlefields',
+      'Main deck',
+      'Sideboard',
+      'Maybe board',
+    ].map(
+      async (name) => (await page.getByRole('region', { name, exact: true }).boundingBox())?.y ?? 0,
+    ),
+  );
+  expect(tops).toEqual([...tops].sort((a, b) => a - b));
+});
+
+test('a deck with no champion says so, and has no sideboard panel', async ({ page }) => {
+  await page.goto('/decks/1');
+  const leaders = page.getByRole('region', { name: 'Legend, Chosen Champion and runes' });
+  await expect(leaders).toContainText('No Chosen Champion yet');
+  await expect(page.getByRole('region', { name: 'Sideboard', exact: true })).toHaveCount(0);
+});
+
+test('Group by Type puts the main deck in type columns', async ({ page }) => {
   await page.goto('/decks/1');
   await expect(groupNames(page)).toHaveText([
-    'Legend1',
     /^Units\d+$/,
     /^Spells\d+$/,
     /^Gear\d+$/,
     /^Other\d+$/,
-    'Battlefields3',
-    'Runes17',
   ]);
-
-  const runes = group(page, 'Runes');
-  const names = await runes.locator('li a').allTextContents();
-  expect(names).toContain('Calm Rune');
-  expect(names).toContain('Body Rune');
+  // The Legend, battlefields and runes have panels of their own.
+  const main = page.getByRole('region', { name: 'Main deck' });
+  await expect(main).not.toContainText('Jinx, Loose Cannon');
+  await expect(main).not.toContainText('Grim Steppe');
+  await expect(main).not.toContainText('Calm Rune');
+  const names = await group(page, 'Units').locator('li a').allTextContents();
   expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-  // The Legend goes in Legend, never with the main deck's cards.
-  await expect(group(page, 'Legend')).toContainText('Jinx, Loose Cannon');
-  await expect(group(page, 'Gear')).not.toContainText('Jinx, Loose Cannon');
+});
+
+test('signature cards are marked', async ({ page }) => {
+  const view = structuredClone(deckViewSample);
+  const sunDisc = view.slots.find((slot) => slot.id === 114);
+  if (sunDisc) sunDisc.card.supertype = 'signature';
+  await page.route('**/api/decks/1', (route) => route.fulfill({ json: view }));
+  await page.goto('/decks/1');
+  await expect(row(page, 114)).toContainText('Signature');
+  await expect(row(page, 104)).not.toContainText('Signature');
+  await page.getByRole('button', { name: 'Images' }).click();
+  await expect(row(page, 114)).toContainText('Signature');
+});
+
+test('Group by Domain puts one domain before two, and colorless cards last', async ({ page }) => {
+  await page.goto('/decks/1');
+  await page.getByRole('button', { name: 'Domain' }).click();
+  const names = await groupNames(page).allTextContents();
+  expect(names.length).toBeGreaterThan(1);
+  expect(names.at(-1)).toMatch(/^Colorless\d+$/);
 });
 
 test('Group by Where it is, and Sort by energy', async ({ page }) => {
@@ -215,11 +313,10 @@ test('Group by Where it is, and Sort by energy', async ({ page }) => {
   await page.getByRole('button', { name: 'Show status' }).click();
   await page.getByRole('button', { name: 'Where it is' }).click();
   await expect(groupNames(page)).toHaveText([
-    'In deck box58',
+    'In deck box54',
     'Free in storage13',
     'Only in other decks4',
     'Missing3',
-    'Runes17',
   ]);
 
   // Free cards stay in location order.
@@ -240,11 +337,12 @@ test('Group by Where it is, and Sort by energy', async ({ page }) => {
   expect(missing).toEqual(['Swift Ox', 'Twilight Flare', 'Nasus, Trickster']);
 });
 
-test('the maybe board is its own panel below the decklist, grouped by type', async ({ page }) => {
+test('the maybe board is its own panel below the main deck, grouped by type', async ({ page }) => {
   await page.goto('/decks/1');
-  const decklist = page.getByRole('region', { name: 'Decklist' });
+  const decklist = page.getByRole('region', { name: 'Main deck' });
   const maybe = page.getByRole('region', { name: 'Maybe board', exact: true });
   await expect(maybe.getByRole('heading', { level: 2 })).toHaveText('Maybe board5 cards');
+  await expect(maybe).toContainText('Not counted, picked or checked with the deck.');
   await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Units5']);
   await expect(maybe.locator('li a')).toHaveText([
     'Dawn Harrier',
@@ -273,11 +371,12 @@ test('a deck with no maybe cards has no maybe board panel', async ({ page }) => 
       json: {
         ...deckViewSample,
         slots: deckViewSample.slots.filter((slot) => slot.board !== 'maybe'),
+        boards: { ...deckViewSample.boards, maybe: 0 },
       },
     }),
   );
   await page.goto('/decks/1');
-  await expect(page.getByRole('region', { name: 'Decklist' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Main deck' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Maybe board', exact: true })).toHaveCount(0);
 });
 
@@ -316,26 +415,78 @@ async function captureSlotChanges(page: Page, slotId: number) {
   return sent;
 }
 
-test('right-click moves a card between the main and maybe boards, never the Legend', async ({
+test('right-click moves a card between the main deck, sideboard and maybe board', async ({
   page,
 }) => {
-  const toMaybe = await captureSlotChanges(page, 114);
-  const toMain = await captureSlotChanges(page, 187);
+  const fromMain = await captureSlotChanges(page, 114);
+  const fromMaybe = await captureSlotChanges(page, 187);
+  const fromSideboard = await captureSlotChanges(page, 119);
+  await page.route('**/api/decks/1', (route) => route.fulfill({ json: fullDeck() }));
   await page.goto('/decks/1');
 
   await row(page, 114).click({ button: 'right' });
-  await expect(page.getByRole('menuitem', { name: 'Move to main board' })).toHaveCount(0);
-  await page.getByRole('menuitem', { name: 'Move to maybe board' }).click();
-  await expect.poll(() => toMaybe).toEqual([{ board: 'maybe' }]);
+  await expect(page.getByRole('menuitem', { name: /^Move to/ })).toHaveText([
+    'Move to sideboard',
+    'Move to maybe board',
+  ]);
+  await page.getByRole('menuitem', { name: 'Move to sideboard' }).click();
+  await expect.poll(() => fromMain).toEqual([{ board: 'sideboard' }]);
 
   await row(page, 187).click({ button: 'right' });
-  await expect(page.getByRole('menuitem', { name: 'Move to maybe board' })).toHaveCount(0);
-  await page.getByRole('menuitem', { name: 'Move to main board' }).click();
-  await expect.poll(() => toMain).toEqual([{ board: 'main' }]);
+  await expect(page.getByRole('menuitem', { name: /^Move to/ })).toHaveText([
+    'Move to main deck',
+    'Move to sideboard',
+  ]);
+  await page.getByRole('menuitem', { name: 'Move to main deck' }).click();
+  await expect.poll(() => fromMaybe).toEqual([{ board: 'main' }]);
 
-  await row(page, 101).click({ button: 'right' });
-  await expect(page.getByRole('menuitem', { name: 'Change printing…' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Move to/ })).toHaveCount(0);
+  await row(page, 119).evaluate((li) => li.scrollIntoView({ block: 'center' }));
+  await row(page, 119).click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Move to maybe board' }).click();
+  await expect.poll(() => fromSideboard).toEqual([{ board: 'maybe' }]);
+});
+
+test('Legend, champion and battlefield cards have no move', async ({ page }) => {
+  await page.route('**/api/decks/1', (route) => route.fulfill({ json: fullDeck() }));
+  await page.goto('/decks/1');
+  for (const slotId of [101, 190, 117]) {
+    await row(page, slotId).click({ button: 'right' });
+    await expect(page.getByRole('menuitem', { name: 'Change printing…' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Edit tags…' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Move to/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+  }
+});
+
+test('a board move from the keyboard', async ({ page }) => {
+  const changes = await captureSlotChanges(page, 114);
+  await page.goto('/decks/1');
+  await row(page, 114).getByRole('link', { name: 'Sun Disc' }).focus();
+  await page.keyboard.press('ContextMenu');
+  await page.getByRole('menuitem', { name: 'Move to maybe board' }).press('Enter');
+  await expect.poll(() => changes).toEqual([{ board: 'maybe' }]);
+});
+
+test('rune plus and minus set the rune count on the server', async ({ page }) => {
+  const sent: unknown[] = [];
+  await page.route('**/api/decks/1/runes', (route) => {
+    sent.push(route.request().postDataJSON());
+    const view = structuredClone(deckViewSample);
+    const fury = view.slots.find((slot) => slot.id === 126);
+    if (fury) fury.quantity = 4;
+    return route.fulfill({ json: view });
+  });
+  await page.goto('/decks/1');
+  const runes = page.getByRole('group', { name: 'Runes' });
+  await runes.getByRole('button', { name: 'One more Fury Rune' }).click();
+  await expect(row(page, 126)).toContainText('4');
+  await runes.getByRole('button', { name: 'One fewer Calm Rune' }).click();
+  await expect
+    .poll(() => sent)
+    .toEqual([
+      { runes: [{ cardId: cards.furyRune.id, quantity: 4 }] },
+      { runes: [{ cardId: cards.calmRune.id, quantity: 7 }] },
+    ]);
 });
 
 test('Change printing lists the printings and saves the one picked, with foil', async ({
@@ -388,7 +539,7 @@ test('Change printing says a copy in the deck box stays', async ({ page }) => {
   );
 });
 
-test('the card menu opens from the keyboard', async ({ page }) => {
+test('the card menu opens from the keyboard with Shift+F10', async ({ page }) => {
   await page.goto('/decks/1');
   await row(page, 114).getByRole('link', { name: 'Sun Disc' }).focus();
   await page.keyboard.press('Shift+F10');
