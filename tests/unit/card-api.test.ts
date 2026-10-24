@@ -36,14 +36,18 @@ describe('card samples', () => {
     ]) {
       CardSummary.parse(card);
     }
-    for (const printing of [...s.emberSignetPrintings, ...s.gildedWhelpPrintings]) {
+    for (const printing of [
+      ...s.emberSignetPrintings,
+      ...s.gildedWhelpPrintings,
+      ...s.emberSanctumPrintings,
+    ]) {
       PrintingSummary.parse(printing);
     }
     CardSearchResult.parse(s.emberSignetResult);
-    for (const search of [s.emberSearch, s.legendSearch, s.emptySearch]) {
+    for (const search of [s.emberSearch, s.publicCodeSearch, s.legendSearch, s.emptySearch]) {
       CardSearchResponse.parse(search);
     }
-    for (const details of [s.emberSignetDetails, s.gildedWhelpDetails]) {
+    for (const details of [s.emberSignetDetails, s.gildedWhelpDetails, s.emberSanctumDetails]) {
       const parsed = CardDetailsResponse.parse(details);
       const { owned, inDecks, free } = parsed.counts;
       expect(free).toBe(owned - inDecks);

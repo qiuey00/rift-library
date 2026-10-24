@@ -3,7 +3,7 @@ import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { CardSearchResult } from '../../shared/api/cards';
 import { useCardDataReady } from '../lib/card-data';
-import { typeLine } from '../lib/card-text';
+import { typedPublicCode, typeLine } from '../lib/card-text';
 import { useCardSearch } from '../lib/cards';
 import { cn } from '../lib/utils';
 import { DomainIcons } from './DomainIcon';
@@ -59,6 +59,7 @@ export function TopBarSearch() {
   const typed = text.trim() !== '';
   const showList = open && typed;
   const settled = query === text && !search.isPlaceholderData && !search.isFetching;
+  const code = typedPublicCode(query);
 
   // A new list starts at its best match.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset whenever the results change
@@ -69,7 +70,7 @@ export function TopBarSearch() {
     setText('');
     setQuery('');
     inputRef.current?.blur();
-    navigate(`/cards/${card.id}`);
+    navigate(code ? `/cards/${card.id}?printing=${encodeURIComponent(code)}` : `/cards/${card.id}`);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -181,7 +182,10 @@ export function TopBarSearch() {
                       <span className="truncate font-semibold">{card.name}</span>
                       <DomainIcons domains={card.domains} className="text-xs" />
                     </span>
-                    <span className="truncate text-muted-foreground text-xs">{typeLine(card)}</span>
+                    <span className="truncate text-muted-foreground text-xs">
+                      {code && <span className="font-semibold text-foreground">{code} · </span>}
+                      {typeLine(card)}
+                    </span>
                   </span>
                   <span className="shrink-0 text-right text-xs tabular-nums">
                     <span className="block font-semibold">{card.owned} owned</span>
