@@ -34,9 +34,10 @@ function addCard(
   name: string,
   type: CardType,
   domains: Domain[],
-  prints: { set: string; number: string }[],
+  prints: { set: string; number: string; rarity?: string }[],
+  supertype?: string,
 ) {
-  insertCard(db, { id, name, type, domains });
+  insertCard(db, { id, name, type, domains, supertype });
   for (const print of prints) {
     insertPrinting(db, {
       riftcodexId: `${name}-${print.set}-${print.number}`,
@@ -44,7 +45,7 @@ function addCard(
       setCode: print.set,
       setName: `Set ${print.set}`,
       collectorNumber: print.number,
-      rarity: 'rare',
+      rarity: print.rarity ?? 'rare',
     });
   }
 }
@@ -91,18 +92,25 @@ function seed() {
       { set: 'OGN', number: '210' },
     ],
   );
-  addCard(2, 'Wild Shaman', 'unit', ['calm'], [{ set: 'OGS', number: '22' }]);
+  addCard(2, 'Wild Shaman', 'unit', ['calm'], [{ set: 'OGS', number: '22' }], 'champion');
   addCard(
     3,
     'Lux, Lady of Luminosity',
     'legend',
     ['order', 'mind'],
     [
-      { set: 'OGN', number: '10' },
+      { set: 'OGN', number: '10', rarity: 'epic' },
       { set: 'OGN', number: '9' },
     ],
   );
-  addCard(4, 'Ember Rebuke', 'spell', ['mind'], [{ set: 'UNL', number: '115' }]);
+  addCard(
+    4,
+    'Ember Rebuke',
+    'spell',
+    ['mind'],
+    [{ set: 'UNL', number: '115', rarity: 'common' }],
+    'signature',
+  );
 
   const longBox = addLocation('Long box', 'box', undefined, '#3b6fd8');
   const lands = addLocation('Lands', 'box', longBox);
@@ -232,16 +240,45 @@ describe('GET /api/stacks', () => {
     expect(stackIds(await search('domain:fury'))).toEqual([]);
   });
 
+  it('matches a two-domain card on either of its domains', async () => {
+    const { stacks } = seed();
+    expect(stackIds(await search('domain:order'))).toEqual([stacks.lux9, stacks.lux10]);
+    expect(stackIds(await search('domain:mind lux'))).toEqual([stacks.lux9, stacks.lux10]);
+    expect(stackIds(await search('domain:order domain:mind'))).toEqual([stacks.lux9, stacks.lux10]);
+    expect(stackIds(await search('domain:order domain:calm'))).toEqual([]);
+  });
+
   it('filters by card type', async () => {
     const { stacks } = seed();
-    expect(stackIds(await search('t:unit'))).toEqual([stacks.shaman, stacks.shamanFoil]);
+    expect(stackIds(await search('type:unit'))).toEqual([stacks.shaman, stacks.shamanFoil]);
+    expect(stackIds(await search('type:LEGEND'))).toEqual([stacks.lux9, stacks.lux10]);
     expect(stackIds(await search('t:legend'))).toEqual([stacks.lux9, stacks.lux10]);
+    expect(stackIds(await search('type:battlefield'))).toEqual([]);
+  });
+
+  it('filters by supertype', async () => {
+    const { stacks } = seed();
+    expect(stackIds(await search('supertype:champion'))).toEqual([
+      stacks.shaman,
+      stacks.shamanFoil,
+    ]);
+    expect(stackIds(await search('supertype:Signature'))).toEqual([stacks.rebuke, stacks.toSort]);
+    expect(stackIds(await search('supertype:token'))).toEqual([]);
+  });
+
+  it("filters by the printing's rarity", async () => {
+    const { stacks } = seed();
+    expect(stackIds(await search('rarity:epic'))).toEqual([stacks.lux10]);
+    expect(stackIds(await search('rarity:COMMON'))).toEqual([stacks.rebuke, stacks.toSort]);
+    expect(stackIds(await search('rarity:rare'))).toHaveLength(6);
+    expect(stackIds(await search('rarity:showcase'))).toEqual([]);
   });
 
   it('filters by finish', async () => {
     const { stacks } = seed();
+    expect(stackIds(await search('finish:foil'))).toEqual([stacks.lux10, stacks.shamanFoil]);
     expect(stackIds(await search('f:foil'))).toEqual([stacks.lux10, stacks.shamanFoil]);
-    expect(stackIds(await search('f:normal'))).toHaveLength(7);
+    expect(stackIds(await search('finish:normal'))).toHaveLength(7);
   });
 
   it('filters proxies and real copies', async () => {
@@ -317,7 +354,7 @@ describe('GET /api/stacks', () => {
     expect(res.status).toBe(400);
     expect(ErrorBody.parse(await res.json()).error).toEqual({
       code: 'invalid_query',
-      message: 'f: takes normal or foil.',
+      message: 'finish: takes normal or foil.',
     });
   });
 

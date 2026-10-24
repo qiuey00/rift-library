@@ -558,10 +558,19 @@ export const stacksNextPageSample: StacksPage = {
   nextCursor: null,
 };
 
-/** GET /api/stacks?q=t:unit f:foil */
+/** GET /api/stacks?q=type:unit finish:foil */
 export const stacksSearchSample: StacksPage = {
   rows: [s.nasusProtectorFoil, s.wildDuelistFoil],
   total: totalOf([s.nasusProtectorFoil, s.wildDuelistFoil]),
+  nextCursor: null,
+};
+
+const chaosRows = allRows.filter((row) => row.card.domains.includes('chaos'));
+
+/** GET /api/stacks?q=domain:chaos: every Chaos card, two-domain cards included. */
+export const stacksDomainSample: StacksPage = {
+  rows: chaosRows,
+  total: totalOf(chaosRows),
   nextCursor: null,
 };
 
