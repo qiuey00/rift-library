@@ -161,7 +161,8 @@ test('Export opens the deck list export dialog for the deck', async ({ page }) =
   // allTextContents doesn't wait, so wait for the header's actions first.
   await expect(header.getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   const names = await buttons.allTextContents();
-  expect(names.indexOf('Export')).toBe(names.indexOf('Take apart') + 1);
+  expect(names.indexOf('Update from deck list')).toBe(names.indexOf('Take apart') + 1);
+  expect(names.indexOf('Export')).toBe(names.indexOf('Update from deck list') + 1);
 
   await header.getByRole('button', { name: 'Export', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Jinx Burn');

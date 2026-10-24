@@ -4,6 +4,7 @@ import { BuyList } from './routes/BuyList';
 import { Card } from './routes/Card';
 import { Collection } from './routes/Collection';
 import { Deck } from './routes/Deck';
+import { DeckListImport } from './routes/DeckListImport';
 import { DecksHome } from './routes/DecksHome';
 import { History } from './routes/History';
 import { Locations } from './routes/Locations';
@@ -30,10 +31,12 @@ export const routes: RouteObject[] = [
       { path: 'settings', element: <Settings /> },
       { path: 'cards/:id', element: <Card /> },
       { path: 'decks/new', element: <NewDeck /> },
+      { path: 'decks/import', element: <DeckListImport /> },
       { path: 'decks/:id', element: <Deck /> },
       { path: 'decks/:id/assemble', element: <PickList /> },
       { path: 'decks/:id/take-apart', element: <PutAway /> },
       { path: 'decks/:id/swap', element: <SwapList /> },
+      { path: 'decks/:id/deck-list', element: <DeckListImport /> },
       { path: '*', element: <NotFound /> },
     ],
   },
