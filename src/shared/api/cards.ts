@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CardSummary, CardType, Domain, IdParam, PrintingSummary } from './common';
+import { Board, CardSummary, CardType, Domain, IdParam, PrintingSummary } from './common';
 
 // Card search (the search box on every screen) and the card page.
 //
@@ -36,6 +36,13 @@ export const CardSearchQuery = z.object({
   championTag: z.string().trim().min(1).optional(),
   /** '1' keeps only cards a deck can hold, leaving out tokens. */
   deckable: z.literal('1').optional(),
+  /**
+   * Keeps only cards that can go on this board of a deck: 'legend' Champion Legends,
+   * 'champion' champion units, 'battlefield' battlefields, 'rune' runes, and 'main',
+   * 'sideboard' and 'maybe' deckable cards other than legends, battlefields and runes.
+   * Add `domains` and `championTag` from the deck's Legend to narrow it to that Legend.
+   */
+  board: Board.optional(),
   /** The most results to answer with. */
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
