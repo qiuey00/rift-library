@@ -13,12 +13,16 @@ const Quantity = z.number().int().positive();
  * - `legend`: exactly one Legend.
  * - `champion`: one Chosen Champion, a champion unit with the Legend's champion tag.
  * - `main_count`: at least 40 main deck cards, the Chosen Champion included.
- * - `copies`: at most 3 copies of a card by name, across every printing and board but maybe.
- * - `signature`: at most 3 signature cards, all with the Legend's champion tag.
- * - `domains`: every main deck, sideboard and rune card within the Legend's domains.
+ * - `copies`: at most 3 copies of a card by name, across every printing, on the champion, main
+ *   and sideboard boards together.
+ * - `signature`: at most 3 signature cards in the main deck, and every signature card (sideboard
+ *   too) with the Legend's champion tag.
+ * - `domains`: every champion, main deck, battlefield, rune and sideboard card within the
+ *   Legend's domains.
  * - `runes`: 12 runes.
  * - `battlefields`: 3 battlefields, with different names.
- * - `sideboard`: the sideboard's size, when there is one.
+ * - `sideboard`: at most 10 sideboard cards (D-42).
+ * - `deckable`: no tokens or other cards a deck can't hold, on any board but maybe.
  */
 export const DeckCheckCode = z.enum([
   'legend',
@@ -30,6 +34,7 @@ export const DeckCheckCode = z.enum([
   'runes',
   'battlefields',
   'sideboard',
+  'deckable',
 ]);
 export type DeckCheckCode = z.infer<typeof DeckCheckCode>;
 

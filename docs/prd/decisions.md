@@ -56,6 +56,7 @@ To change a decision, add a new entry and record the old one under Changed decis
 | D-27 | A copy that went from storage to deck B and then to deck A returns to its original storage spot, not to deck B. | Same as Library of Gathering. | LoG D-31 |
 | D-28 | Copies with no known came-from spot go to the "to sort" inbox when a deck is taken apart. | Same as Library of Gathering. | LoG D-32 |
 | D-29 | Sideboard cards are pulled into the deck box with the rest of the deck and count toward demand. | They travel with the deck. | Default |
+| D-42 | The sideboard check warns when a sideboard has more than 10 cards. Copies of a card by name count across the Chosen Champion, main deck and sideboard together, and every sideboard card must fit the Legend's domains and signature tag like a main deck card. | Riot's Tournament Rules (last updated 2026-10-09), 601.1.c: "A player's sideboard can include 10 or fewer cards", limits on named copies "apply to the combination of main deck and sideboard", and a sideboard "can consist only of valid Main Deck cards". The January 2026 update had said 8. | Tournament Rules, checked 2026-10-24 |
 
 ## Buy list, history and screens
 
