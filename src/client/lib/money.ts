@@ -8,7 +8,7 @@ export function formatCents(cents: number): string {
 const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 /**
- * Where the prices come from and how fresh they are, such as "TCGplayer prices, updated
+ * Where the prices come from and how fresh they are, such as "TCGplayer prices via TCGCSV, updated
  * today". Prices are TCGplayer's US dollar market prices.
  */
 export function pricesUpdated(at: string | null, now = new Date()): string {
@@ -16,7 +16,7 @@ export function pricesUpdated(at: string | null, now = new Date()): string {
   const when = new Date(at);
   const daysAgo = Math.round((startOfDay(now) - startOfDay(when)) / 86_400_000);
   const words = daysAgo <= 0 ? 'today' : daysAgo === 1 ? 'yesterday' : day.format(when);
-  return `TCGplayer prices, updated ${words}`;
+  return `TCGplayer prices via TCGCSV, updated ${words}`;
 }
 
 function startOfDay(date: Date): number {

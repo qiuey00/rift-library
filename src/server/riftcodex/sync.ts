@@ -2,6 +2,7 @@ import type { CardDataStatus } from '../../shared/api/card-data';
 import type { Db } from '../db/database';
 import { cardDataStatus } from '../db/schema';
 import { AppError } from '../errors';
+import { type PriceReport, updatePrices } from '../tcgcsv/prices';
 import { checkRecords, type FetchOptions, fetchAllPages, fetchSetNames } from './fetch';
 import { groupCards } from './records';
 import { writeCardData } from './write';
@@ -10,6 +11,8 @@ import { writeCardData } from './write';
 // and again once the last sync is 24 hours old while the server runs, the app reads every
 // card and set from Riftcodex and writes them in one transaction. Refresh card data forces
 // one. A failed sync keeps the data loaded before and is tried again at the next check.
+// After each card sync, prices are updated from TCGCSV; prices that are 24 hours old (or
+// never loaded, or whose last update failed) are updated on their own at the next check.
 
 /** How often the server looks at the age of its card data. */
 export const CHECK_INTERVAL_MS = 60 * 60 * 1000;
@@ -36,6 +39,17 @@ export function needsSync(
 ) {
   if (cardCount === 0 || !cardsSyncedAt) return true;
   return now - Date.parse(cardsSyncedAt) >= SYNC_AFTER_MS;
+}
+
+/** Whether a check should update prices: cards loaded, and prices never updated or 24 hours old. */
+export function needsPrices(
+  cardCount: number,
+  pricesUpdatedAt: string | null | undefined,
+  now = Date.now(),
+) {
+  if (cardCount === 0) return false;
+  if (!pricesUpdatedAt) return true;
+  return now - Date.parse(pricesUpdatedAt) >= SYNC_AFTER_MS;
 }
 
 /** Reads every card and set from Riftcodex, groups them and writes them. */
@@ -99,12 +113,15 @@ export class CardDataSync {
       : { state: 'idle', progress: 0, ...saved, error: null };
   }
 
-  /** Syncs when there are no cards yet or the last sync is 24 hours old; else does nothing. */
+  /**
+   * Syncs cards (then prices) when there are no cards yet or the last sync is 24 hours old;
+   * else updates prices alone when they are 24 hours old; else does nothing.
+   */
   async check() {
     if (!this.enabled || this.busy) return;
     const row = this.db.select().from(cardDataStatus).get();
-    if (!needsSync(row?.cardCount ?? 0, row?.cardsSyncedAt)) return;
-    await this.run();
+    if (needsSync(row?.cardCount ?? 0, row?.cardsSyncedAt)) await this.run();
+    else if (needsPrices(row?.cardCount ?? 0, row?.pricesUpdatedAt)) await this.run('prices');
   }
 
   /** Refresh card data: syncs whatever the age, in the background. */
@@ -132,10 +149,11 @@ export class CardDataSync {
     return this.task;
   }
 
-  private run() {
+  private run(what: 'cards' | 'prices' = 'cards') {
     this.busy = true;
-    this.running = { state: 'downloading', progress: 0 };
-    this.task = this.sync().finally(() => {
+    if (what === 'cards') this.running = { state: 'downloading', progress: 0 };
+    const job = what === 'cards' ? this.sync() : this.updatePrices();
+    this.task = job.finally(() => {
       this.busy = false;
       this.running = undefined;
     });
@@ -162,6 +180,20 @@ export class CardDataSync {
         message: errorMessage(this.running?.state ?? 'downloading', saved?.cardsSyncedAt),
         progress: this.running?.progress ?? 0,
       };
+      return;
+    }
+    // The cards are in, so the status shows ready while prices load.
+    this.running = undefined;
+    await this.updatePrices();
+  }
+
+  /** Updates prices from TCGCSV. A failure is logged and keeps the old prices. */
+  private async updatePrices() {
+    try {
+      logPrices(await updatePrices(this.db, { ...this.fetchOptions, signal: this.abort.signal }));
+    } catch (err) {
+      if (this.abort.signal.aborted) return;
+      console.error('Price update from TCGCSV failed:', err);
     }
   }
 }
@@ -180,6 +212,17 @@ function logReport(report: SyncReport) {
   }
   for (const { name, field, values } of report.disagreements) {
     console.warn(`The printings of ${name} disagree on ${field}: ${values.join(' or ')}.`);
+  }
+}
+
+function logPrices(report: PriceReport) {
+  console.log(
+    `Updated prices for ${report.matchedPrintings} printings from ${report.groupCount} TCGCSV groups.`,
+  );
+  if (report.failedGroups.length > 0) {
+    console.warn(
+      `Kept the old prices for ${report.failedGroups.join(', ')}, which couldn't be read from TCGCSV.`,
+    );
   }
 }
 

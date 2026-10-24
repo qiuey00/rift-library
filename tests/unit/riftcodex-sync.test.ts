@@ -324,8 +324,9 @@ describe('the 24-hour check', () => {
     cardSync.stop();
   });
 
-  it('does not sync on start when the cards are less than 24 hours old', async () => {
+  it('does not sync on start when the cards and prices are less than 24 hours old', async () => {
     await sync();
+    db.update(cardDataStatus).set({ pricesUpdatedAt: new Date().toISOString() }).run();
     fetchMock.mockClear();
     const cardSync = new CardDataSync(db, true, { gapMs: 0 });
     cardSync.start();
