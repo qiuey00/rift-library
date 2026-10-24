@@ -1,6 +1,12 @@
-import { and, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, max, ne, sql } from 'drizzle-orm';
 import type { Board } from '../../shared/api/common';
-import type { PrintingHint, SlotInput, SlotPrinting } from '../../shared/api/decks';
+import type {
+  MovableBoard,
+  PrintingHint,
+  RuneCount,
+  SlotInput,
+  SlotPrinting,
+} from '../../shared/api/decks';
 import type { Db } from '../db/database';
 import { cards, deckSlots, deckSlotTags, decks, locations, printings } from '../db/schema';
 import { AppError } from '../errors';
@@ -301,13 +307,32 @@ export function setSlotQuantity(db: Db, deckId: number, slotId: number, quantity
   });
 }
 
+/** The boards a slot can move between (DECK-16). */
+const MOVABLE_BOARDS: ReadonlySet<Board> = new Set<MovableBoard>(['main', 'sideboard', 'maybe']);
+
+const FIXED_BOARD_NAMES: Partial<Record<Board, string>> = {
+  legend: 'The Legend',
+  champion: 'The Chosen Champion',
+  battlefield: 'A battlefield',
+  rune: 'A rune',
+};
+
 /**
- * Moves a slot to another board. When that board already has the card, the two slots become
- * one there. Returns the id of the slot the card ends up in.
+ * Moves a slot between the main deck, sideboard and maybe board (DECK-16). When that board
+ * already has the card, the two slots become one there, keeping both slots' tags. Legend,
+ * champion, battlefield and rune slots can't move. Returns the id of the slot the card ends
+ * up in.
  */
-export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: Board): number {
+export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: MovableBoard): number {
   return db.transaction((tx) => {
     const slot = slotOrThrow(tx, deckId, slotId);
+    if (!MOVABLE_BOARDS.has(slot.board)) {
+      throw new AppError(
+        400,
+        'board_fixed',
+        `${FIXED_BOARD_NAMES[slot.board] ?? 'This card'} can’t move to another board.`,
+      );
+    }
     if (slot.board === board) return slot.id;
     const target = findSlot(tx, deckId, slot.cardId, board);
     touch(tx, deckId);
@@ -326,6 +351,42 @@ export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: Boa
     copyTags(tx, slot.id, target.id);
     tx.delete(deckSlots).where(eq(deckSlots.id, slot.id)).run();
     return target.id;
+  });
+}
+
+/**
+ * Sets how many of each rune card the deck has, on the rune board: PUT /api/decks/:id/runes.
+ * A count of 0 takes the rune off; runes not named stay as they are. Runes are always
+ * available, so nothing is pulled (D-15).
+ */
+export function setRunes(db: Db, deckId: number, runes: RuneCount[]) {
+  db.transaction((tx) => {
+    deckOrThrow(tx, deckId);
+    const ids = runes.map((rune) => rune.cardId);
+    checkCards(tx, ids);
+    const notRunes = tx
+      .select({ name: cards.name })
+      .from(cards)
+      .where(and(inArray(cards.id, ids), ne(cards.type, 'rune')))
+      .all();
+    if (notRunes.length > 0) {
+      throw new AppError(
+        400,
+        'not_a_rune',
+        `${notRunes[0].name} isn’t a rune, so it can’t go on the rune board.`,
+      );
+    }
+    for (const { cardId, quantity } of runes) {
+      const existing = findSlot(tx, deckId, cardId, 'rune');
+      if (quantity === 0) {
+        if (existing) tx.delete(deckSlots).where(eq(deckSlots.id, existing.id)).run();
+      } else if (existing) {
+        tx.update(deckSlots).set({ quantity }).where(eq(deckSlots.id, existing.id)).run();
+      } else {
+        tx.insert(deckSlots).values({ deckId, cardId, board: 'rune', quantity }).run();
+      }
+    }
+    touch(tx, deckId);
   });
 }
 

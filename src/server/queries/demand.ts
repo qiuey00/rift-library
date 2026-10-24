@@ -4,10 +4,12 @@ import type { DeckRef } from '../../shared/api/decks';
 import type { Db } from '../db/database';
 import { cards, copyStacks, deckSlots, decks, printings } from '../db/schema';
 import { loadCards } from './deck-checks';
-import { BOARD_ORDER, deckList } from './decks';
+import { BOARD_ORDER, deckList, PULLED_BOARDS } from './decks';
 
 // Deck demand: a card that more decks want than Jeff owns. Demand is the card's slot
-// quantities on every board of every live deck but the maybe board; runes never count (D-15). Owned is every copy stack of the card, any printing, proxies included.
+// quantities on the pulled boards (legend, champion, main, battlefield and sideboard, D-29) of
+// every live deck; the maybe board and runes never count (DECK-9, D-15). Owned is every copy
+// stack of the card, any printing, proxies included.
 
 /** The demand warnings for these cards, by card id. Cards that aren't short are left out. */
 export function demandWarnings(db: Db, cardIds: number[]): Map<number, DemandWarning> {
@@ -29,7 +31,7 @@ export function demandWarnings(db: Db, cardIds: number[]): Map<number, DemandWar
     .where(
       and(
         inArray(deckSlots.cardId, ids),
-        ne(deckSlots.board, 'maybe'),
+        inArray(deckSlots.board, PULLED_BOARDS),
         isNull(decks.deletedAt),
         ne(cards.type, 'rune'),
       ),
