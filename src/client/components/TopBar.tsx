@@ -1,6 +1,8 @@
-import { Settings } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { cn } from '../lib/utils';
+import { AddCardsDialog } from './AddCardsDialog';
 import { InboxBadge } from './InboxBadge';
 import { TopBarSearch } from './TopBarSearch';
 
@@ -25,6 +27,7 @@ const isAt = (path: string, to: string) => path === to || path.startsWith(`${to}
  */
 export function TopBar() {
   const { pathname } = useLocation();
+  const [adding, setAdding] = useState(false);
 
   return (
     <header className="flex flex-wrap items-center gap-5 bg-top-bar px-6 py-2.5 text-[#f1f2f5]">
@@ -61,6 +64,14 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 max-xl:ml-auto">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-lg px-3 font-semibold text-top-bar-text hover:bg-top-bar-hover hover:text-white"
+        >
+          <Plus aria-hidden="true" className="size-4" strokeWidth={2.2} />
+          Add cards
+        </button>
         <Link
           to="/settings"
           aria-label="Settings"
@@ -70,6 +81,8 @@ export function TopBar() {
           <Settings aria-hidden="true" className="size-[18px]" />
         </Link>
       </div>
+
+      <AddCardsDialog open={adding} onOpenChange={setAdding} />
     </header>
   );
 }

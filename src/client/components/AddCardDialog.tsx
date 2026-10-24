@@ -11,6 +11,7 @@ import {
 import type { AddCopiesBody } from '../../shared/api/copies';
 import { api } from '../api';
 import { typeLine } from '../lib/card-text';
+import { CONDITIONS, FINISH_WORDS, LANGUAGES } from '../lib/copy-fields';
 import { cn } from '../lib/utils';
 import { CardSearchPicker } from './CardSearchPicker';
 import { LocationPicker, useLocationTree } from './LocationPicker';
@@ -36,40 +37,6 @@ export type AddCardDialogProps = {
   /** The card to start with, when opened from a card. */
   defaultCardId?: Id;
 };
-
-const finishWords: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
-
-/** The conditions, best first. */
-const conditions: [value: string, label: string][] = [
-  ['mint', 'Mint'],
-  ['near_mint', 'Near mint'],
-  ['excellent', 'Excellent'],
-  ['good', 'Good'],
-  ['light_played', 'Light played'],
-  ['played', 'Played'],
-  ['poor', 'Poor'],
-];
-
-/** Language codes for paper printings. */
-const languages: [code: string, label: string][] = [
-  ['en', 'English'],
-  ['es', 'Spanish'],
-  ['fr', 'French'],
-  ['de', 'German'],
-  ['it', 'Italian'],
-  ['pt', 'Portuguese'],
-  ['ja', 'Japanese'],
-  ['ko', 'Korean'],
-  ['ru', 'Russian'],
-  ['zhs', 'Simplified Chinese'],
-  ['zht', 'Traditional Chinese'],
-  ['he', 'Hebrew'],
-  ['la', 'Latin'],
-  ['grc', 'Ancient Greek'],
-  ['ar', 'Arabic'],
-  ['sa', 'Sanskrit'],
-  ['ph', 'Phyrexian'],
-];
 
 /** The error message a failed answer carries, written for Jeff. */
 async function failure(res: Response, fallback: string): Promise<Error> {
@@ -201,9 +168,9 @@ function AddCardForm({
     });
   };
 
-  const languageChoices = languages.some(([code]) => code === language)
-    ? languages
-    : [...languages, [language, language] as [string, string]];
+  const languageChoices = LANGUAGES.some(([code]) => code === language)
+    ? LANGUAGES
+    : [...LANGUAGES, [language, language] as [string, string]];
   const image = printing?.imageUrl ?? card?.imageUrl ?? null;
 
   return (
@@ -319,7 +286,7 @@ function AddCardForm({
                 >
                   {finishes.map((f) => (
                     <NativeSelectOption key={f} value={f}>
-                      {finishWords[f]}
+                      {FINISH_WORDS[f]}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
@@ -333,7 +300,7 @@ function AddCardForm({
                   value={condition}
                   onChange={(event) => setCondition(event.target.value)}
                 >
-                  {conditions.map(([value, label]) => (
+                  {CONDITIONS.map(([value, label]) => (
                     <NativeSelectOption key={value} value={value}>
                       {label}
                     </NativeSelectOption>

@@ -1,18 +1,17 @@
 import { expect, type Page, test } from '@playwright/test';
 import type { AddCopiesBody } from '../../src/shared/api/copies';
 import {
-  emberSearch,
   emberSignet,
   emberSignetDetails,
   emberSignetPrintings,
 } from '../../src/shared/api/samples/cards';
 import { addCopiesResultSample } from '../../src/shared/api/samples/copies';
 import { locationTreeSample } from '../../src/shared/api/samples/locations';
-import { stacksPageSample } from '../../src/shared/api/samples/stacks';
+import { cardCopiesEmptySample } from '../../src/shared/api/samples/stacks';
 
-// The Add card dialog, opened from the Collection screen, with the API mocked from the
-// samples: searching "ember" finds Ember Signet, whose printings are OGN-053 (normal),
-// VEN-367 (normal, foil) and SPD-331 (normal).
+// The Add a card dialog, opened from Ember Signet's card page (where Jeff owns no copies yet),
+// with the API mocked from the samples: Ember Signet's printings are OGN-053 (normal),
+// VEN-367 (normal, foil) and SPD-331 (normal). Quick add is in add-cards.spec.ts.
 
 async function mockApi(page: Page) {
   // Card images come from the internet; tests never reach it.
@@ -21,12 +20,10 @@ async function mockApi(page: Page) {
     (route) => route.abort(),
   );
   const added: AddCopiesBody[] = [];
-  await page.route(
-    (url) => url.pathname === '/api/stacks',
-    (route) => route.fulfill({ json: stacksPageSample }),
+  await page.route(`**/api/cards/${emberSignet.id}/copies`, (route) =>
+    route.fulfill({ json: cardCopiesEmptySample }),
   );
   await page.route('**/api/locations/tree', (route) => route.fulfill({ json: locationTreeSample }));
-  await page.route('**/api/cards?*', (route) => route.fulfill({ json: emberSearch }));
   await page.route(`**/api/cards/${emberSignet.id}`, (route) =>
     route.fulfill({ json: emberSignetDetails }),
   );
@@ -37,17 +34,10 @@ async function mockApi(page: Page) {
   return added;
 }
 
-async function openDialog(page: Page) {
-  await page.goto('/collection');
-  await page.getByRole('button', { name: 'Add card' }).click();
-  return page.getByRole('dialog', { name: 'Add a card' });
-}
-
 async function pickEmberSignet(page: Page) {
-  const dialog = await openDialog(page);
-  await dialog.getByRole('searchbox', { name: 'Card' }).fill('ember');
-  await dialog.getByRole('button', { name: 'Ember Signet' }).click();
-  return dialog;
+  await page.goto(`/cards/${emberSignet.id}`);
+  await page.getByRole('button', { name: 'Add copies' }).click();
+  return page.getByRole('dialog', { name: 'Add a card' });
 }
 
 const printing = (dialog: ReturnType<Page['getByRole']>, name: RegExp) =>

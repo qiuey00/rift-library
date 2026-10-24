@@ -45,8 +45,11 @@ export function useUndoBar() {
   return context;
 }
 
-// The undo route isn't in the typed client yet (its area adds it), so this calls it directly.
-async function undoBatch(batchId: Id): Promise<{ ok: boolean; message: string }> {
+/**
+ * Undoes a movement batch, answering with the message to show. The undo route isn't in the
+ * typed client yet (its area adds it), so this calls it directly.
+ */
+export async function undoBatch(batchId: Id): Promise<{ ok: boolean; message: string }> {
   let res: Response;
   try {
     res = await fetch(`/api/batches/${batchId}/undo`, { method: 'POST' });

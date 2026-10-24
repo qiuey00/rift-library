@@ -6,7 +6,7 @@ import type { LocationNode } from '../../../shared/api/locations';
 import type { LocationStacks } from '../../../shared/api/stacks';
 import { api } from '../../api';
 import { formatCents } from '../../lib/money';
-import { AddCardDialog } from '../AddCardDialog';
+import { AddCardsDialog } from '../AddCardsDialog';
 import { AddToBuyListDialog } from '../AddToBuyListDialog';
 import { type CopyStackAction, CopyStackTable } from '../CopyStackTable';
 import { LocationTile } from '../LocationTile';
@@ -176,7 +176,7 @@ export function LocationContents({
           printingId={buying.printing.printingId}
         />
       )}
-      <AddCardDialog open={adding} onOpenChange={setAdding} defaultLocationId={location.id} />
+      <AddCardsDialog open={adding} onOpenChange={setAdding} defaultLocationId={location.id} />
     </section>
   );
 }

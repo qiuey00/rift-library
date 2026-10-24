@@ -25,7 +25,7 @@ import { Domain, ErrorBody, type StackRow } from '../../shared/api/common';
 import { type CollectionValue, type StacksPage, StacksQuery } from '../../shared/api/stacks';
 import { type CollectionTerm, parseCollectionQuery } from '../../shared/collection-query';
 import { api } from '../api';
-import { AddCardDialog } from '../components/AddCardDialog';
+import { AddCardsDialog } from '../components/AddCardsDialog';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { type CopyStackAction, CopyStackTable } from '../components/CopyStackTable';
 import { DOMAIN_WORDS } from '../components/DomainIcon';
@@ -285,7 +285,7 @@ export function Collection() {
           printingId={buying.printing.printingId}
         />
       )}
-      <AddCardDialog open={adding} onOpenChange={setAdding} />
+      <AddCardsDialog open={adding} onOpenChange={setAdding} />
     </div>
   );
 }
