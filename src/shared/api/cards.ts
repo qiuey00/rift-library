@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { CardSummary, PrintingSummary } from './common';
+import { CardSummary, CardType, Domain, IdParam, PrintingSummary } from './common';
 
 // Card search (the search box on every screen) and the card page.
 //
-//   GET /api/cards/search?q=arcane    → CardSearchResponse
-//   GET /api/cards/:oracleId          → CardDetailsResponse; 404 `card_not_found`
+//   GET /api/cards?q=jinx       → CardSearchResponse
+//   GET /api/cards/:id          → CardDetailsResponse; 404 `card_not_found`
 //
 // What the counts mean, everywhere in this file:
 // - owned: the quantities of every copy stack of the card, across all its printings,
@@ -14,17 +14,21 @@ import { CardSummary, PrintingSummary } from './common';
 // - free: owned − inDecks.
 
 export const CardSearchQuery = z.object({
-  /** Words from the card's name. */
-  q: z.string().trim().min(1),
-  /** '1' keeps only cards that can be commanders. */
-  commander: z.literal('1').optional(),
   /**
-   * Keeps only cards whose color identity fits inside this one, such as 'BRG' for a Jund
-   * deck: letters from WUBRG, in any order; '' keeps only colorless cards.
+   * Words from the card's name, or a public code such as "OGN-042" or "ogn-042/298" (public
+   * codes come with #8).
    */
-  identity: z
+  q: z.string().trim().min(1),
+  /** Keeps only cards of this type, such as 'legend' when picking a deck's Legend. */
+  type: CardType.optional(),
+  /**
+   * Keeps only cards whose domains all fit inside these, comma separated, such as
+   * 'fury,chaos' for a Fury and Chaos Legend's deck; cards with no domain always fit.
+   */
+  domains: z
     .string()
-    .regex(/^[WUBRG]*$/, 'Use the letters W, U, B, R and G')
+    .transform((text) => (text === '' ? [] : text.split(',')))
+    .pipe(z.array(Domain))
     .optional(),
   /** The most results to answer with. */
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -44,16 +48,15 @@ export const CardSearchResponse = z.object({
 export type CardSearchResponse = z.infer<typeof CardSearchResponse>;
 
 export const CardParams = z.object({
-  /** The card's oracle id. */
-  oracleId: z.guid(),
+  /** The card's app id. */
+  id: IdParam,
 });
 export type CardParams = z.infer<typeof CardParams>;
 
 export const CardDetails = CardSummary.extend({
-  /** Keywords, such as "Partner" or "Station"; the deck checks use them for partners. */
-  keywords: z.array(z.string()),
-  /** The card's Commander legality: 'legal', 'not_legal' or 'banned'. */
-  commanderLegality: z.string(),
+  rulesText: z.string(),
+  /** False for tokens and other cards a deck can't hold. */
+  deckable: z.boolean(),
 });
 export type CardDetails = z.infer<typeof CardDetails>;
 
@@ -67,7 +70,7 @@ export type CardCounts = z.infer<typeof CardCounts>;
 
 export const CardDetailsResponse = z.object({
   card: CardDetails,
-  /** Every paper printing of the card, newest first. */
+  /** Every printing of the card, by set and collector number. */
   printings: z.array(PrintingSummary),
   counts: CardCounts,
 });

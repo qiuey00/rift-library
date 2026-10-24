@@ -37,7 +37,7 @@ describe('decks, deck checks and buy list samples', () => {
     expect(deckListSample.decks).toHaveLength(6);
   });
 
-  it('matches the Hearthhull counts to its slots', () => {
+  it('matches the Jinx Burn counts to its slots', () => {
     const { deck, slots } = deckViewSample;
     const sum = (status: string) =>
       slots.filter((s) => s.status === status).reduce((n, s) => n + s.quantity, 0);
@@ -46,20 +46,20 @@ describe('decks, deck checks and buy list samples', () => {
       free: sum('free'),
       otherDecks: sum('other_decks'),
       missing: sum('missing'),
-      basics: sum('basic'),
+      runes: sum('rune'),
     }).toEqual(deck.counts);
     expect(slots.reduce((n, s) => n + s.inBoxQuantity, 0)).toBe(deck.boxCopyCount);
     expect(slots.filter((s) => s.board === 'maybe').every((s) => s.status === null)).toBe(true);
     expect(new Set(slots.map((s) => s.id)).size).toBe(slots.length);
   });
 
-  it('has one deck warning of each kind', () => {
+  it('has a warning for several deck rules', () => {
     expect(deckChecksSample.warnings.map((w) => w.kind).sort()).toEqual([
-      'banned',
-      'color_identity',
-      'commander',
+      'champion',
+      'copies',
       'count',
-      'singleton',
+      'domains',
+      'runes',
     ]);
   });
 });

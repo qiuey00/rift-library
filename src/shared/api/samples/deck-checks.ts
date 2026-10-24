@@ -2,19 +2,19 @@ import type { CardDecks, DeckChecks, DemandWarning, ListChecks } from '../deck-c
 import { cards } from './deck-cards';
 import { deckRefs } from './decks';
 
-// Deck checks with one warning of each kind, so screens can show them all, and the demand
-// warning for Arcane Signet. Only the card count matches the Hearthhull slots; the other
-// warnings name cards a messier list would have.
+// Deck checks with a warning for several of Riftbound's deck rules, so screens can show them,
+// and the demand warning for Ember Signet. The warnings name cards a messier list would have.
+// The server answers no warnings until #16.
 
-const { hearthhull, atraxa, meren, prosper } = deckRefs;
+const { jinxBurn, luxControl, ahriMidrange, annieAggro } = deckRefs;
 
-export const arcaneSignetDemand: DemandWarning = {
-  card: cards.arcaneSignet,
+export const emberSignetDemand: DemandWarning = {
+  card: cards.emberSignet,
   demand: 3,
   owned: 2,
   shortage: 1,
-  decks: [hearthhull, atraxa, meren],
-  message: '3 decks want Arcane Signet, you own 2',
+  decks: [jinxBurn, luxControl, ahriMidrange],
+  message: '3 decks want Ember Signet, you own 2',
 };
 
 /** GET /api/decks/1/checks. */
@@ -22,46 +22,44 @@ export const deckChecksSample: DeckChecks = {
   warnings: [
     {
       kind: 'count',
-      message: 'The deck has 95 cards. A Commander deck has exactly 100, counting the commander.',
+      message: 'The main deck has 38 cards; it needs at least 40.',
       cards: [],
     },
     {
-      kind: 'singleton',
-      message:
-        'Rampant Growth is in the deck 2 times. Commander allows one copy of each card except basic lands.',
-      cards: [cards.rampantGrowth],
+      kind: 'copies',
+      message: 'Scorched Rally is in the deck 4 times. A deck can have at most 3 copies of a card.',
+      cards: [cards.scorchedRally],
     },
     {
-      kind: 'color_identity',
+      kind: 'domains',
       message:
-        "Swords to Plowshares is white, which is outside Hearthhull, the Worldseed's colors (black, red and green).",
-      cards: [cards.swordsToPlowshares],
+        'Dawn Snare is Order, which is outside Jinx, Loose Cannon’s domains (Fury and Chaos).',
+      cards: [cards.dawnSnare],
     },
     {
-      kind: 'banned',
-      message: 'Dockside Extortionist is banned in Commander.',
-      cards: [cards.docksideExtortionist],
+      kind: 'runes',
+      message: 'The deck has 10 runes; it needs 12.',
+      cards: [],
     },
     {
-      kind: 'commander',
-      message:
-        "Hearthhull, the Worldseed and Szarel, Genesis Shepherd can't both be commanders: only cards with Partner can share the command zone.",
-      cards: [cards.hearthhullTheWorldseed, cards.szarelGenesisShepherd],
+      kind: 'champion',
+      message: 'The deck has no Chosen Champion.',
+      cards: [],
     },
   ],
-  demand: [arcaneSignetDemand],
+  demand: [emberSignetDemand],
 };
 
 /** POST /api/deck-checks: the same warnings for an unsaved list. */
 export const listChecksSample: ListChecks = { warnings: deckChecksSample.warnings };
 
-/** GET /api/cards/:oracleId/decks for Arcane Signet. Prosper only has it on the maybe board, which demand leaves out. */
+/** GET /api/cards/:id/decks for Ember Signet. Annie Aggro only has it on the maybe board, which demand leaves out. */
 export const cardDecksSample: CardDecks = {
   decks: [
-    { ...hearthhull, state: 'partly_assembled', board: 'main', quantity: 1 },
-    { ...atraxa, state: 'assembled', board: 'main', quantity: 1 },
-    { ...meren, state: 'assembled', board: 'main', quantity: 1 },
-    { ...prosper, state: 'not_assembled', board: 'maybe', quantity: 1 },
+    { ...jinxBurn, state: 'partly_assembled', board: 'main', quantity: 1 },
+    { ...luxControl, state: 'assembled', board: 'main', quantity: 1 },
+    { ...ahriMidrange, state: 'assembled', board: 'main', quantity: 1 },
+    { ...annieAggro, state: 'not_assembled', board: 'maybe', quantity: 1 },
   ],
-  demand: arcaneSignetDemand,
+  demand: emberSignetDemand,
 };

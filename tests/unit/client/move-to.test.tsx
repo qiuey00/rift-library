@@ -121,8 +121,8 @@ describe('LocationPicker', () => {
     search('LONG BOX');
     expect(rowNames()).toEqual([
       'Long box',
-      'Long box › Black & Green',
-      'Long box › Red & Gold',
+      'Long box › Chaos & Calm',
+      'Long box › Fury & Order',
       'Long box › Lands',
     ]);
 
@@ -141,8 +141,8 @@ describe('LocationPicker', () => {
     await waitFor(() => expect(rows()).toHaveLength(7));
     expect(rowNames()).toEqual([
       'Long box',
-      'Black & Green',
-      'Red & Gold',
+      'Chaos & Calm',
+      'Fury & Order',
       'Lands',
       'Rares binder',
       'Staples binder',
@@ -160,7 +160,7 @@ describe('LocationPicker', () => {
     fireEvent.click(rows()[3]);
 
     expect(screen.queryByRole('listbox')).toBeNull();
-    expect(trigger.textContent).toBe('Long box › Red & Gold');
+    expect(trigger.textContent).toBe('Long box › Fury & Order');
     const tile = trigger.querySelector('[data-location-type]') as HTMLElement;
     expect(tile.style.backgroundColor).toBe('rgb(59, 111, 216)');
   });
@@ -175,7 +175,7 @@ function renderDialog(props: Partial<MoveToDialogProps> = {}) {
         open
         onOpenChange={onOpenChange}
         onMoved={onMoved}
-        stacks={[sampleStacks.elementalMascot]}
+        stacks={[sampleStacks.wildShaman]}
         {...props}
       />,
     ),
@@ -201,11 +201,11 @@ describe('MoveToDialog', () => {
   it('moves a whole stack by default and shows the undo bar', async () => {
     const calls = mockApi();
     const { onOpenChange, onMoved } = renderDialog();
-    expect(screen.getByText('4 copies of Elemental Mascot in Bulk tray')).toBeTruthy();
+    expect(screen.getByText('4 copies of Wild Shaman in Bulk tray')).toBeTruthy();
     expect(quantityField()?.value).toBe('4');
     expect(moveButton().disabled).toBe(true);
 
-    await pickDestination('Hearthhull deck box');
+    await pickDestination('Jinx Burn deck box');
     fireEvent.click(moveButton());
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
@@ -248,7 +248,7 @@ describe('MoveToDialog', () => {
 
   it('moves several whole stacks with no quantity field', async () => {
     const calls = mockApi(() => Response.json(moveManyResultSample));
-    renderDialog({ stacks: [sampleStacks.commandTower, sampleStacks.blechFoil] });
+    renderDialog({ stacks: [sampleStacks.targonsPeak, sampleStacks.nasusProtectorFoil] });
     expect(screen.getByText('2 stacks, 4 cards')).toBeTruthy();
     expect(quantityField()).toBeNull();
     await pickDestination('Rares binder');

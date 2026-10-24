@@ -2,24 +2,24 @@ import type { CardSummary, LocationRef, PrintingSummary } from '../common';
 import type { DeckList, DeckRef, DeckSummary, DeckView, PrintingHint, SlotRow } from '../decks';
 import { cards, printings } from './deck-cards';
 
-// The Decks home and the Hearthhull deck view (a made-up sample). Location and deck ids
+// The Decks home and the Jinx Burn deck view (a made-up sample). Location and deck ids
 // match the assembly samples, so a screen can go from one to the other.
 
 export const locations = {
   toSort: { id: 1, name: 'To sort', type: 'inbox', path: 'To sort', color: null, forTrade: false },
-  blackGreen: {
+  chaosCalm: {
     id: 3,
-    name: 'Black & Green',
+    name: 'Chaos & Calm',
     type: 'box',
-    path: 'Long box › Black & Green',
+    path: 'Long box › Chaos & Calm',
     color: '#3b6fd8',
     forTrade: false,
   },
-  redGold: {
+  furyOrder: {
     id: 4,
-    name: 'Red & Gold',
+    name: 'Fury & Order',
     type: 'box',
-    path: 'Long box › Red & Gold',
+    path: 'Long box › Fury & Order',
     color: '#3b6fd8',
     forTrade: false,
   },
@@ -66,33 +66,33 @@ export const locations = {
 } satisfies Record<string, LocationRef>;
 
 export const deckRefs = {
-  hearthhull: { id: 1, name: 'Hearthhull' },
-  atraxa: { id: 2, name: 'Atraxa' },
-  lathril: { id: 3, name: 'Lathril' },
-  meren: { id: 4, name: 'Meren' },
-  prosper: { id: 5, name: 'Prosper' },
-  tymnaThrasios: { id: 6, name: 'Tymna & Thrasios' },
+  jinxBurn: { id: 1, name: 'Jinx Burn' },
+  luxControl: { id: 2, name: 'Lux Control' },
+  viktorTempo: { id: 3, name: 'Viktor Tempo' },
+  ahriMidrange: { id: 4, name: 'Ahri Midrange' },
+  annieAggro: { id: 5, name: 'Annie Aggro' },
+  leeSinCombo: { id: 6, name: 'Lee Sin Combo' },
 } satisfies Record<string, DeckRef>;
 
 const nowhere = { locations: [], freeCount: 0, otherDecks: [] };
 
 type SlotOptions = Partial<Omit<SlotRow, 'id' | 'card'>>;
 
-/** The Hearthhull slots' tags, by slot id, sorted by name ignoring case. */
+/** The Jinx Burn slots' tags, by slot id, sorted by name ignoring case. */
 const tagsBySlot: Record<number, string[]> = {
-  104: ['Removal'], // Infernal Grasp
-  105: ['Ramp'], // Cultivate
-  106: ['Card draw'], // Tireless Tracker
-  114: ['Ramp'], // Sol Ring
-  116: ['Removal'], // Beast Within
-  118: ['Ramp'], // Arcane Signet
-  129: ['Card draw'], // Aftermath Analyst
-  130: ['Card draw', 'Ramp'], // Augur of Autumn
-  133: ['Removal'], // Blasphemous Act
-  147: ['Ramp'], // Farseek
+  104: ['Removal'], // Fierce Blast
+  105: ['Ramp'], // Grim Scheme
+  106: ['Card draw'], // Vast Scout
+  114: ['Ramp'], // Sun Disc
+  116: ['Removal'], // Unbound Volley
+  118: ['Ramp'], // Ember Signet
+  129: ['Card draw'], // Tidal Vanguard
+  130: ['Card draw', 'Ramp'], // Copper Mender
+  133: ['Removal'], // Vigilant Surge
+  147: ['Ramp'], // Iron Insight
 };
 
-/** A slot of the Hearthhull deck, on the main board with one copy unless `options` say otherwise. */
+/** A slot of the Jinx Burn deck, on the main board with one copy unless `options` say otherwise. */
 function slot(id: number, card: CardSummary, options: SlotOptions = {}): SlotRow {
   const row: SlotRow = {
     id,
@@ -116,22 +116,19 @@ function slot(id: number, card: CardSummary, options: SlotOptions = {}): SlotRow
 /** The sample printing a hint names, as the server finds it. */
 function hintedPrinting(card: CardSummary, hint: PrintingHint | null): PrintingSummary | null {
   if (!hint) return null;
-  return (
-    Object.values(printings).find(
-      (printing) =>
-        printing.oracleId === card.oracleId &&
-        printing.setCode === hint.setCode &&
-        printing.collectorNumber === hint.collectorNumber,
-    ) ?? null
+  const key = (Object.keys(printings) as (keyof typeof printings)[]).find(
+    (key) =>
+      cards[key].id === card.id && printings[key].publicCode.startsWith(`${hint.publicCode}/`),
   );
+  return key ? printings[key] : null;
 }
 
-/** The deck list's printing for the card, as its printing hint. */
+/** The deck list's printing for the card, as its printing hint: its public code, such as "OGN-001". */
 function hintFor(printing: PrintingSummary, foil = false): PrintingHint {
-  return { setCode: printing.setCode, collectorNumber: printing.collectorNumber, foil };
+  return { publicCode: printing.publicCode.split('/')[0], foil };
 }
 
-/** A slot whose copy is in the Hearthhull deck box, pulled in the export's printing. */
+/** A slot whose copy is in the Jinx Burn deck box, pulled in the export's printing. */
 function inBox(id: number, key: keyof typeof printings, options: SlotOptions = {}): SlotRow {
   const printing = printings[key];
   return slot(id, cards[key], {
@@ -169,8 +166,13 @@ function missing(id: number, key: keyof typeof printings, options: SlotOptions =
   return slot(id, cards[key], { hint: hintFor(printings[key]), status: 'missing', ...options });
 }
 
-function basic(id: number, key: keyof typeof printings, quantity: number) {
-  return slot(id, cards[key], { quantity, hint: hintFor(printings[key]), status: 'basic' });
+function rune(id: number, key: keyof typeof printings, quantity: number) {
+  return slot(id, cards[key], {
+    board: 'rune',
+    quantity,
+    hint: hintFor(printings[key]),
+    status: 'rune',
+  });
 }
 
 function maybe(id: number, key: keyof typeof printings, options: SlotOptions = {}) {
@@ -182,217 +184,226 @@ function maybe(id: number, key: keyof typeof printings, options: SlotOptions = {
   });
 }
 
-const { toSort, blackGreen, redGold, lands, raresBinder, staplesBinder, bulkTray, tradeBinder } =
+const { toSort, chaosCalm, furyOrder, lands, raresBinder, staplesBinder, bulkTray, tradeBinder } =
   locations;
-const { atraxa, lathril, meren } = deckRefs;
+const { luxControl, viktorTempo, ahriMidrange } = deckRefs;
 
-const solRingSlot = free(114, 'solRing', [staplesBinder, toSort], 3);
+const sunDiscSlot = free(114, 'sunDisc', [staplesBinder, toSort], 3);
 
-/** Every slot of the Hearthhull deck: 58 cards in the box, 13 free, 4 in other decks, 3 missing, 17 basics, and 5 on the maybe board. */
-export const hearthhullSlots: SlotRow[] = [
-  inBox(101, 'hearthhullTheWorldseed', {
-    board: 'commander',
-    hint: hintFor(printings.hearthhullTheWorldseed, true),
+/** Every slot of the Jinx Burn deck: 58 cards in the box, 13 free, 4 in other decks, 3 missing, 17 runes, and 5 on the maybe board. */
+export const jinxBurnSlots: SlotRow[] = [
+  inBox(101, 'jinxLooseCannon', {
+    board: 'legend',
+    hint: hintFor(printings.jinxLooseCannon, true),
   }),
 
   // Free in storage.
-  free(104, 'infernalGrasp', [blackGreen, staplesBinder]),
-  free(105, 'cultivate', [blackGreen, bulkTray], 4),
-  free(106, 'tirelessTracker', [blackGreen]),
-  free(107, 'putrefy', [blackGreen]),
-  free(108, 'mayhemDevil', [redGold]),
-  free(109, 'rakdosCharm', [redGold]),
+  free(104, 'fierceBlast', [chaosCalm, staplesBinder]),
+  free(105, 'grimScheme', [chaosCalm, bulkTray], 4),
+  free(106, 'vastScout', [chaosCalm]),
+  free(107, 'boldRally', [chaosCalm]),
+  free(108, 'rogueCaptain', [furyOrder]),
+  free(109, 'twilightGust', [furyOrder]),
   // Only a proxy is free.
-  free(110, 'korvoldFaeCursedKing', [redGold]),
-  free(111, 'theGitrogMonster', [raresBinder]),
-  free(112, 'oracleOfMulDaya', [raresBinder]),
-  free(113, 'titaniaProtectorOfArgoth', [raresBinder]),
-  solRingSlot,
-  free(115, 'commandTower', [staplesBinder]),
-  free(116, 'beastWithin', [tradeBinder]),
+  free(110, 'dariusHandOfNoxus', [furyOrder]),
+  free(111, 'starlitGearwright', [raresBinder]),
+  free(112, 'wildGuardian', [raresBinder]),
+  free(113, 'viOutlaw', [raresBinder]),
+  sunDiscSlot,
+  free(115, 'targonsPeak', [staplesBinder]),
+  free(116, 'unboundVolley', [tradeBinder]),
 
   // Only in other decks' boxes.
-  inOtherDecks(118, 'arcaneSignet', [atraxa, meren]),
-  inOtherDecks(121, 'skyshroudClaim', [atraxa]),
-  inOtherDecks(122, 'naturesLore', [lathril]),
-  inOtherDecks(123, 'nightsWhisper', [meren]),
+  inOtherDecks(118, 'emberSignet', [luxControl, ahriMidrange]),
+  inOtherDecks(121, 'duskLash', [luxControl]),
+  inOtherDecks(122, 'dawnMend', [viktorTempo]),
+  inOtherDecks(123, 'sunkenEdict', [ahriMidrange]),
 
   // Not owned.
-  missing(119, 'soulOfWindgrace'),
+  missing(119, 'swiftOx'),
   // Added in the app rather than from a deck list, so there is no printing hint.
-  missing(120, 'omnathLocusOfRage', { hint: null }),
-  missing(124, 'splendidReclamation'),
+  missing(120, 'nasusTrickster', { hint: null }),
+  missing(124, 'twilightFlare'),
 
-  // Basic lands are always available, so they are never pulled.
-  basic(125, 'forest', 8),
-  basic(126, 'mountain', 3),
-  basic(127, 'swamp', 5),
-  basic(128, 'wastes', 1),
+  // Runes are always available, so they are never pulled.
+  rune(125, 'calmRune', 8),
+  rune(126, 'furyRune', 3),
+  rune(127, 'chaosRune', 5),
+  rune(128, 'bodyRune', 1),
 
   // In the box.
-  inBox(117, 'fabledPassage'),
-  inBox(129, 'aftermathAnalyst'),
-  inBox(130, 'augurOfAutumn'),
-  inBox(131, 'balothPrime'),
-  inBox(132, 'bindingTheOldGods'),
-  inBox(133, 'blasphemousAct'),
-  inBox(134, 'bojukaBog'),
-  inBox(135, 'braidsArisenNightmare'),
-  inBox(136, 'cabarettiCourtyard'),
-  inBox(137, 'canyonSlough'),
-  inBox(138, 'cinderGlade'),
-  inBox(139, 'dakmorSalvage'),
-  inBox(140, 'escapeToTheWilds'),
-  inBox(141, 'escapeTunnel'),
-  inBox(142, 'eumidianHatchery'),
-  inBox(143, 'eumidianWastewaker'),
-  inBox(144, 'evendoBrushrazer'),
-  inBox(145, 'evolvingWilds', { where: { locations: [lands], freeCount: 2, otherDecks: [] } }),
-  inBox(146, 'explorationBroodship'),
-  inBox(147, 'farseek'),
-  inBox(148, 'festeringThicket'),
-  inBox(149, 'formlessGenesis'),
-  inBox(150, 'gazeOfGranite'),
-  inBox(151, 'godEternalBontu'),
-  inBox(152, 'hammerOfPurphoros'),
-  inBox(153, 'harrow'),
-  inBox(154, 'horizonExplorer'),
-  inBox(155, 'juriMasterOfTheRevue'),
-  inBox(156, 'karplusanForest'),
-  inBox(157, 'llanowarWastes'),
-  inBox(158, 'maestrosTheater'),
-  inBox(159, 'mazirekKraulDeathPriest'),
+  inBox(117, 'grimSteppe', { board: 'battlefield' }),
+  inBox(129, 'tidalVanguard'),
+  inBox(130, 'copperMender'),
+  inBox(131, 'lunarHarrier'),
+  inBox(132, 'crimsonIdol'),
+  inBox(133, 'vigilantSurge'),
+  inBox(134, 'eagerSteppe', { board: 'battlefield' }),
+  inBox(135, 'volibearPathfinder'),
+  inBox(136, 'ninefoldTemple', { board: 'battlefield' }),
+  inBox(137, 'starlitCitadel'),
+  inBox(138, 'weatheredCanyon'),
+  inBox(139, 'twilightQuarry'),
+  inBox(140, 'ninefoldVerdict'),
+  inBox(141, 'jadeGlade'),
+  inBox(142, 'rustedTemple'),
+  inBox(143, 'stormSage'),
+  inBox(144, 'ferventCharger'),
+  inBox(145, 'paleCrossing', { where: { locations: [lands], freeCount: 2, otherDecks: [] } }),
+  inBox(146, 'radiantIdol'),
+  inBox(147, 'ironInsight'),
+  inBox(148, 'ninefoldDocks'),
+  inBox(149, 'waryRecall'),
+  inBox(150, 'moltenCleave'),
+  inBox(151, 'crimsonShaman'),
+  inBox(152, 'moltenHourglass'),
+  inBox(153, 'emberRecall'),
+  inBox(154, 'bitterZealot'),
+  inBox(155, 'jaxVanguard'),
+  inBox(156, 'hextechVault'),
+  inBox(157, 'proudCitadel'),
+  inBox(158, 'verdantShrine'),
+  inBox(159, 'leonaVeteran'),
   // A proxy stands in for this one.
-  inBox(160, 'moraugFuryOfAkoum', { inBoxProxy: true }),
-  inBox(161, 'mountainValley'),
-  inBox(162, 'multaniYavimayasAvatar'),
-  inBox(163, 'myriadLandscape'),
-  inBox(164, 'pestInfestation'),
-  inBox(165, 'planetaryAnnihilation'),
-  inBox(166, 'rampagingBaloths'),
-  inBox(167, 'riveteersOverlook'),
-  inBox(168, 'rockyTarPit'),
-  inBox(169, 'roilingRegrowth'),
-  inBox(170, 'satyrWayfinder'),
-  inBox(171, 'scouringSwarm'),
-  inBox(172, 'shelteredThicket'),
-  inBox(173, 'smolderingMarsh'),
-  inBox(174, 'springbloomDruid'),
-  inBox(175, 'sproutingGoblin'),
-  inBox(176, 'sulfurousSprings'),
-  inBox(177, 'szarelGenesisShepherd', { hint: hintFor(printings.szarelGenesisShepherd, true) }),
-  inBox(178, 'tearAsunder'),
-  inBox(179, 'terramorphicExpanse'),
-  inBox(180, 'twilightMire'),
-  inBox(181, 'vernalFen'),
-  inBox(182, 'viridescentBog'),
-  inBox(183, 'windgracesJudgment'),
-  inBox(184, 'worldsoulsRage'),
+  inBox(160, 'sennaOutlaw', { inBoxProxy: true }),
+  inBox(161, 'spectralBridge'),
+  inBox(162, 'heimerdingerWarden'),
+  inBox(163, 'frostPlaza'),
+  inBox(164, 'echoingBurst'),
+  inBox(165, 'dawnUproar'),
+  inBox(166, 'swiftSkirmisher'),
+  inBox(167, 'blazingArchive'),
+  inBox(168, 'ninefoldCitadel'),
+  inBox(169, 'brazenTithe'),
+  inBox(170, 'clockworkGearwright'),
+  inBox(171, 'grimProwler'),
+  inBox(172, 'starlitHollow'),
+  inBox(173, 'rustedOutpost'),
+  inBox(174, 'lunarReaver'),
+  inBox(175, 'scorchedHerald'),
+  inBox(176, 'brineHollow'),
+  inBox(177, 'fioraGuardian', { hint: hintFor(printings.fioraGuardian, true) }),
+  inBox(178, 'mysticWhirl'),
+  inBox(179, 'stormHollow'),
+  inBox(180, 'cinderHarbor'),
+  inBox(181, 'frostBluffs'),
+  inBox(182, 'voidDocks'),
+  inBox(183, 'goldenSnare'),
+  inBox(184, 'warySweep'),
 
   // The maybe board has no status. One maybe card is still in the box from an earlier list.
-  maybe(185, 'centaurVinecrasher', {
-    where: { locations: [blackGreen], freeCount: 1, otherDecks: [] },
+  maybe(185, 'primalPriest', {
+    where: { locations: [chaosCalm], freeCount: 1, otherDecks: [] },
   }),
-  maybe(186, 'groundskeeper', {
-    pickedPrinting: printings.groundskeeper,
+  maybe(186, 'hextechCaptain', {
+    pickedPrinting: printings.hextechCaptain,
     inBoxQuantity: 1,
   }),
-  maybe(187, 'loamcrafterFaun'),
-  maybe(188, 'uurgSpawnOfTurg', { where: { locations: [], freeCount: 0, otherDecks: [meren] } }),
-  maybe(189, 'worldBreaker', { where: { locations: [bulkTray], freeCount: 1, otherDecks: [] } }),
+  maybe(187, 'ivoryReaver'),
+  maybe(188, 'volibearVanguard', {
+    where: { locations: [], freeCount: 0, otherDecks: [ahriMidrange] },
+  }),
+  maybe(189, 'dawnHarrier', { where: { locations: [bulkTray], freeCount: 1, otherDecks: [] } }),
 ];
 
-export const hearthhull: DeckSummary = {
-  ...deckRefs.hearthhull,
+export const jinxBurn: DeckSummary = {
+  ...deckRefs.jinxBurn,
   deckBoxId: 9,
-  commanders: [cards.hearthhullTheWorldseed],
-  colorIdentity: 'BRG',
+  legend: cards.jinxLooseCannon,
+  champion: null,
+  domains: cards.jinxLooseCannon.domains,
   state: 'partly_assembled',
-  counts: { inBox: 58, free: 13, otherDecks: 4, missing: 3, basics: 17 },
-  // The 58 plus Groundskeeper, still in the box from the maybe board.
+  counts: { inBox: 58, free: 13, otherDecks: 4, missing: 3, runes: 17 },
+  // The 58 plus Hextech Captain, still in the box from the maybe board.
   boxCopyCount: 59,
   openedAt: '2026-10-18T21:40:00Z',
 };
 
-const atraxaDeck: DeckSummary = {
-  ...deckRefs.atraxa,
+const luxControlDeck: DeckSummary = {
+  ...deckRefs.luxControl,
   deckBoxId: 10,
-  commanders: [cards.atraxaPraetorsVoice],
-  colorIdentity: 'WUBG',
+  legend: cards.luxLadyOfLuminosity,
+  champion: null,
+  domains: cards.luxLadyOfLuminosity.domains,
   state: 'assembled',
-  counts: { inBox: 89, free: 0, otherDecks: 0, missing: 0, basics: 11 },
+  counts: { inBox: 89, free: 0, otherDecks: 0, missing: 0, runes: 11 },
   boxCopyCount: 89,
   openedAt: '2026-10-17T19:12:00Z',
 };
 
-const lathrilDeck: DeckSummary = {
-  ...deckRefs.lathril,
+const viktorTempoDeck: DeckSummary = {
+  ...deckRefs.viktorTempo,
   deckBoxId: 11,
-  commanders: [cards.lathrilBladeOfTheElves],
-  colorIdentity: 'BG',
+  legend: cards.viktorHeraldOfTheArcane,
+  champion: null,
+  domains: cards.viktorHeraldOfTheArcane.domains,
   state: 'assembled',
-  counts: { inBox: 66, free: 0, otherDecks: 0, missing: 0, basics: 34 },
+  counts: { inBox: 66, free: 0, otherDecks: 0, missing: 0, runes: 34 },
   boxCopyCount: 66,
   openedAt: '2026-10-15T02:30:00Z',
 };
 
-const merenDeck: DeckSummary = {
-  ...deckRefs.meren,
+const ahriMidrangeDeck: DeckSummary = {
+  ...deckRefs.ahriMidrange,
   deckBoxId: 12,
-  commanders: [cards.merenOfClanNelToth],
-  colorIdentity: 'BG',
+  legend: cards.ahriNineTailedFox,
+  champion: null,
+  domains: cards.ahriNineTailedFox.domains,
   state: 'assembled',
-  counts: { inBox: 68, free: 0, otherDecks: 0, missing: 0, basics: 32 },
+  counts: { inBox: 68, free: 0, otherDecks: 0, missing: 0, runes: 32 },
   boxCopyCount: 68,
   openedAt: '2026-10-11T23:05:00Z',
 };
 
-const prosperDeck: DeckSummary = {
-  ...deckRefs.prosper,
+const annieAggroDeck: DeckSummary = {
+  ...deckRefs.annieAggro,
   deckBoxId: 13,
-  commanders: [cards.prosperTomeBound],
-  colorIdentity: 'BR',
+  legend: cards.annieDarkChild,
+  champion: null,
+  domains: cards.annieDarkChild.domains,
   state: 'not_assembled',
-  counts: { inBox: 0, free: 60, otherDecks: 7, missing: 6, basics: 27 },
+  counts: { inBox: 0, free: 60, otherDecks: 7, missing: 6, runes: 27 },
   boxCopyCount: 0,
   openedAt: '2026-10-02T18:44:00Z',
 };
 
-/** Two partner commanders, imported from a deck list and never opened. */
-export const tymnaThrasios: DeckSummary = {
-  ...deckRefs.tymnaThrasios,
+/** A Legend and its Chosen Champion, imported from a deck list and never opened. */
+export const leeSinCombo: DeckSummary = {
+  ...deckRefs.leeSinCombo,
   deckBoxId: 14,
-  commanders: [cards.tymnaTheWeaver, cards.thrasiosTritonHero],
-  colorIdentity: 'WUBG',
+  legend: cards.leeSinBlindMonk,
+  champion: cards.leeSinCentered,
+  domains: cards.leeSinBlindMonk.domains,
   state: 'not_assembled',
-  counts: { inBox: 0, free: 52, otherDecks: 9, missing: 11, basics: 28 },
+  counts: { inBox: 0, free: 52, otherDecks: 9, missing: 11, runes: 28 },
   boxCopyCount: 0,
   openedAt: null,
 };
 
 /** GET /api/decks: the Decks home, most recently opened first. */
 export const deckListSample: DeckList = {
-  decks: [hearthhull, atraxaDeck, lathrilDeck, merenDeck, prosperDeck, tymnaThrasios],
+  decks: [jinxBurn, luxControlDeck, viktorTempoDeck, ahriMidrangeDeck, annieAggroDeck, leeSinCombo],
 };
 
-/** GET /api/decks/1: the Hearthhull deck view. */
-export const deckViewSample: DeckView = { deck: hearthhull, slots: hearthhullSlots };
+/** GET /api/decks/1: the Jinx Burn deck view. */
+export const deckViewSample: DeckView = { deck: jinxBurn, slots: jinxBurnSlots };
 
-/** POST /api/decks: a new deck holds only its commanders, which are free in storage. */
+/** POST /api/decks: a new deck holds only its Legend, which is free in storage. */
 export const newDeckSample: DeckSummary = {
   id: 7,
-  name: 'Korvold',
+  name: 'Darius Aggro',
   deckBoxId: 15,
-  commanders: [cards.korvoldFaeCursedKing],
-  colorIdentity: 'BRG',
+  legend: cards.dariusHandOfNoxus,
+  champion: null,
+  domains: cards.dariusHandOfNoxus.domains,
   state: 'not_assembled',
-  counts: { inBox: 0, free: 1, otherDecks: 0, missing: 0, basics: 0 },
+  counts: { inBox: 0, free: 1, otherDecks: 0, missing: 0, runes: 0 },
   boxCopyCount: 0,
   openedAt: null,
 };
 
-/** POST /api/decks/1/slots and PATCH /api/decks/1/slots/114: the Sol Ring slot. */
-export const slotSample: SlotRow = solRingSlot;
+/** POST /api/decks/1/slots and PATCH /api/decks/1/slots/114: the Sun Disc slot. */
+export const slotSample: SlotRow = sunDiscSlot;
 
-/** PUT /api/decks/1/slots/114/tags with `{ tags: ['Ramp', 'mana rock', 'ramp'] }`: repeats merge. */
-export const slotTagsSample: SlotRow = { ...solRingSlot, tags: ['mana rock', 'Ramp'] };
+/** PUT /api/decks/1/slots/114/tags with `{ tags: ['Ramp', 'energy rock', 'ramp'] }`: repeats merge. */
+export const slotTagsSample: SlotRow = { ...sunDiscSlot, tags: ['energy rock', 'Ramp'] };

@@ -1,16 +1,18 @@
 import { type SQL, sql } from 'drizzle-orm';
-import type {
-  CardSummary,
-  Finish,
-  LocationRef,
-  LocationType,
-  StackRow,
-} from '../../shared/api/common';
+import type { Finish, LocationRef, LocationType, StackRow } from '../../shared/api/common';
 import type { DeckRef } from '../../shared/api/decks';
 import type { CardCopies, LocationStacks, StacksPage, StacksQuery } from '../../shared/api/stacks';
 import type { CollectionFilter } from '../../shared/collection-query';
 import type { Db } from '../db/database';
 import { AppError } from '../errors';
+import {
+  type CardRecord,
+  cardColumnsSql,
+  type PrintingRecord,
+  printingColumnsSql,
+  toCardSummary,
+  toPrintingSummary,
+} from './card-summaries';
 import { locationNode } from './location-tree';
 import { descendantIds, locationPaths, locationTradeFlags, treeOrder } from './locations';
 import { noPriceSql, stackValue, stackValueSql, unitPriceSql } from './value';
@@ -20,54 +22,31 @@ import { noPriceSql, stackValue, stackValueSql, unitPriceSql } from './value';
 // first, so 9 comes before 10), then stack id; the Collection's search can sort other ways.
 
 /** The columns a `StackRow` is built from, as one query returns them. */
-type StackRecord = {
-  stackId: number;
-  quantity: number;
-  finish: Finish;
-  condition: string;
-  language: string;
-  misprint: number;
-  altered: number;
-  isProxy: number;
-  locationId: number;
-  cameFromLocationId: number | null;
-  oracleId: string;
-  name: string;
-  frontFaceName: string;
-  manaCost: string;
-  manaValue: number;
-  typeLine: string;
-  colorIdentity: string;
-  canBeCommander: number;
-  isBasicLand: number;
-  printingId: string;
-  setCode: string;
-  setName: string;
-  collectorNumber: string;
-  lang: string;
-  finishes: string;
-  rarity: string;
-  imageSmall: string | null;
-  imageNormal: string | null;
-  unitPrice: number | null;
-};
+type StackRecord = CardRecord &
+  PrintingRecord & {
+    stackId: number;
+    quantity: number;
+    finish: Finish;
+    condition: string;
+    language: string;
+    misprint: number;
+    altered: number;
+    isProxy: number;
+    locationId: number;
+    cameFromLocationId: number | null;
+    unitPrice: number | null;
+  };
 
 const columns = sql`
   s.id AS stackId, s.quantity, s.finish, s.condition, s.language, s.misprint, s.altered,
   s.is_proxy AS isProxy, s.location_id AS locationId,
   s.came_from_location_id AS cameFromLocationId,
-  c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
-  c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
-  c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
-  c.is_basic_land AS isBasicLand,
-  p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
-  p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
-  p.image_small AS imageSmall, p.image_normal AS imageNormal, ${unitPriceSql} AS unitPrice`;
+  ${cardColumnsSql}, ${printingColumnsSql}, ${unitPriceSql} AS unitPrice`;
 
 const from = sql`
   FROM copy_stacks AS s
-  JOIN printings AS p ON p.printing_id = s.printing_id
-  JOIN cards AS c ON c.oracle_id = p.oracle_id`;
+  JOIN printings AS p ON p.riftcodex_id = s.printing_id
+  JOIN cards AS c ON c.id = p.card_id`;
 
 /** The name order: card name, then set, then collector number (as a number first), then id. */
 const byName = [
@@ -198,38 +177,14 @@ function loadPlaces(db: Db): Places {
 }
 
 function toRow(record: StackRecord, places: Places): StackRow {
-  const card: CardSummary = {
-    oracleId: record.oracleId,
-    name: record.name,
-    frontFaceName: record.frontFaceName,
-    manaCost: record.manaCost,
-    manaValue: record.manaValue,
-    typeLine: record.typeLine,
-    colorIdentity: record.colorIdentity,
-    imageSmall: record.imageSmall,
-    imageNormal: record.imageNormal,
-    canBeCommander: record.canBeCommander === 1,
-    isBasicLand: record.isBasicLand === 1,
-  };
   const location = places.refs.get(record.locationId);
   if (!location) throw new Error(`Location ${record.locationId} is missing.`);
   const deck = location.type === 'deck_box' ? places.deckByBox.get(location.id) : undefined;
   return {
     stackId: record.stackId,
     quantity: record.quantity,
-    card,
-    printing: {
-      printingId: record.printingId,
-      oracleId: record.oracleId,
-      setCode: record.setCode,
-      setName: record.setName,
-      collectorNumber: record.collectorNumber,
-      lang: record.lang,
-      finishes: JSON.parse(record.finishes) as Finish[],
-      rarity: record.rarity,
-      imageSmall: record.imageSmall,
-      imageNormal: record.imageNormal,
-    },
+    card: toCardSummary(record),
+    printing: toPrintingSummary(record),
     finish: record.finish,
     condition: record.condition,
     language: record.language,
@@ -270,15 +225,11 @@ function condition(db: Db, filter: CollectionFilter): SQL {
     case 'name':
       return sql`instr(lower(c.name), ${filter.value}) > 0`;
     case 'set':
-      return sql`p.set_code = ${filter.value}`;
-    case 'color':
-      if (filter.value === '') return sql`c.color_identity = ''`;
-      return sql.join(
-        [...filter.value].map((color) => sql`instr(c.color_identity, ${color}) > 0`),
-        sql` AND `,
-      );
+      return sql`p.set_code = ${filter.value} COLLATE NOCASE`;
+    case 'domain':
+      return sql`EXISTS (SELECT 1 FROM json_each(c.domains) WHERE value = ${filter.value})`;
     case 'type':
-      return sql`instr(lower(c.type_line), ${filter.value}) > 0`;
+      return sql`instr(lower(c.type), ${filter.value}) > 0`;
     case 'finish':
       return sql`s.finish = ${filter.value}`;
     case 'proxy':
@@ -356,9 +307,9 @@ export function locationStacks(db: Db, id: number, includeChildren: boolean): Lo
   };
 }
 
-/** GET /api/cards/:oracleId/copies: every stack of any printing of the card, and counts. */
-export function cardCopies(db: Db, oracleId: string): CardCopies {
-  const rows = stackRows(db, sql`c.oracle_id = ${oracleId}`);
+/** GET /api/cards/:id/copies: every stack of any printing of the card, and counts. */
+export function cardCopies(db: Db, cardId: number): CardCopies {
+  const rows = stackRows(db, sql`c.id = ${cardId}`);
   const sum = (list: StackRow[]) => list.reduce((total, row) => total + row.quantity, 0);
   const owned = sum(rows);
   const inDecks = sum(rows.filter((row) => row.location.type === 'deck_box'));

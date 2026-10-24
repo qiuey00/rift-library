@@ -12,8 +12,8 @@ import { Button } from './ui/button';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-async function fetchCardCopies(oracleId: string): Promise<CardCopies> {
-  const res = await api.cards[':oracleId'].copies.$get({ param: { oracleId } });
+async function fetchCardCopies(cardId: number): Promise<CardCopies> {
+  const res = await api.cards[':id'].copies.$get({ param: { id: String(cardId) } });
   if (!res.ok) {
     throw new Error("Couldn't load your copies of this card.");
   }
@@ -21,10 +21,10 @@ async function fetchCardCopies(oracleId: string): Promise<CardCopies> {
 }
 
 /** The card page's list of Jeff's copies of a card and where each is. */
-export function CardCopiesSection({ oracleId }: { oracleId: string }) {
+export function CardCopiesSection({ cardId }: { cardId: number }) {
   const query = useQuery({
-    queryKey: ['cards', oracleId, 'copies'],
-    queryFn: () => fetchCardCopies(oracleId),
+    queryKey: ['cards', cardId, 'copies'],
+    queryFn: () => fetchCardCopies(cardId),
   });
   const [moving, setMoving] = useState<StackRow[] | null>(null);
   const [adding, setAdding] = useState(false);
@@ -65,7 +65,7 @@ export function CardCopiesSection({ oracleId }: { oracleId: string }) {
         onOpenChange={(open) => !open && setMoving(null)}
         stacks={moving ?? []}
       />
-      <AddCardDialog open={adding} onOpenChange={setAdding} defaultOracleId={oracleId} />
+      <AddCardDialog open={adding} onOpenChange={setAdding} defaultCardId={cardId} />
     </section>
   );
 }

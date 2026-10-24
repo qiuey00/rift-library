@@ -172,7 +172,7 @@ export function LocationContents({
         <AddToBuyListDialog
           open
           onOpenChange={(open) => !open && setBuying(null)}
-          oracleId={buying.card.oracleId}
+          cardId={buying.card.id}
           printingId={buying.printing.printingId}
         />
       )}

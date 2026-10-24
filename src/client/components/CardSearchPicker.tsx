@@ -2,18 +2,19 @@ import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import type { CardSearchResponse, CardSearchResult } from '../../shared/api/cards';
-import { ErrorBody } from '../../shared/api/common';
+import { type CardType, type Domain, ErrorBody } from '../../shared/api/common';
 import { api } from '../api';
-import { ManaCost } from './ManaCost';
+import { TYPE_WORDS, typeLine } from '../lib/card-text';
+import { DomainIcons } from './DomainIcon';
 
 export type CardSearchPickerProps = {
-  /** The field's label, such as "Commander". */
+  /** The field's label, such as "Legend". */
   label: string;
   placeholder?: string;
-  /** Only cards that can be commanders. */
-  commander?: boolean;
-  /** Only cards whose color identity fits inside this one, such as "BRG"; "" for colorless. */
-  identity?: string;
+  /** Only cards of this type. */
+  type?: CardType;
+  /** Only cards whose domains all fit inside these; cards with no domain always fit. */
+  domains?: Domain[];
   /** Called with the card Jeff picks; the field clears for the next search. */
   onPick: (card: CardSearchResult) => void;
   /** Disables the results while the pick is being saved. */
@@ -37,8 +38,8 @@ function useDebounced(value: string): string {
 export function CardSearchPicker({
   label,
   placeholder = 'Search by card name',
-  commander = false,
-  identity,
+  type,
+  domains,
   onPick,
   busy = false,
   autoFocus,
@@ -49,14 +50,14 @@ export function CardSearchPicker({
   const q = useDebounced(text.trim());
 
   const search = useQuery({
-    queryKey: ['cards', 'search', { q, commander, identity }],
+    queryKey: ['cards', 'search', { q, type, domains }],
     enabled: q !== '',
     queryFn: async (): Promise<CardSearchResponse> => {
-      const res = await api.cards.search.$get({
+      const res = await api.cards.$get({
         query: {
           q,
-          ...(commander ? { commander: '1' as const } : {}),
-          ...(identity !== undefined ? { identity } : {}),
+          ...(type ? { type } : {}),
+          ...(domains !== undefined ? { domains: domains.join(',') } : {}),
         },
       });
       if (!res.ok) {
@@ -77,7 +78,7 @@ export function CardSearchPicker({
     if (search.isError) message = search.error.message;
     else if (!search.data) message = 'Searching…';
     else if (search.data.results.length === 0)
-      message = commander ? 'No commanders match.' : 'No cards match.';
+      message = type ? `No ${TYPE_WORDS[type].toLowerCase()}s match.` : 'No cards match.';
   }
   const results = q !== '' ? (search.data?.results ?? []) : [];
 
@@ -113,7 +114,7 @@ export function CardSearchPicker({
           className="flex max-h-72 flex-col overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-[0_8px_24px_rgba(23,26,33,0.12)]"
         >
           {results.map((card) => (
-            <li key={card.oracleId}>
+            <li key={card.id}>
               <button
                 type="button"
                 disabled={busy}
@@ -124,10 +125,10 @@ export function CardSearchPicker({
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate font-medium">{card.name}</span>
                   <span className="truncate text-[12px] text-muted-foreground">
-                    {card.typeLine} · {card.owned} owned, {card.free} free
+                    {typeLine(card)} · {card.owned} owned, {card.free} free
                   </span>
                 </span>
-                <ManaCost cost={card.manaCost} className="text-xs" />
+                <DomainIcons domains={card.domains} className="text-xs" />
               </button>
             </li>
           ))}

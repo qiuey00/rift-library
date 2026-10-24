@@ -24,7 +24,7 @@ export const slotStatusLook: Record<SlotStatus, { word: string; icon: LucideIcon
       icon: CircleX,
       color: 'bg-status-missing-soft text-status-missing',
     },
-    basic: { word: 'Basic', icon: Layers, color: 'bg-status-basic-soft text-status-basic' },
+    rune: { word: 'Rune', icon: Layers, color: 'bg-status-rune-soft text-status-rune' },
   };
 
 /** A slot's status as a small pill: icon, word and color. */

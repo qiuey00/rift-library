@@ -16,7 +16,7 @@ Part of the [Rift Library: PRD](README.md). These screens carry out [Rift Librar
 
 The look stays Library of Gathering's: a dark top bar over a light grey page with white panels, one blue accent, Instrument Sans for text and Instrument Serif for titles, status colors, location color tiles, and teal for trade.
 
-- **Symbols.** The Mana font and Keyrune set symbols are dropped. Domains show as six colored domain icons (Fury red, Calm green, Mind blue, Body orange, Chaos purple, Order yellow), drawn as small SVGs bundled with the app, so nothing loads from the network. Sets show as their code, such as OGN, until a free set symbol font for Riftbound turns up.
+- **Symbols.** The Mana font and Keyrune set symbols are dropped. Domains show as six colored domain icons (Fury red, Calm green, Mind blue, Body orange, Chaos purple, Order yellow), drawn as small SVGs bundled with the app, so nothing loads from the network. Until they are drawn, each shows as a dot of its color. Sets show as their code, such as OGN, until a free set symbol font for Riftbound turns up.
 - **Card images.** Shown whole, from the image links Riftcodex gives, which point at Riot's own image servers. Battlefields are printed sideways, so their images and tiles are shown in landscape.
 - **Legal notice.** Settings shows Riot's notice that Rift Library isn't endorsed by Riot Games (PLAT-8).
 

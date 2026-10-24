@@ -42,6 +42,8 @@ const samples: [string, z.ZodType, unknown][] = [
   ['setProxyResultSample', ActionResult, copiesSamples.setProxyResultSample],
   ['addCopiesResultSample', ActionResult, copiesSamples.addCopiesResultSample],
   ['staleCopyErrorSample', ErrorBody, copiesSamples.staleCopyErrorSample],
+  ['removeCopiesResultSample', ActionResult, copiesSamples.removeCopiesResultSample],
+  ['inDeckErrorSample', ErrorBody, copiesSamples.inDeckErrorSample],
   ['stacksPageSample', StacksPage, stacksSamples.stacksPageSample],
   ['stacksNextPageSample', StacksPage, stacksSamples.stacksNextPageSample],
   ['stacksSearchSample', StacksPage, stacksSamples.stacksSearchSample],
@@ -161,8 +163,8 @@ describe('locations, copies and stacks request checks', () => {
       () => client.moves.$post({ json: { moves: [{ stackId: 1, quantity: 0 }], toLocationId: 9 } }),
     ],
     [
-      'a card id that is not an oracle id',
-      () => client.cards[':oracleId'].copies.$get({ param: { oracleId: 'arcane-signet' } }),
+      'a card id that is not a number',
+      () => client.cards[':id'].copies.$get({ param: { id: 'ember-signet' } }),
     ],
     [
       'history without the UTC offset',

@@ -5,13 +5,13 @@ import type { ActionResult, ErrorBody } from '../common';
 
 /** POST /api/movements/:id/undo. An undo can't be undone, so batchId is null. */
 export const undoMovementResultSample: ActionResult = {
-  message: 'Undid: moved Arcane Signet to Rares binder',
+  message: 'Undid: moved Ember Signet to Rares binder',
   batchId: null,
 };
 
 /** POST /api/batches/:id/undo for a pick list. */
 export const undoBatchResultSample: ActionResult = {
-  message: 'Undid: pick list · Hearthhull · 3 cards',
+  message: 'Undid: pick list · Jinx Burn · 3 cards',
   batchId: null,
 };
 
@@ -19,6 +19,6 @@ export const undoBatchResultSample: ActionResult = {
 export const cannotUndoErrorSample: ErrorBody = {
   error: {
     code: 'cannot_undo',
-    message: 'Arcane Signet has moved since. It is now in Rares binder.',
+    message: 'Ember Signet has moved since. It is now in Rares binder.',
   },
 };

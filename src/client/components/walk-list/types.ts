@@ -25,12 +25,12 @@ export type WalkLineData = {
   /** Tells lines apart across the whole list. */
   key: string;
   quantity: number;
-  card: Pick<CardSummary, 'oracleId' | 'name' | 'imageSmall' | 'imageNormal'>;
+  card: Pick<CardSummary, 'id' | 'name' | 'imageUrl'>;
   copy: WalkCopy;
   /** Ticked: pulled into the deck box, or put away. */
   done: boolean;
   tag?: WalkTag;
-  /** A line under the copy details, such as "Atraxa becomes partly assembled". */
+  /** A line under the copy details, such as "Lux Control becomes partly assembled". */
   note?: string;
 };
 

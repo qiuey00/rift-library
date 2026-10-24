@@ -12,39 +12,39 @@ import { putAwayList } from './put-away';
 
 type CardNeeds = { needed: number; picked: Set<string> };
 
-/** Per card: copies the commander and main slots need, and the slots' picked printings. */
-function cardNeeds(db: Db, deckId: number): Map<string, CardNeeds> {
-  const slots = db.all<{ oracleId: string; quantity: number; pickedPrintingId: string | null }>(sql`
-    SELECT oracle_id AS oracleId, quantity, picked_printing_id AS pickedPrintingId
+/** Per card: copies the slots off the maybe board need, and the slots' picked printings. */
+function cardNeeds(db: Db, deckId: number): Map<number, CardNeeds> {
+  const slots = db.all<{ cardId: number; quantity: number; pickedPrintingId: string | null }>(sql`
+    SELECT card_id AS cardId, quantity, picked_printing_id AS pickedPrintingId
     FROM deck_slots
     WHERE deck_id = ${deckId} AND board <> 'maybe'`);
-  const byCard = new Map<string, CardNeeds>();
+  const byCard = new Map<number, CardNeeds>();
   for (const slot of slots) {
-    const card = byCard.get(slot.oracleId) ?? { needed: 0, picked: new Set() };
+    const card = byCard.get(slot.cardId) ?? { needed: 0, picked: new Set() };
     card.needed += slot.quantity;
     if (slot.pickedPrintingId) card.picked.add(slot.pickedPrintingId);
-    byCard.set(slot.oracleId, card);
+    byCard.set(slot.cardId, card);
   }
   return byCard;
 }
 
 /**
- * The copies in the deck box beyond what each card's commander and main slots need (maybe
+ * The copies in the deck box beyond what each card's slots off the maybe board need (maybe
  * board slots need none, nor does a card no slot lists). Proxies go first, then stacks whose
  * printing isn't a slot's picked printing, then the rest, so the copies the list wants stay.
  * A stack can be taken out in part.
  */
-function takeOutLines(lines: PutAwayLine[], needs: Map<string, CardNeeds>): Set<PutAwayLine> {
-  const byCard = new Map<string, PutAwayLine[]>();
+function takeOutLines(lines: PutAwayLine[], needs: Map<number, CardNeeds>): Set<PutAwayLine> {
+  const byCard = new Map<number, PutAwayLine[]>();
   for (const line of lines) {
-    const list = byCard.get(line.card.oracleId) ?? [];
+    const list = byCard.get(line.card.id) ?? [];
     list.push(line);
-    byCard.set(line.card.oracleId, list);
+    byCard.set(line.card.id, list);
   }
 
   const taken = new Set<PutAwayLine>();
-  for (const [oracleId, stacks] of byCard) {
-    const card = needs.get(oracleId);
+  for (const [cardId, stacks] of byCard) {
+    const card = needs.get(cardId);
     const inBox = stacks.reduce((n, line) => n + line.quantity, 0);
     let extra = inBox - (card?.needed ?? 0);
     if (extra <= 0) continue;

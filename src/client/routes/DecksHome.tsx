@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import type { SlotStatus } from '../../shared/api/common';
 import type { DeckCounts, DeckSummary } from '../../shared/api/decks';
 import { api } from '../api';
+import { DomainIcons } from '../components/DomainIcon';
 import { Panel } from '../components/Panel';
 import { deckStateLook, StatePill } from '../components/StatePill';
 import { slotStatusLook } from '../components/StatusBadge';
@@ -131,30 +132,8 @@ function NewDeckMenu() {
   );
 }
 
-const colorWords: Record<string, string> = {
-  W: 'white',
-  U: 'blue',
-  B: 'black',
-  R: 'red',
-  G: 'green',
-};
-
-/** The deck's colors as Mana font pips; colorless shows the colorless pip. */
-function ColorPips({ colorIdentity }: { colorIdentity: string }) {
-  const colors = colorIdentity ? [...colorIdentity] : ['C'];
-  const words = colorIdentity ? colors.map((c) => colorWords[c] ?? c).join(', ') : 'colorless';
-  return (
-    <span className="inline-flex items-center gap-0.5 text-[15px]" data-colors={colorIdentity}>
-      {colors.map((c) => (
-        <i key={c} aria-hidden="true" className={`ms ms-cost ms-${c.toLowerCase()}`} />
-      ))}
-      <span className="sr-only">Colors: {words}</span>
-    </span>
-  );
-}
-
 /** The four parts of the availability bar, in order, with StatusBadge's words and colors. */
-const barParts: { key: keyof Omit<DeckCounts, 'basics'>; status: SlotStatus; fill: string }[] = [
+const barParts: { key: keyof Omit<DeckCounts, 'runes'>; status: SlotStatus; fill: string }[] = [
   { key: 'inBox', status: 'in_box', fill: 'bg-status-in-box-fill' },
   { key: 'free', status: 'free', fill: 'bg-status-free-fill' },
   { key: 'otherDecks', status: 'other_decks', fill: 'bg-status-other-decks-fill' },
@@ -209,8 +188,8 @@ function openedLabel(openedAt: string | null) {
   return `Opened ${opened.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
-function commanderNames(deck: DeckSummary) {
-  return deck.commanders.map((c) => c.name).join(' and ');
+function legendNames(deck: DeckSummary) {
+  return [deck.legend, deck.champion].flatMap((card) => (card ? [card.name] : [])).join(' and ');
 }
 
 function DeckTiles({ decks }: { decks: DeckSummary[] }) {
@@ -224,32 +203,34 @@ function DeckTiles({ decks }: { decks: DeckSummary[] }) {
             className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground transition-shadow hover:border-[#9fb3e6] hover:shadow-[0_6px_18px_rgba(23,26,33,0.10)]"
           >
             <div className="flex h-[260px] items-center justify-center gap-2 bg-muted p-3">
-              {deck.commanders.map((card) =>
-                card.imageNormal ? (
-                  <img
-                    key={card.oracleId}
-                    src={card.imageNormal}
-                    alt={card.name}
-                    loading="lazy"
-                    className="h-full min-w-0 rounded-[4.75%/3.5%] object-contain"
-                  />
-                ) : (
-                  <span
-                    key={card.oracleId}
-                    className="flex aspect-[488/680] h-full items-center justify-center rounded-lg border border-border bg-card p-3 text-center font-serif text-lg"
-                  >
-                    {card.name}
-                  </span>
-                ),
-              )}
+              {[deck.legend, deck.champion]
+                .flatMap((card) => (card ? [card] : []))
+                .map((card) =>
+                  card.imageUrl ? (
+                    <img
+                      key={card.id}
+                      src={card.imageUrl}
+                      alt={card.name}
+                      loading="lazy"
+                      className="h-full min-w-0 rounded-[4.75%/3.5%] object-contain"
+                    />
+                  ) : (
+                    <span
+                      key={card.id}
+                      className="flex aspect-[488/680] h-full items-center justify-center rounded-lg border border-border bg-card p-3 text-center font-serif text-lg"
+                    >
+                      {card.name}
+                    </span>
+                  ),
+                )}
             </div>
             <div className="flex flex-1 flex-col gap-3 px-[18px] pt-3.5 pb-4">
               <div className="flex flex-col gap-0.5">
                 <h2 className="font-serif text-[26px] leading-[1.1]">{deck.name}</h2>
-                <p className="text-[13px] text-muted-foreground">{commanderNames(deck)}</p>
+                <p className="text-[13px] text-muted-foreground">{legendNames(deck)}</p>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <ColorPips colorIdentity={deck.colorIdentity} />
+                <DomainIcons domains={deck.domains} className="text-[15px]" />
                 <StatePill state={deck.state} />
               </div>
               <AvailabilityBar counts={deck.counts} />
@@ -274,8 +255,8 @@ function DeckTable({ decks }: { decks: DeckSummary[] }) {
         <thead>
           <tr className="text-left text-muted-foreground text-xs uppercase tracking-[0.04em]">
             <th className={cn(head, 'pl-4')}>Name</th>
-            <th className={head}>Commander</th>
-            <th className={head}>Colors</th>
+            <th className={head}>Legend</th>
+            <th className={head}>Domains</th>
             <th className={head}>State</th>
             <th className={cn(head, num)}>In box</th>
             <th className={cn(head, num)}>Free</th>
@@ -292,9 +273,9 @@ function DeckTable({ decks }: { decks: DeckSummary[] }) {
                   {deck.name}
                 </Link>
               </td>
-              <td className={cell}>{commanderNames(deck)}</td>
+              <td className={cell}>{legendNames(deck)}</td>
               <td className={cell}>
-                <ColorPips colorIdentity={deck.colorIdentity} />
+                <DomainIcons domains={deck.domains} className="text-[15px]" />
               </td>
               <td className={cell}>
                 <StatePill state={deck.state} />

@@ -1,5 +1,5 @@
 import { type SQL, sql } from 'drizzle-orm';
-import type { CardSummary, Finish, LocationRef, LocationType } from '../../shared/api/common';
+import type { LocationRef, LocationType } from '../../shared/api/common';
 import type { DeckRef } from '../../shared/api/decks';
 import type {
   BatchKind,
@@ -11,13 +11,21 @@ import type {
   MovementRow,
 } from '../../shared/api/history';
 import type { Db } from '../db/database';
+import {
+  type CardRecord,
+  cardColumnsSql,
+  type PrintingRecord,
+  printingColumnsSql,
+  toCardSummary,
+  toPrintingSummary,
+} from './card-summaries';
 import { locationPaths, locationTradeFlags, PATH_SEPARATOR } from './locations';
 
 // History: every movement, one day of Jeff's clock at a time (HIST-2, FIND-6). Movements are
 // never deleted, so each answer reads only one day's rows plus a few small lookups.
 
 /** Batches shown as one entry that expands; movements of other batches stand alone. */
-const GROUPED_KINDS: readonly BatchKind[] = ['import', 'pick_list', 'put_away', 'swap', 'undo'];
+const GROUPED_KINDS: readonly BatchKind[] = ['pick_list', 'put_away', 'swap', 'undo'];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,52 +33,29 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 type Filters = Omit<HistoryQuery, 'before'>;
 
 /** The columns a `MovementRow` is built from, as one query returns them. */
-type MovementRecord = {
-  id: number;
-  batchId: number;
-  createdAt: string;
-  quantity: number;
-  fromLocationId: number | null;
-  toLocationId: number | null;
-  reason: MovementReason;
-  deckId: number | null;
-  undoneAt: string | null;
-  oracleId: string;
-  name: string;
-  frontFaceName: string;
-  manaCost: string;
-  manaValue: number;
-  typeLine: string;
-  colorIdentity: string;
-  canBeCommander: number;
-  isBasicLand: number;
-  printingId: string;
-  setCode: string;
-  setName: string;
-  collectorNumber: string;
-  lang: string;
-  finishes: string;
-  rarity: string;
-  imageSmall: string | null;
-  imageNormal: string | null;
-};
+type MovementRecord = CardRecord &
+  PrintingRecord & {
+    id: number;
+    batchId: number;
+    createdAt: string;
+    quantity: number;
+    fromLocationId: number | null;
+    toLocationId: number | null;
+    reason: MovementReason;
+    deckId: number | null;
+    undoneAt: string | null;
+  };
 
 const columns = sql`
   m.id, m.batch_id AS batchId, m.created_at AS createdAt, m.quantity,
   m.from_location_id AS fromLocationId, m.to_location_id AS toLocationId, m.reason,
   m.deck_id AS deckId, m.undone_at AS undoneAt,
-  c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
-  c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
-  c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
-  c.is_basic_land AS isBasicLand,
-  p.printing_id AS printingId, p.set_code AS setCode, p.set_name AS setName,
-  p.collector_number AS collectorNumber, p.lang, p.finishes, p.rarity,
-  p.image_small AS imageSmall, p.image_normal AS imageNormal`;
+  ${cardColumnsSql}, ${printingColumnsSql}`;
 
 const from = sql`
   FROM movements AS m
-  JOIN printings AS p ON p.printing_id = m.printing_id
-  JOIN cards AS c ON c.oracle_id = p.oracle_id`;
+  JOIN printings AS p ON p.riftcodex_id = m.printing_id
+  JOIN cards AS c ON c.id = p.card_id`;
 
 /** Every location, deleted ones too, so old movements still name where copies were. */
 type Places = {
@@ -156,7 +141,7 @@ function filterSql(filters: Filters, places: Places): SQL {
   const conditions: SQL[] = [];
   if (filters.card !== undefined) {
     conditions.push(
-      sql`m.printing_id IN (SELECT printing_id FROM printings WHERE oracle_id = ${filters.card})`,
+      sql`m.printing_id IN (SELECT riftcodex_id FROM printings WHERE card_id = ${filters.card})`,
     );
   }
   if (filters.location !== undefined) {
@@ -242,7 +227,7 @@ class Summaries {
     return id === null ? null : (this.decks.get(id) ?? null);
   }
 
-  /** Such as "Pick list · Hearthhull · 12 cards". */
+  /** Such as "Pick list · Jinx Burn · 12 cards". */
   summary(batch: BatchInfo, depth = 0): string {
     const known = this.texts.get(batch.id);
     if (known !== undefined) return known;
@@ -256,8 +241,6 @@ class Summaries {
     const deckName = this.deck(batch.deckId)?.name;
     const list = (name: string) => [name, deckName, cards].filter(Boolean).join(' · ');
     switch (batch.kind) {
-      case 'import':
-        return `Imported ${cards}`;
       case 'pick_list':
         return list('Pick list');
       case 'put_away':
@@ -270,12 +253,14 @@ class Summaries {
         return `Moved ${cards}`;
       case 'add':
         return `Added ${cards}`;
+      case 'remove':
+        return `Removed ${cards}`;
     }
   }
 
   /**
-   * Such as "Undid: Pick list · Hearthhull · 3 cards" for a whole batch, or "Undid: moved
-   * Arcane Signet to Rares binder" for one movement.
+   * Such as "Undid: Pick list · Jinx Burn · 3 cards" for a whole batch, or "Undid: moved
+   * Ember Signet to Rares binder" for one movement.
    */
   private undoSummary(batch: BatchInfo, depth: number): string {
     const undid = this.db.all<{
@@ -288,8 +273,8 @@ class Summaries {
       SELECT t.batch_id AS batchId, t.quantity, t.reason, t.to_location_id AS toLocationId, c.name
       FROM movements AS u
       JOIN movements AS t ON t.id = u.undoes_movement_id
-      JOIN printings AS p ON p.printing_id = t.printing_id
-      JOIN cards AS c ON c.oracle_id = p.oracle_id
+      JOIN printings AS p ON p.riftcodex_id = t.printing_id
+      JOIN cards AS c ON c.id = p.card_id
       WHERE u.batch_id = ${batch.id}
       ORDER BY t.id`);
     const first = undid[0];
@@ -318,8 +303,8 @@ class Summaries {
 
 /** How an undo summary names the movement it undid. */
 const VERBS: Record<MovementReason, string> = {
-  imported: 'imported',
   added: 'added',
+  removed: 'removed',
   moved: 'moved',
   assembled: 'pulled',
   returned: 'put back',
@@ -330,36 +315,12 @@ const VERBS: Record<MovementReason, string> = {
 };
 
 function toMovementRow(record: MovementRecord, places: Places, summaries: Summaries): MovementRow {
-  const card: CardSummary = {
-    oracleId: record.oracleId,
-    name: record.name,
-    frontFaceName: record.frontFaceName,
-    manaCost: record.manaCost,
-    manaValue: record.manaValue,
-    typeLine: record.typeLine,
-    colorIdentity: record.colorIdentity,
-    imageSmall: record.imageSmall,
-    imageNormal: record.imageNormal,
-    canBeCommander: record.canBeCommander === 1,
-    isBasicLand: record.isBasicLand === 1,
-  };
   const place = (id: number | null) => (id === null ? null : (places.refs.get(id) ?? null));
   return {
     id: record.id,
     createdAt: record.createdAt,
-    card,
-    printing: {
-      printingId: record.printingId,
-      oracleId: record.oracleId,
-      setCode: record.setCode,
-      setName: record.setName,
-      collectorNumber: record.collectorNumber,
-      lang: record.lang,
-      finishes: JSON.parse(record.finishes) as Finish[],
-      rarity: record.rarity,
-      imageSmall: record.imageSmall,
-      imageNormal: record.imageNormal,
-    },
+    card: toCardSummary(record),
+    printing: toPrintingSummary(record),
     quantity: record.quantity,
     from: place(record.fromLocationId),
     to: place(record.toLocationId),

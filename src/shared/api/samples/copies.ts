@@ -5,7 +5,7 @@ import type { ActionResult, ErrorBody } from '../common';
 
 /** POST /api/moves with one whole stack. */
 export const moveResultSample: ActionResult = {
-  message: 'Moved Arcane Signet to Hearthhull deck box',
+  message: 'Moved Ember Signet to Jinx Burn deck box',
   batchId: 103,
 };
 
@@ -29,11 +29,22 @@ export const setProxyResultSample: ActionResult = {
 
 /** POST /api/stacks/add. */
 export const addCopiesResultSample: ActionResult = {
-  message: 'Added 1 Arcane Signet to Rares binder',
+  message: 'Added 1 Ember Signet to Rares binder',
   batchId: 109,
 };
 
 /** POST /api/moves when a stack no longer holds the copies. */
 export const staleCopyErrorSample: ErrorBody = {
   error: { code: 'stale_copy', message: 'This copy has moved, pick another' },
+};
+
+/** POST /api/copies/remove: two copies of one stack sold. */
+export const removeCopiesResultSample: ActionResult = {
+  message: 'Removed 2 Ember Signet (sold)',
+  batchId: 110,
+};
+
+/** POST /api/copies/remove for a stack in a deck box. */
+export const inDeckErrorSample: ErrorBody = {
+  error: { code: 'in_deck', message: 'These copies are in a deck. Take them out first.' },
 };

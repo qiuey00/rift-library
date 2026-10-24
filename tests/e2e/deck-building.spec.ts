@@ -1,23 +1,23 @@
 import { expect, type Page, type Request, test } from '@playwright/test';
 import type { CardSearchResponse } from '../../src/shared/api/cards';
 import type { DeckView } from '../../src/shared/api/decks';
-import { arcaneSearch, commanderSearch } from '../../src/shared/api/samples/cards';
+import { emberSearch, legendSearch } from '../../src/shared/api/samples/cards';
 import { cards } from '../../src/shared/api/samples/deck-cards';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
 import {
   deckViewSample,
-  hearthhull,
+  jinxBurn,
   newDeckSample,
   slotSample,
 } from '../../src/shared/api/samples/decks';
 
 // Building a deck in the app, with the API mocked from the samples: /decks/new, and the
-// deck view's Edit mode on the Hearthhull deck (id 1).
+// deck view's Edit mode on the Jinx Burn deck (id 1).
 
-const SEARCH = /\/api\/cards\/search\?/;
+const SEARCH = /\/api\/cards\?/;
 
-const korvoldSearch: CardSearchResponse = {
-  results: [{ ...cards.korvoldFaeCursedKing, owned: 1, free: 1 }],
+const dariusAggroSearch: CardSearchResponse = {
+  results: [{ ...cards.dariusHandOfNoxus, owned: 1, free: 1 }],
 };
 
 /** Answers every card search with `answer`, and keeps each search's query. */
@@ -52,10 +52,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('New deck', () => {
-  test('the commander search asks only for commanders, and Create sends the deck', async ({
-    page,
-  }) => {
-    const searches = await mockSearch(page, commanderSearch);
+  test('the Legend search asks only for legends, and Create sends the deck', async ({ page }) => {
+    const searches = await mockSearch(page, legendSearch);
     const newDeckView: DeckView = { deck: newDeckSample, slots: [] };
     await page.route('**/api/decks/7', (route) => route.fulfill({ json: newDeckView }));
     const created = await capture(page, 'POST', '/api/decks', newDeckSample, 201);
@@ -65,82 +63,49 @@ test.describe('New deck', () => {
     const create = page.getByRole('button', { name: 'Create' });
     await expect(create).toBeDisabled();
 
-    await page.getByLabel('Commander', { exact: true }).fill('hearthhull');
+    await page.getByLabel('Legend', { exact: true }).fill('jinx');
     await page
-      .getByRole('list', { name: 'Commander results' })
-      .getByRole('button', { name: 'Hearthhull, the Worldseed' })
+      .getByRole('list', { name: 'Legend results' })
+      .getByRole('button', { name: 'Jinx, Loose Cannon' })
       .click();
-    expect(searches.at(-1)?.get('q')).toBe('hearthhull');
-    expect(searches.at(-1)?.get('commander')).toBe('1');
-    expect(searches.at(-1)?.has('identity')).toBe(false);
+    expect(searches.at(-1)?.get('q')).toBe('jinx');
+    expect(searches.at(-1)?.get('type')).toBe('legend');
+    expect(searches.at(-1)?.has('domains')).toBe(false);
 
-    await expect(page.getByRole('region', { name: 'Commander' })).toContainText(
-      'Hearthhull, the Worldseed',
-    );
-    await expect(page.getByLabel('Deck name', { exact: true })).toHaveValue(
-      'Hearthhull, the Worldseed',
-    );
+    await expect(page.getByRole('region', { name: 'Legend' })).toContainText('Jinx, Loose Cannon');
+    await expect(page.getByLabel('Deck name', { exact: true })).toHaveValue('Jinx, Loose Cannon');
 
-    await page.getByLabel('Deck name', { exact: true }).fill('Worldseed Lands');
+    await page.getByLabel('Deck name', { exact: true }).fill('Jinx Burn');
     await create.click();
     await expect(page).toHaveURL(/\/decks\/7$/);
     expect(created.map((request) => request.postDataJSON())).toEqual([
-      { name: 'Worldseed Lands', commanders: [cards.hearthhullTheWorldseed.oracleId] },
+      { name: 'Jinx Burn', legendId: cards.jinxLooseCannon.id },
     ]);
-  });
-
-  test('a partner is searched the same way and names the deck with both', async ({ page }) => {
-    const searches = await mockSearch(page, commanderSearch);
-    const created = await capture(page, 'POST', '/api/decks', newDeckSample, 201);
-    await page.route('**/api/decks/7', (route) =>
-      route.fulfill({ json: { deck: newDeckSample, slots: [] } }),
-    );
-
-    await page.goto('/decks/new');
-    await page.getByLabel('Commander', { exact: true }).fill('hearthhull');
-    await page.getByRole('button', { name: 'Hearthhull, the Worldseed' }).click();
-
-    await page.unroute(SEARCH);
-    const partnerSearches = await mockSearch(page, korvoldSearch);
-    await page.getByLabel('Partner (optional)', { exact: true }).fill('korvold');
-    await page.getByRole('button', { name: 'Korvold, Fae-Cursed King' }).click();
-    expect(partnerSearches.at(-1)?.get('commander')).toBe('1');
-    expect(searches.length).toBeGreaterThan(0);
-
-    await expect(page.getByLabel('Deck name', { exact: true })).toHaveValue(
-      'Hearthhull, the Worldseed & Korvold, Fae-Cursed King',
-    );
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page).toHaveURL(/\/decks\/7$/);
-    expect(created[0]?.postDataJSON()).toEqual({
-      name: 'Hearthhull, the Worldseed & Korvold, Fae-Cursed King',
-      commanders: [cards.hearthhullTheWorldseed.oracleId, cards.korvoldFaeCursedKing.oracleId],
-    });
   });
 });
 
 test.describe('Editing on the deck view', () => {
-  test('Edit shows the Add card search, filtered to the deck colors', async ({ page }) => {
-    const searches = await mockSearch(page, arcaneSearch);
+  test('Edit shows the Add card search, filtered to the deck domains', async ({ page }) => {
+    const searches = await mockSearch(page, emberSearch);
     const added = await capture(page, 'POST', '/api/decks/1/slots', slotSample);
 
     await page.goto('/decks/1');
     await expect(page.getByRole('region', { name: 'Edit deck' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Edit Sol Ring' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Edit Sun Disc' })).toHaveCount(0);
 
     const edit = page.getByRole('button', { name: 'Edit', exact: true });
     await edit.click();
     await expect(edit).toHaveAttribute('aria-pressed', 'true');
     const panel = page.getByRole('region', { name: 'Edit deck' });
-    await panel.getByLabel('Add card', { exact: true }).fill('arcane');
-    await panel.getByRole('button', { name: 'Arcane Signet' }).click();
+    await panel.getByLabel('Add card', { exact: true }).fill('ember');
+    await panel.getByRole('button', { name: 'Ember Signet' }).click();
 
-    expect(searches.at(-1)?.get('q')).toBe('arcane');
-    expect(searches.at(-1)?.get('identity')).toBe(hearthhull.colorIdentity);
-    expect(searches.at(-1)?.has('commander')).toBe(false);
-    await expect(panel.getByRole('status')).toHaveText('Added Arcane Signet to the main board.');
+    expect(searches.at(-1)?.get('q')).toBe('ember');
+    expect(searches.at(-1)?.get('domains')).toBe(jinxBurn.domains.join(','));
+    expect(searches.at(-1)?.has('type')).toBe(false);
+    await expect(panel.getByRole('status')).toHaveText('Added Ember Signet to the main board.');
     expect(added.map((request) => request.postDataJSON())).toEqual([
-      { oracleId: cards.arcaneSignet.oracleId, board: 'main', quantity: 1 },
+      { cardId: cards.emberSignet.id, board: 'main', quantity: 1 },
     ]);
 
     await panel.getByRole('button', { name: 'Done editing' }).click();
@@ -157,7 +122,7 @@ test.describe('Editing on the deck view', () => {
     await page.goto('/decks/1');
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
 
-    await page.getByRole('button', { name: 'Edit Sol Ring' }).click();
+    await page.getByRole('button', { name: 'Edit Sun Disc' }).click();
     await page.getByRole('menuitem', { name: 'Change quantity' }).click();
     const dialog = page.getByRole('dialog', { name: 'Change quantity' });
     await expect(dialog.getByLabel('Quantity', { exact: true })).toHaveValue('1');
@@ -165,16 +130,16 @@ test.describe('Editing on the deck view', () => {
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(dialog).toBeHidden();
 
-    await page.getByRole('button', { name: 'Edit Sol Ring' }).click();
+    await page.getByRole('button', { name: 'Edit Sun Disc' }).click();
     await page.getByRole('menuitem', { name: 'Move to maybe board' }).click();
     await expect.poll(() => changes.length).toBe(2);
 
-    await page.getByRole('button', { name: 'Edit Loamcrafter Faun' }).click();
+    await page.getByRole('button', { name: 'Edit Ivory Reaver' }).click();
     await expect(page.getByRole('menuitem', { name: 'Move to maybe board' })).toHaveCount(0);
     await page.getByRole('menuitem', { name: 'Move to main board' }).click();
     await expect.poll(() => toMain.length).toBe(1);
 
-    await page.getByRole('button', { name: 'Edit Sol Ring' }).click();
+    await page.getByRole('button', { name: 'Edit Sun Disc' }).click();
     await page.getByRole('menuitem', { name: 'Remove' }).click();
     await expect.poll(() => removed.length).toBe(1);
 
@@ -185,54 +150,24 @@ test.describe('Editing on the deck view', () => {
     expect(toMain[0]?.postDataJSON()).toEqual({ board: 'main' });
   });
 
-  test('the commander menu changes the commander and adds or removes a partner', async ({
-    page,
-  }) => {
-    const searches = await mockSearch(page, korvoldSearch);
-    const puts = await capture(page, 'PUT', '/api/decks/1/commanders', deckViewSample);
-    const hearthhullId = cards.hearthhullTheWorldseed.oracleId;
-    const korvoldId = cards.korvoldFaeCursedKing.oracleId;
+  test('the Legend menu changes the Legend', async ({ page }) => {
+    const searches = await mockSearch(page, dariusAggroSearch);
+    const puts = await capture(page, 'PUT', '/api/decks/1/legend', deckViewSample);
 
     await page.goto('/decks/1');
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
 
-    const commanderMenu = page.getByRole('button', { name: 'Edit Hearthhull, the Worldseed' });
-    await commanderMenu.click();
+    await page.getByRole('button', { name: 'Edit Jinx, Loose Cannon' }).click();
     await expect(page.getByRole('menuitem', { name: 'Change quantity' })).toHaveCount(0);
-    await page.getByRole('menuitem', { name: 'Change commander' }).click();
-    let dialog = page.getByRole('dialog', { name: 'Change commander' });
-    await dialog.getByLabel('Commander', { exact: true }).fill('korvold');
-    await dialog.getByRole('button', { name: 'Korvold, Fae-Cursed King' }).click();
+    await page.getByRole('menuitem', { name: 'Change legend' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Change legend' });
+    await dialog.getByLabel('Legend', { exact: true }).fill('darius');
+    await dialog.getByRole('button', { name: 'Darius, Hand of Noxus' }).click();
     await expect(dialog).toBeHidden();
-    expect(searches.at(-1)?.get('commander')).toBe('1');
-
-    await commanderMenu.click();
-    await page.getByRole('menuitem', { name: 'Add a partner' }).click();
-    dialog = page.getByRole('dialog', { name: 'Add a partner' });
-    await dialog.getByLabel('Commander', { exact: true }).fill('korvold');
-    await dialog.getByRole('button', { name: 'Korvold, Fae-Cursed King' }).click();
-    await expect(dialog).toBeHidden();
+    expect(searches.at(-1)?.get('type')).toBe('legend');
 
     expect(puts.map((request) => request.postDataJSON())).toEqual([
-      { oracleIds: [korvoldId] },
-      { oracleIds: [hearthhullId, korvoldId] },
+      { legendId: cards.dariusHandOfNoxus.id },
     ]);
-  });
-
-  test('a deck with two commanders offers Remove partner', async ({ page }) => {
-    const partners: DeckView = {
-      ...deckViewSample,
-      deck: { ...hearthhull, commanders: [cards.hearthhullTheWorldseed, cards.tymnaTheWeaver] },
-    };
-    await page.route('**/api/decks/1', (route) => route.fulfill({ json: partners }));
-    const puts = await capture(page, 'PUT', '/api/decks/1/commanders', deckViewSample);
-
-    await page.goto('/decks/1');
-    await page.getByRole('button', { name: 'Edit', exact: true }).click();
-    await page.getByRole('button', { name: 'Edit Hearthhull, the Worldseed' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Add a partner' })).toHaveCount(0);
-    await page.getByRole('menuitem', { name: 'Remove this partner' }).click();
-    await expect.poll(() => puts.length).toBe(1);
-    expect(puts[0]?.postDataJSON()).toEqual({ oracleIds: [cards.tymnaTheWeaver.oracleId] });
   });
 });

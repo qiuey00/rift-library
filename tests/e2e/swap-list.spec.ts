@@ -3,7 +3,7 @@ import type { PullRequest } from '../../src/shared/api/pulls';
 import type { ReturnRequest } from '../../src/shared/api/put-away';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
 import { deckViewSample } from '../../src/shared/api/samples/decks';
-import { cards, locations, printings, stack } from '../../src/shared/api/samples/hearthhull';
+import { cards, locations, printings, stack } from '../../src/shared/api/samples/jinx-burn';
 import { locationTreeSample } from '../../src/shared/api/samples/locations';
 import { pullResultSample } from '../../src/shared/api/samples/pulls';
 import { returnResultSample } from '../../src/shared/api/samples/put-away';
@@ -11,8 +11,8 @@ import { swapSample } from '../../src/shared/api/samples/swap';
 import { undoMovementResultSample } from '../../src/shared/api/samples/undo';
 import type { SwapResponse } from '../../src/shared/api/swap';
 
-// The swap list and the deck view's banner with the API mocked from the samples: Hearthhull
-// (deck 1) lost Rampaging Baloths and Blasphemous Act, and gained Uurg and World Breaker.
+// The swap list and the deck view's banner with the API mocked from the samples: Jinx Burn
+// (deck 1) lost Swift Skirmisher and Vigilant Surge, and gained Volibear, Vanguard and Dawn Harrier.
 
 type Sent = { returns: ReturnRequest[]; pulls: PullRequest[]; undone: string[] };
 
@@ -51,21 +51,21 @@ test('both parts render, grouped by destination and by location', async ({ page 
   await page.goto('/decks/1/swap');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Swap list');
-  await expect(page.getByRole('link', { name: 'Hearthhull' })).toHaveAttribute('href', '/decks/1');
+  await expect(page.getByRole('link', { name: 'Jinx Burn' })).toHaveAttribute('href', '/decks/1');
 
   const out = part(page, 'Take out');
-  await expect(out.getByRole('region', { name: 'Long box › Black & Green' })).toContainText(
-    'Rampaging Baloths',
+  await expect(out.getByRole('region', { name: 'Long box › Chaos & Calm' })).toContainText(
+    'Swift Skirmisher',
   );
-  await expect(out.getByRole('region', { name: 'Long box › Red & Gold' })).toContainText(
-    'Blasphemous Act',
+  await expect(out.getByRole('region', { name: 'Long box › Fury & Order' })).toContainText(
+    'Vigilant Surge',
   );
 
   const pullIn = part(page, 'Pull in');
-  await expect(pullIn.getByRole('region', { name: 'Long box › Black & Green' })).toContainText(
-    'Uurg, Spawn of Turg',
+  await expect(pullIn.getByRole('region', { name: 'Long box › Chaos & Calm' })).toContainText(
+    'Volibear, Vanguard',
   );
-  await expect(pullIn.getByRole('region', { name: 'Rares binder' })).toContainText('World Breaker');
+  await expect(pullIn.getByRole('region', { name: 'Rares binder' })).toContainText('Dawn Harrier');
 
   await expect(page.getByText('0 of 2 taken out · 0 of 2 pulled in')).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Cards swapped' })).toHaveAttribute(
@@ -79,18 +79,18 @@ test('ticks send the right reasons and share one batch', async ({ page }) => {
   await page.goto('/decks/1/swap');
 
   const returned = posted(page, '/api/decks/1/returns');
-  await tick(page, /Rampaging Baloths/).check();
+  await tick(page, /Swift Skirmisher/).check();
   await returned;
-  await expect(tick(page, /Rampaging Baloths/)).toBeChecked();
+  await expect(tick(page, /Swift Skirmisher/)).toBeChecked();
   expect(sent.returns[0]).toEqual({
     lines: [{ stackId: 308, quantity: 1 }],
     reason: 'swapped_out',
   });
 
   const pulled = posted(page, '/api/decks/1/pulls');
-  await tick(page, /Uurg/).check();
+  await tick(page, /Volibear, Vanguard/).check();
   await pulled;
-  await expect(tick(page, /Uurg/)).toBeChecked();
+  await expect(tick(page, /Volibear, Vanguard/)).toBeChecked();
   expect(sent.pulls[0]).toEqual({
     slotId: 121,
     stackId: 220,
@@ -108,18 +108,18 @@ test('ticks send the right reasons and share one batch', async ({ page }) => {
 
   // Unticking undoes that line's move.
   const undone = posted(page, `/api/movements/${pullResultSample.movementId}/undo`);
-  await tick(page, /Uurg/).uncheck();
+  await tick(page, /Volibear, Vanguard/).uncheck();
   await undone;
-  await expect(tick(page, /Uurg/)).not.toBeChecked();
+  await expect(tick(page, /Volibear, Vanguard/)).not.toBeChecked();
 });
 
 test('Send elsewhere sends toLocationId and hides deck boxes', async ({ page }) => {
   const sent = await mockSwap(page);
   await page.goto('/decks/1/swap');
 
-  await page.getByRole('button', { name: 'More for Blasphemous Act' }).click();
+  await page.getByRole('button', { name: 'More for Vigilant Surge' }).click();
   await page.getByRole('menuitem', { name: 'Send elsewhere…' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Send Blasphemous Act elsewhere' });
+  const dialog = page.getByRole('dialog', { name: 'Send Vigilant Surge elsewhere' });
   await dialog.getByRole('combobox', { name: 'Where it goes' }).click();
   const options = page.getByRole('option');
   await expect(options.filter({ hasText: 'Rares binder' })).toBeVisible();
@@ -130,7 +130,7 @@ test('Send elsewhere sends toLocationId and hides deck boxes', async ({ page }) 
 
   await expect(part(page, 'Take out')).toContainText('Send to Rares binder');
   const returned = posted(page, '/api/decks/1/returns');
-  await tick(page, /Blasphemous Act/).check();
+  await tick(page, /Vigilant Surge/).check();
   await returned;
   expect(sent.returns[0].lines).toEqual([
     { stackId: 309, quantity: 1, toLocationId: locations.raresBinder.id },
@@ -139,11 +139,17 @@ test('Send elsewhere sends toLocationId and hides deck boxes', async ({ page }) 
 });
 
 test('Switch copy pulls the picked copy; a copy in another deck asks first', async ({ page }) => {
-  const otherCopy = stack(230, cards.worldBreaker, printings.worldBreakerEoc, locations.bulkTray);
-  const inAtraxa = stack(231, cards.uurg, printings.uurgEoc, locations.atraxaBox, {
-    inDeck: { deckId: 2, deckName: 'Atraxa' },
-  });
-  const [blackGreen, rares] = swapSample.pullIn.groups;
+  const otherCopy = stack(230, cards.dawnHarrier, printings.dawnHarrierOgn, locations.bulkTray);
+  const inLuxControl = stack(
+    231,
+    cards.volibearVanguard,
+    printings.volibearVanguardOgn,
+    locations.luxControlBox,
+    {
+      inDeck: { deckId: 2, deckName: 'Lux Control' },
+    },
+  );
+  const [chaosCalm, rares] = swapSample.pullIn.groups;
   const swap: SwapResponse = {
     ...swapSample,
     pullIn: {
@@ -151,9 +157,9 @@ test('Switch copy pulls the picked copy; a copy in another deck asks first', asy
       groups: [{ ...rares, lines: [{ ...rares.lines[0], alternatives: [otherCopy] }] }],
       otherDecks: [
         {
-          ...blackGreen.lines[0],
-          suggested: inAtraxa,
-          fromDeck: { id: 2, name: 'Atraxa', becomesPartly: true },
+          ...chaosCalm.lines[0],
+          suggested: inLuxControl,
+          fromDeck: { id: 2, name: 'Lux Control', becomesPartly: true },
         },
       ],
     },
@@ -161,27 +167,29 @@ test('Switch copy pulls the picked copy; a copy in another deck asks first', asy
   const sent = await mockSwap(page, swap);
   await page.goto('/decks/1/swap');
 
-  await page.getByRole('button', { name: 'Switch copy of World Breaker' }).click();
+  await page.getByRole('button', { name: 'Switch copy of Dawn Harrier' }).click();
   await page.getByRole('menuitemradio', { name: /Bulk tray/ }).click();
   await expect(part(page, 'Pull in')).toContainText('Switched · Bulk tray');
   const pulled = posted(page, '/api/decks/1/pulls');
-  await tick(page, /World Breaker/).check();
+  await tick(page, /Dawn Harrier/).check();
   await pulled;
   expect(sent.pulls[0]).toMatchObject({ slotId: 122, stackId: 230, reason: 'swapped_in' });
 
-  await expect(part(page, 'Pull in')).toContainText('Atraxa becomes partly assembled');
+  await expect(part(page, 'Pull in')).toContainText('Lux Control becomes partly assembled');
   // Ticking asks first, so the box stays unticked until Pull it.
-  await tick(page, /Uurg/).click();
-  const confirm = page.getByRole('dialog', { name: /Pull Uurg, Spawn of Turg from the Atraxa/ });
-  await expect(confirm).toContainText('Atraxa becomes partly assembled.');
+  await tick(page, /Volibear, Vanguard/).click();
+  const confirm = page.getByRole('dialog', {
+    name: /Pull Volibear, Vanguard from the Lux Control/,
+  });
+  await expect(confirm).toContainText('Lux Control becomes partly assembled.');
   await confirm.getByRole('button', { name: 'Cancel' }).click();
-  await expect(tick(page, /Uurg/)).not.toBeChecked();
+  await expect(tick(page, /Volibear, Vanguard/)).not.toBeChecked();
   expect(sent.pulls).toHaveLength(1);
 
-  await tick(page, /Uurg/).click();
-  const pulledFromAtraxa = posted(page, '/api/decks/1/pulls');
+  await tick(page, /Volibear, Vanguard/).click();
+  const pulledFromLuxControl = posted(page, '/api/decks/1/pulls');
   await confirm.getByRole('button', { name: 'Pull it' }).click();
-  await pulledFromAtraxa;
+  await pulledFromLuxControl;
   expect(sent.pulls[1]).toMatchObject({ slotId: 121, stackId: 231, reason: 'swapped_in' });
 });
 
@@ -223,7 +231,7 @@ test.describe('deck view banner', () => {
     const swapRequest = page.waitForResponse((r) => r.url().endsWith('/api/decks/1/swap'));
     await page.goto('/decks/1');
     await swapRequest;
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hearthhull');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Jinx Burn');
     await expect(page.getByRole('status', { name: 'Swap list' })).toHaveCount(0);
   });
 });

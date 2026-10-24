@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type {
+  Board,
   CardSummary,
   DeckState,
   Finish,
@@ -9,13 +10,22 @@ import type {
 } from '../../shared/api/common';
 import type { PrintingHint } from '../../shared/api/decks';
 import type {
-  BasicLandLine,
   MissingLine,
   PickGroup,
   PickLine,
   PickList,
+  RuneLine,
 } from '../../shared/api/pick-list';
 import type { Db } from '../db/database';
+import {
+  type CardRecord,
+  cardColumnsSql,
+  type PrintingRecord,
+  printingColumnsSql,
+  toCardSummary,
+  toPrintingSummary,
+} from './card-summaries';
+import { BOARD_ORDER } from './decks';
 import { locationPaths, locationTradeFlags } from './locations';
 import { stackValue, unitPriceSql } from './value';
 
@@ -23,32 +33,22 @@ import { stackValue, unitPriceSql } from './value';
 // box. It is worked out every time it opens and never stored, so it shows only what is left.
 //
 // Storage is every live location that isn't a deck box. Copies of a card are copy stacks of
-// any printing, and proxies count like real copies. Basic lands are never tracked, so they
+// any printing, and proxies count like real copies. Runes are never tracked (D-15), so they
 // are only counts to add. The swap list reuses `pickList`.
 
 type DeckRecord = { id: number; name: string; deckBoxId: number };
 
-type SlotRecord = {
+type SlotRecord = CardRecord & {
   id: number;
   deckId: number;
-  board: 'commander' | 'main' | 'maybe';
+  board: Board;
   quantity: number;
   pickedPrintingId: string | null;
-  hintSetCode: string | null;
-  hintCollectorNumber: string | null;
+  hintPublicCode: string | null;
   hintFoil: number;
-  oracleId: string;
-  name: string;
-  frontFaceName: string;
-  manaCost: string;
-  manaValue: number;
-  typeLine: string;
-  colorIdentity: string;
-  canBeCommander: number;
-  isBasicLand: number;
 };
 
-type StackRecord = {
+type StackRecord = PrintingRecord & {
   stackId: number;
   quantity: number;
   finish: Finish;
@@ -59,16 +59,7 @@ type StackRecord = {
   isProxy: number;
   locationId: number;
   cameFromLocationId: number | null;
-  oracleId: string;
-  printingId: string;
-  setCode: string;
-  setName: string;
-  collectorNumber: string;
-  lang: string;
-  finishes: string;
-  rarity: string;
-  imageSmall: string | null;
-  imageNormal: string | null;
+  cardId: number;
   unitPrice: number | null;
 };
 
@@ -80,21 +71,20 @@ type World = {
   treeIndex: Map<number, number>;
   /** Live decks by their deck box id. */
   deckByBox: Map<number, DeckRecord>;
-  /** Every slot of every live deck, commander board first, then by id. */
+  /** Every slot of every live deck, in board order, then by id. */
   slotsByDeck: Map<number, SlotRecord[]>;
   /**
-   * oracle id → every stack of the card in a live location, for the deck's own cards, plus
+   * card id → every stack of the card in a live location, for the deck's own cards, plus
    * every stack in a deck box (what other decks' states are worked out from).
    */
-  stacksByCard: Map<string, StackRecord[]>;
-  /** The image of each of the deck's cards' newest English printing, for lines with no stack. */
-  images: Map<string, Pick<CardSummary, 'imageSmall' | 'imageNormal'>>;
+  stacksByCard: Map<number, StackRecord[]>;
 };
 
-const BOARD_ORDER = { commander: 0, main: 1, maybe: 2 } as const;
+/** Runes are always available, as basic lands were in Library of Gathering (D-15). */
+const isRune = (slot: SlotRecord) => slot.type === 'rune';
 
 /**
- * Loads what one deck's pick list reads. Stacks and images are only read for the deck's own
+ * Loads what one deck's pick list reads. Stacks are only read for the deck's own
  * cards (and stacks in deck boxes), so the answer stays quick with a big collection.
  */
 function loadWorld(db: Db, deckId: number): World {
@@ -143,15 +133,11 @@ function loadWorld(db: Db, deckId: number): World {
   for (const slot of db.all<SlotRecord>(sql`
     SELECT
       s.id, s.deck_id AS deckId, s.board, s.quantity,
-      s.picked_printing_id AS pickedPrintingId, s.hint_set_code AS hintSetCode,
-      s.hint_collector_number AS hintCollectorNumber, s.hint_foil AS hintFoil,
-      c.oracle_id AS oracleId, c.name, c.front_face_name AS frontFaceName,
-      c.mana_cost AS manaCost, c.mana_value AS manaValue, c.type_line AS typeLine,
-      c.color_identity AS colorIdentity, c.can_be_commander AS canBeCommander,
-      c.is_basic_land AS isBasicLand
+      s.picked_printing_id AS pickedPrintingId, s.hint_public_code AS hintPublicCode,
+      s.hint_foil AS hintFoil, ${cardColumnsSql}
     FROM deck_slots AS s
     JOIN decks AS d ON d.id = s.deck_id AND d.deleted_at IS NULL
-    JOIN cards AS c ON c.oracle_id = s.oracle_id`)) {
+    JOIN cards AS c ON c.id = s.card_id`)) {
     const list = slotsByDeck.get(slot.deckId) ?? [];
     list.push(slot);
     slotsByDeck.set(slot.deckId, list);
@@ -160,60 +146,29 @@ function loadWorld(db: Db, deckId: number): World {
     list.sort((a, b) => BOARD_ORDER[a.board] - BOARD_ORDER[b.board] || a.id - b.id);
   }
 
-  const stacksByCard = new Map<string, StackRecord[]>();
+  const stacksByCard = new Map<number, StackRecord[]>();
   for (const stack of db.all<StackRecord>(sql`
     SELECT
       s.id AS stackId, s.quantity, s.finish, s.condition, s.language, s.misprint, s.altered,
       s.is_proxy AS isProxy, s.location_id AS locationId,
       s.came_from_location_id AS cameFromLocationId,
-      p.oracle_id AS oracleId, p.printing_id AS printingId, p.set_code AS setCode,
-      p.set_name AS setName, p.collector_number AS collectorNumber, p.lang, p.finishes,
-      p.rarity, p.image_small AS imageSmall, p.image_normal AS imageNormal,
-      ${unitPriceSql} AS unitPrice
+      p.card_id AS cardId, ${printingColumnsSql}, ${unitPriceSql} AS unitPrice
     FROM copy_stacks AS s
-    JOIN printings AS p ON p.printing_id = s.printing_id
-    WHERE p.oracle_id IN (SELECT oracle_id FROM deck_slots WHERE deck_id = ${deckId})
+    JOIN printings AS p ON p.riftcodex_id = s.printing_id
+    WHERE p.card_id IN (SELECT card_id FROM deck_slots WHERE deck_id = ${deckId})
       OR s.location_id IN (SELECT id FROM locations WHERE type = 'deck_box')
     ORDER BY s.id`)) {
     if (!treeIndex.has(stack.locationId)) continue; // in a deleted location
-    const list = stacksByCard.get(stack.oracleId) ?? [];
+    const list = stacksByCard.get(stack.cardId) ?? [];
     list.push(stack);
-    stacksByCard.set(stack.oracleId, list);
+    stacksByCard.set(stack.cardId, list);
   }
 
-  const images = new Map<string, Pick<CardSummary, 'imageSmall' | 'imageNormal'>>();
-  for (const row of db.all<{
-    oracleId: string;
-    imageSmall: string | null;
-    imageNormal: string | null;
-  }>(sql`
-    SELECT oracle_id AS oracleId, image_small AS imageSmall, image_normal AS imageNormal
-    FROM printings
-    WHERE oracle_id IN (SELECT oracle_id FROM deck_slots WHERE deck_id = ${deckId})
-    ORDER BY lang = 'en' DESC, released_at DESC`)) {
-    if (!images.has(row.oracleId)) {
-      images.set(row.oracleId, { imageSmall: row.imageSmall, imageNormal: row.imageNormal });
-    }
-  }
-
-  return { refs, treeIndex, deckByBox, slotsByDeck, stacksByCard, images };
+  return { refs, treeIndex, deckByBox, slotsByDeck, stacksByCard };
 }
 
-function cardOf(slot: SlotRecord, world: World): CardSummary {
-  const images = world.images.get(slot.oracleId);
-  return {
-    oracleId: slot.oracleId,
-    name: slot.name,
-    frontFaceName: slot.frontFaceName,
-    manaCost: slot.manaCost,
-    manaValue: slot.manaValue,
-    typeLine: slot.typeLine,
-    colorIdentity: slot.colorIdentity,
-    imageSmall: images?.imageSmall ?? null,
-    imageNormal: images?.imageNormal ?? null,
-    canBeCommander: slot.canBeCommander === 1,
-    isBasicLand: slot.isBasicLand === 1,
-  };
+function cardOf(slot: SlotRecord): CardSummary {
+  return toCardSummary(slot);
 }
 
 function stackRow(stack: StackRecord, card: CardSummary, world: World): StackRow {
@@ -223,19 +178,8 @@ function stackRow(stack: StackRecord, card: CardSummary, world: World): StackRow
   return {
     stackId: stack.stackId,
     quantity: stack.quantity,
-    card: { ...card, imageSmall: stack.imageSmall, imageNormal: stack.imageNormal },
-    printing: {
-      printingId: stack.printingId,
-      oracleId: stack.oracleId,
-      setCode: stack.setCode,
-      setName: stack.setName,
-      collectorNumber: stack.collectorNumber,
-      lang: stack.lang,
-      finishes: JSON.parse(stack.finishes) as Finish[],
-      rarity: stack.rarity,
-      imageSmall: stack.imageSmall,
-      imageNormal: stack.imageNormal,
-    },
+    card: { ...card, imageUrl: stack.imageUrl },
+    printing: toPrintingSummary(stack),
     finish: stack.finish,
     condition: stack.condition,
     language: stack.language,
@@ -252,12 +196,8 @@ function stackRow(stack: StackRecord, card: CardSummary, world: World): StackRow
 }
 
 function hintOf(slot: SlotRecord): PrintingHint | null {
-  return slot.hintSetCode && slot.hintCollectorNumber
-    ? {
-        setCode: slot.hintSetCode,
-        collectorNumber: slot.hintCollectorNumber,
-        foil: slot.hintFoil === 1,
-      }
+  return slot.hintPublicCode
+    ? { publicCode: slot.hintPublicCode, foil: slot.hintFoil === 1 }
     : null;
 }
 
@@ -266,20 +206,20 @@ function isListedPrinting(slot: SlotRecord, stack: StackRecord): boolean {
   if (slot.pickedPrintingId) return stack.printingId === slot.pickedPrintingId;
   const hint = hintOf(slot);
   if (!hint) return false;
+  const code = stack.publicCode.toLowerCase();
+  const wanted = hint.publicCode.toLowerCase();
   return (
-    stack.setCode.toLowerCase() === hint.setCode.toLowerCase() &&
-    stack.collectorNumber === hint.collectorNumber &&
-    (!hint.foil || stack.finish === 'foil')
+    (code === wanted || code.startsWith(`${wanted}/`)) && (!hint.foil || stack.finish === 'foil')
   );
 }
 
-/** Copies of each card in each deck box, shared out among a deck's slots of that card, commander first. */
-function boxCopies(world: World, deckBoxId: number): Map<string, number> {
-  const inBox = new Map<string, number>();
-  for (const [oracleId, stacks] of world.stacksByCard) {
+/** Copies of each card in each deck box, shared out among a deck's slots of that card, in board order. */
+function boxCopies(world: World, deckBoxId: number): Map<number, number> {
+  const inBox = new Map<number, number>();
+  for (const [cardId, stacks] of world.stacksByCard) {
     for (const stack of stacks) {
       if (stack.locationId === deckBoxId) {
-        inBox.set(oracleId, (inBox.get(oracleId) ?? 0) + stack.quantity);
+        inBox.set(cardId, (inBox.get(cardId) ?? 0) + stack.quantity);
       }
     }
   }
@@ -292,8 +232,8 @@ function needs(world: World, deck: DeckRecord) {
   const result: { slot: SlotRecord; needed: number }[] = [];
   for (const slot of world.slotsByDeck.get(deck.id) ?? []) {
     if (slot.board === 'maybe') continue; // never pulled
-    const inBox = Math.min(left.get(slot.oracleId) ?? 0, slot.quantity);
-    left.set(slot.oracleId, (left.get(slot.oracleId) ?? 0) - inBox);
+    const inBox = Math.min(left.get(slot.cardId) ?? 0, slot.quantity);
+    left.set(slot.cardId, (left.get(slot.cardId) ?? 0) - inBox);
     result.push({ slot, needed: slot.quantity - inBox });
   }
   return result;
@@ -309,10 +249,10 @@ function deckState(world: World, deck: DeckRecord): DeckState {
   let filled = 0;
   let touched = 0;
   for (const { slot, needed } of needs(world, deck)) {
-    if (slot.isBasicLand === 1) continue;
+    if (isRune(slot)) continue;
     tracked += 1;
     if (needed === 0) filled += 1;
-    if ((inBox.get(slot.oracleId) ?? 0) > 0) touched += 1;
+    if ((inBox.get(slot.cardId) ?? 0) > 0) touched += 1;
   }
   if (touched === 0) return 'not_assembled';
   return filled === tracked ? 'assembled' : 'partly_assembled';
@@ -391,27 +331,27 @@ export function pickList(db: Db, deckId: number): PickList | undefined {
   const otherDeckOf = (stack: StackRecord) =>
     stack.locationId === deck.deckBoxId ? undefined : world.deckByBox.get(stack.locationId);
 
-  const basics = new Map<string, BasicLandLine>();
+  const runes = new Map<number, RuneLine>();
   const wanted: { slot: SlotRecord; card: CardSummary; needed: number }[] = [];
   for (const { slot, needed } of needs(world, deck)) {
     if (needed <= 0) continue;
-    const card = cardOf(slot, world);
-    if (slot.isBasicLand === 1) {
-      const line = basics.get(slot.oracleId) ?? { card, quantity: 0 };
+    const card = cardOf(slot);
+    if (isRune(slot)) {
+      const line = runes.get(slot.cardId) ?? { card, quantity: 0 };
       line.quantity += needed;
-      basics.set(slot.oracleId, line);
+      runes.set(slot.cardId, line);
     } else {
       wanted.push({ slot, card, needed });
     }
   }
 
-  // Copies left in each stack as lines claim them (one card can fill a commander and a main slot).
+  // Copies left in each stack as lines claim them (one card can fill a main and a sideboard slot).
   const left = new Map<number, number>();
   for (const stacks of world.stacksByCard.values()) {
     for (const stack of stacks) left.set(stack.stackId, stack.quantity);
   }
   const storageOf = (slot: SlotRecord) =>
-    (world.stacksByCard.get(slot.oracleId) ?? []).filter(isStorage);
+    (world.stacksByCard.get(slot.cardId) ?? []).filter(isStorage);
   // Copies for trade are offered only once no other copy is free, other decks' boxes included.
   // A deck box can't be marked for trade, so copies in deck boxes are never trade copies here.
   const isTrade = (stack: StackRecord) => isStorage(stack) && inTrade(stack, world);
@@ -440,7 +380,7 @@ export function pickList(db: Db, deckId: number): PickList | undefined {
       world,
     );
     let rest = needed - fromStorage.reduce((n, c) => n + c.quantity, 0);
-    const others = (world.stacksByCard.get(slot.oracleId) ?? []).filter((s) => otherDeckOf(s));
+    const others = (world.stacksByCard.get(slot.cardId) ?? []).filter((s) => otherDeckOf(s));
     const fromOthers = rest > 0 ? take(slot, others, rest, new Set(), left, world) : [];
     rest -= fromOthers.reduce((n, c) => n + c.quantity, 0);
     const fromTrade = rest > 0 ? take(slot, storage.filter(isTrade), rest, route, left, world) : [];
@@ -476,7 +416,7 @@ export function pickList(db: Db, deckId: number): PickList | undefined {
       ).map((s) => stackRow(s, card, world));
     const storageAlternatives = alternativesIn(storageOf(slot));
     const otherAlternatives = alternativesIn(
-      (world.stacksByCard.get(slot.oracleId) ?? []).filter((s) => otherDeckOf(s)),
+      (world.stacksByCard.get(slot.cardId) ?? []).filter((s) => otherDeckOf(s)),
     );
 
     let number = 0;
@@ -523,7 +463,7 @@ export function pickList(db: Db, deckId: number): PickList | undefined {
     groups: pickGroups,
     otherDecks,
     missing,
-    basics: [...basics.values()].sort((a, b) => a.card.name.localeCompare(b.card.name)),
+    runes: [...runes.values()].sort((a, b) => a.card.name.localeCompare(b.card.name)),
     totals: { lines: walked.length, cards: walked.reduce((n, line) => n + line.quantity, 0) },
   };
 }

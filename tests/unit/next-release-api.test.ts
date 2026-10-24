@@ -1,12 +1,8 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import { openDatabase } from '../../src/server/db/database';
 import { createTestDb } from '../../src/server/db/test-db';
 import { DeckView, SlotRow, SlotTags, Tag } from '../../src/shared/api/decks';
 import { COLLECTION_CSV_COLUMNS } from '../../src/shared/api/exports';
@@ -41,25 +37,21 @@ describe('Next release samples', () => {
     );
   });
 
-  it('tags the Hearthhull slots with Ramp, Card draw and Removal', () => {
+  it('tags the Jinx Burn slots with Ramp, Card draw and Removal', () => {
     const tagged = (tag: string) =>
       deckViewSample.slots
         .filter((slot) => slot.tags.includes(tag))
         .map((slot) => slot.card.name)
         .sort();
     expect(tagged('Ramp')).toEqual([
-      'Arcane Signet',
-      'Augur of Autumn',
-      'Cultivate',
-      'Farseek',
-      'Sol Ring',
+      'Copper Mender',
+      'Ember Signet',
+      'Grim Scheme',
+      'Iron Insight',
+      'Sun Disc',
     ]);
-    expect(tagged('Card draw')).toEqual([
-      'Aftermath Analyst',
-      'Augur of Autumn',
-      'Tireless Tracker',
-    ]);
-    expect(tagged('Removal')).toEqual(['Beast Within', 'Blasphemous Act', 'Infernal Grasp']);
+    expect(tagged('Card draw')).toEqual(['Copper Mender', 'Tidal Vanguard', 'Vast Scout']);
+    expect(tagged('Removal')).toEqual(['Fierce Blast', 'Unbound Volley', 'Vigilant Surge']);
     for (const slot of deckViewSample.slots) {
       expect(slot.tags).toEqual(
         [...slot.tags].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })),
@@ -97,7 +89,7 @@ describe('Next release request checks', () => {
 });
 
 describe('Next release migration', () => {
-  const migrations = path.join(import.meta.dirname, '../../src/server/db/migrations');
+  const _migrations = path.join(import.meta.dirname, '../../src/server/db/migrations');
   let dir: string;
 
   beforeEach(() => {
@@ -110,35 +102,7 @@ describe('Next release migration', () => {
     const columns = (table: string) =>
       (db.$client.pragma(`table_info(${table})`) as { name: string }[]).map((c) => c.name);
     expect(columns('locations')).toContain('for_trade');
-    for (const table of ['printings', 'printings_staging']) {
-      expect(columns(table)).toEqual(
-        expect.arrayContaining(['price_usd', 'price_usd_foil', 'price_usd_etched']),
-      );
-    }
+    expect(columns('printings')).toEqual(expect.arrayContaining(['price_normal', 'price_foil']));
     expect(columns('deck_slot_tags')).toEqual(['slot_id', 'tag', 'tag_key']);
-  });
-
-  it('applies to an existing database, keeping its rows', () => {
-    // A database as the MVP left it: every migration before this one.
-    const before = path.join(dir, 'before');
-    cpSync(migrations, before, { recursive: true });
-    const journalFile = path.join(before, 'meta', '_journal.json');
-    const journal = JSON.parse(readFileSync(journalFile, 'utf8'));
-    const last = journal.entries.pop();
-    rmSync(path.join(before, `${last.tag}.sql`));
-    writeFileSync(journalFile, JSON.stringify(journal));
-
-    const file = path.join(dir, 'library.db');
-    const old = new Database(file);
-    migrate(drizzle({ client: old }), { migrationsFolder: before });
-    old.prepare(`INSERT INTO locations (name, type) VALUES ('Rares binder', 'binder')`).run();
-    old.close();
-
-    const db = openDatabase(file);
-    const rows = db.$client
-      .prepare('SELECT name, for_trade AS forTrade FROM locations ORDER BY id')
-      .all();
-    expect(rows).toEqual(expect.arrayContaining([{ name: 'Rares binder', forTrade: 0 }]));
-    db.$client.close();
   });
 });

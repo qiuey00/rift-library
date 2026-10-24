@@ -3,8 +3,8 @@ import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import { cards, copyStacks, decks, locations, printings } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { copyStacks, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { ErrorBody } from '../../src/shared/api/common';
 import {
   LocationNode,
@@ -26,28 +26,8 @@ beforeEach(() => {
   db = createTestDb();
   setDb(db);
   inboxId = db.select().from(locations).get()?.id ?? 0;
-  db.insert(cards)
-    .values({
-      oracleId: 'oracle-sol-ring',
-      name: 'Sol Ring',
-      frontFaceName: 'Sol Ring',
-      typeLine: 'Artifact',
-      commanderLegality: 'legal',
-    })
-    .run();
-  db.insert(printings)
-    .values({
-      printingId: 'print-sol-ring',
-      oracleId: 'oracle-sol-ring',
-      setCode: 'eoc',
-      setName: 'Edge of Eternities Commander',
-      collectorNumber: '57',
-      lang: 'en',
-      finishes: ['nonfoil'],
-      rarity: 'uncommon',
-      releasedAt: '2025-08-01',
-    })
-    .run();
+  const cardId = insertCard(db, { name: 'Sun Disc', energy: 1 });
+  insertPrinting(db, { riftcodexId: 'print-sol-ring', cardId, collectorNumber: '57' });
 });
 afterEach(() => db.$client.close());
 
@@ -82,7 +62,7 @@ function addCopies(locationId: number, quantity: number, condition = 'near_mint'
     .values({
       printingId: 'print-sol-ring',
       quantity,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition,
       language: 'en',
       locationId,
@@ -121,7 +101,7 @@ describe('GET /api/locations/tree', () => {
   });
 
   it('lists locations in tree order with paths, depth and counts including children', async () => {
-    const deckBox = await create('Hearthhull deck box', 'deck_box');
+    const deckBox = await create('Jinx Burn deck box', 'deck_box');
     const longBox = await create('Long box', 'box');
     const lands = await create('Lands', 'box', longBox.id);
     const basics = await create('Basics', 'tray', lands.id);
@@ -132,7 +112,7 @@ describe('GET /api/locations/tree', () => {
     addCopies(basics.id, 10);
     addCopies(basics.id, 2, 'played');
     addCopies(deckBox.id, 1);
-    addDeck('Hearthhull', deckBox.id);
+    addDeck('Jinx Burn', deckBox.id);
 
     const nodes = await tree();
     expect(names(nodes)).toEqual([
@@ -141,7 +121,7 @@ describe('GET /api/locations/tree', () => {
       'Lands',
       'Basics',
       'Rares binder',
-      'Hearthhull deck box',
+      'Jinx Burn deck box',
     ]);
     const byName = new Map(nodes.map((node) => [node.name, node]));
     expect(byName.get('Basics')).toMatchObject({
@@ -154,9 +134,9 @@ describe('GET /api/locations/tree', () => {
     expect(byName.get('Long box')).toMatchObject({ cardCount: 1, totalCount: 17 });
     expect(byName.get('To sort')).toMatchObject({ cardCount: 3, totalCount: 3 });
     expect(byName.get('Rares binder')).toMatchObject({ cardCount: 0, totalCount: 0, deck: null });
-    expect(byName.get('Hearthhull deck box')?.deck).toEqual({
+    expect(byName.get('Jinx Burn deck box')?.deck).toEqual({
       id: expect.any(Number),
-      name: 'Hearthhull',
+      name: 'Jinx Burn',
     });
     expect(binder.type).toBe('binder');
   });
@@ -361,16 +341,16 @@ describe('DELETE /api/locations/:id', () => {
       message: 'To sort is the inbox, so it can’t be renamed or deleted.',
     });
 
-    const deckBox = await create('Hearthhull deck box', 'deck_box');
-    addDeck('Hearthhull', deckBox.id);
+    const deckBox = await create('Jinx Burn deck box', 'deck_box');
+    addDeck('Jinx Burn', deckBox.id);
     expect(await errorCode(await remove(deckBox.id), 400)).toEqual({
       code: 'deck_box_protected',
-      message: 'Hearthhull deck box belongs to the Hearthhull deck. Delete the deck to remove it.',
+      message: 'Jinx Burn deck box belongs to the Jinx Burn deck. Delete the deck to remove it.',
     });
 
     const shelf = await create('Shelf', 'box');
-    const atraxaBox = await create('Atraxa deck box', 'deck_box', shelf.id);
-    addDeck('Atraxa', atraxaBox.id);
+    const luxControlBox = await create('Lux Control deck box', 'deck_box', shelf.id);
+    addDeck('Lux Control', luxControlBox.id);
     expect((await errorCode(await remove(shelf.id), 400)).code).toBe('deck_box_protected');
     expect(names(await tree())).toContain('Shelf');
   });

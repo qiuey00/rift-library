@@ -80,7 +80,7 @@ describe('UndoBar', () => {
         message: 'These cards have moved since, so undo can’t put them back.',
       },
     });
-    const { bar, invalidate } = renderBar({ message: 'Moved 1 card to Hearthhull', batchId: 5 });
+    const { bar, invalidate } = renderBar({ message: 'Moved 1 card to Jinx Burn', batchId: 5 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
 
@@ -99,7 +99,7 @@ describe('UndoBar', () => {
         throw new TypeError('Failed to fetch');
       }),
     );
-    const { bar } = renderBar({ message: 'Moved 1 card to Hearthhull', batchId: 5 });
+    const { bar } = renderBar({ message: 'Moved 1 card to Jinx Burn', batchId: 5 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
 

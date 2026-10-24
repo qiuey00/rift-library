@@ -7,27 +7,20 @@ import type { Finish, PrintingSummary } from '../../shared/api/common';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { CardCopiesSection } from '../components/CardCopiesSection';
 import { CardDecksSection } from '../components/CardDecksSection';
-import { ManaCost } from '../components/ManaCost';
+import { DomainIcons } from '../components/DomainIcon';
 import { Panel } from '../components/Panel';
 import { Button } from '../components/ui/button';
+import { typeLine } from '../lib/card-text';
 import { ApiError, cardDetailsQuery } from '../lib/cards';
-import { cn } from '../lib/utils';
 
-const finishWords: Record<Finish, string> = {
-  nonfoil: 'Nonfoil',
-  foil: 'Foil',
-  etched: 'Etched',
-};
-
-/** Keyrune colors the four usual rarities; other rarities keep the plain symbol. */
-const rarityClasses = new Set(['common', 'uncommon', 'rare', 'mythic']);
+const finishWords: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** One card: its printings, Jeff's copies and the decks that use it (`/cards/:oracleId`). */
+/** One card: its printings, Jeff's copies and the decks that use it (`/cards/:id`). */
 export function Card() {
-  const oracleId = useParams().oracleId ?? '';
-  const details = useQuery(cardDetailsQuery(oracleId));
+  const cardId = Number(useParams().id);
+  const details = useQuery(cardDetailsQuery(cardId));
 
   return (
     <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 pt-8 pb-12">
@@ -53,8 +46,8 @@ export function Card() {
       )}
       {details.data && (
         <>
-          <CardCopiesSection oracleId={oracleId} />
-          <CardDecksSection oracleId={oracleId} />
+          <CardCopiesSection cardId={cardId} />
+          <CardDecksSection cardId={cardId} />
         </>
       )}
     </div>
@@ -71,8 +64,8 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
         <header className="flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
             <h1 className="font-serif text-[48px] leading-none">{card.name}</h1>
-            <ManaCost cost={card.manaCost} className="text-lg" />
-            <span className="text-base text-muted-foreground">{card.typeLine}</span>
+            <DomainIcons domains={card.domains} className="text-lg" />
+            <span className="text-base text-muted-foreground">{typeLine(card)}</span>
           </div>
           <Counts counts={counts} />
           <div className="flex flex-wrap gap-2">
@@ -81,7 +74,7 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
               Add to buy list
             </Button>
             <Button variant="outline" asChild>
-              <Link to={`/history?card=${card.oracleId}`}>
+              <Link to={`/history?card=${card.id}`}>
                 <History aria-hidden="true" />
                 History
               </Link>
@@ -92,10 +85,10 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
       </div>
 
       <figure className="flex-[0_0_312px]">
-        {card.imageNormal ? (
+        {card.imageUrl ? (
           // Show the whole card, never cropped or covered.
           <img
-            src={card.imageNormal}
+            src={card.imageUrl}
             alt={card.name}
             width={488}
             height={680}
@@ -108,11 +101,7 @@ function CardTop({ details }: { details: CardDetailsResponse }) {
         )}
       </figure>
 
-      <AddToBuyListDialog
-        open={buyListOpen}
-        onOpenChange={setBuyListOpen}
-        oracleId={card.oracleId}
-      />
+      <AddToBuyListDialog open={buyListOpen} onOpenChange={setBuyListOpen} cardId={card.id} />
     </div>
   );
 }
@@ -160,19 +149,11 @@ function Printings({ printings }: { printings: PrintingSummary[] }) {
             <tr key={p.printingId} className="border-[#eceef2] border-t">
               <td className="px-4 py-2.5">
                 <span className="flex items-center gap-2.5">
-                  <i
-                    aria-hidden="true"
-                    className={cn(
-                      'ss ss-fw text-lg',
-                      `ss-${p.setCode}`,
-                      rarityClasses.has(p.rarity) && `ss-${p.rarity}`,
-                    )}
-                  />
                   <span className="font-semibold">{p.setName}</span>
-                  <span className="text-muted-foreground text-xs uppercase">{p.setCode}</span>
+                  <span className="text-muted-foreground text-xs">{p.setCode}</span>
                 </span>
               </td>
-              <td className="px-2 py-2.5 tabular-nums">#{p.collectorNumber}</td>
+              <td className="px-2 py-2.5 tabular-nums">{p.publicCode}</td>
               <td className="px-4 py-2.5">{p.finishes.map((f) => finishWords[f]).join(', ')}</td>
             </tr>
           ))}

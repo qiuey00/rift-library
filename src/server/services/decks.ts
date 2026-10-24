@@ -19,7 +19,7 @@ type SlotDbRow = typeof deckSlots.$inferSelect;
 
 const now = () => new Date().toISOString();
 
-/** The name a new deck's box gets, such as "Hearthhull deck box". */
+/** The name a new deck's box gets, such as "Jinx Burn deck box". */
 export function defaultBoxName(deckName: string) {
   return `${deckName} deck box`;
 }
@@ -46,18 +46,18 @@ function slotOrThrow(db: Db, deckId: number, slotId: number) {
 }
 
 /** Refuses cards the card data doesn't know, before a foreign key would. */
-function checkCards(db: Db, oracleIds: string[]) {
-  const wanted = [...new Set(oracleIds)];
+function checkCards(db: Db, cardIds: number[]) {
+  const wanted = [...new Set(cardIds)];
   if (wanted.length === 0) return;
   const known = new Set(
     db
-      .select({ oracleId: cards.oracleId })
+      .select({ id: cards.id })
       .from(cards)
-      .where(inArray(cards.oracleId, wanted))
+      .where(inArray(cards.id, wanted))
       .all()
-      .map((row) => row.oracleId),
+      .map((row) => row.id),
   );
-  if (wanted.some((oracleId) => !known.has(oracleId))) {
+  if (wanted.some((cardId) => !known.has(cardId))) {
     throw new AppError(
       400,
       'card_not_found',
@@ -70,7 +70,7 @@ function checkCards(db: Db, oracleIds: string[]) {
 function mergeInputs(slots: DeckSlotInput[]) {
   const merged = new Map<string, DeckSlotInput>();
   for (const slot of slots) {
-    const key = `${slot.board}\n${slot.oracleId}`;
+    const key = `${slot.board}\n${slot.cardId}`;
     const existing = merged.get(key);
     if (existing) {
       existing.quantity += slot.quantity;
@@ -85,8 +85,7 @@ function mergeInputs(slots: DeckSlotInput[]) {
 
 function hintColumns(hint: PrintingHint | null | undefined) {
   return {
-    hintSetCode: hint?.setCode ?? null,
-    hintCollectorNumber: hint?.collectorNumber ?? null,
+    hintPublicCode: hint?.publicCode ?? null,
     hintFoil: hint?.foil ?? false,
   };
 }
@@ -157,16 +156,12 @@ export function setSlotTags(db: Db, deckId: number, slotId: number, tags: string
   });
 }
 
-function findSlot(db: Db, deckId: number, oracleId: string, board: Board) {
+function findSlot(db: Db, deckId: number, cardId: number, board: Board) {
   return db
     .select()
     .from(deckSlots)
     .where(
-      and(
-        eq(deckSlots.deckId, deckId),
-        eq(deckSlots.oracleId, oracleId),
-        eq(deckSlots.board, board),
-      ),
+      and(eq(deckSlots.deckId, deckId), eq(deckSlots.cardId, cardId), eq(deckSlots.board, board)),
     )
     .get();
 }
@@ -183,7 +178,7 @@ export function createDeck(db: Db, input: { name: string; slots: DeckSlotInput[]
   return db.transaction((tx) => {
     checkCards(
       tx,
-      input.slots.map((slot) => slot.oracleId),
+      input.slots.map((slot) => slot.cardId),
     );
     const top = tx
       .select({ position: max(locations.position) })
@@ -211,7 +206,7 @@ export function createDeck(db: Db, input: { name: string; slots: DeckSlotInput[]
         .values(
           slots.map((slot) => ({
             deckId: deck.id,
-            oracleId: slot.oracleId,
+            cardId: slot.cardId,
             board: slot.board,
             quantity: slot.quantity,
             ...hintColumns(slot.hint),
@@ -242,23 +237,20 @@ export function renameDeck(db: Db, deckId: number, name: string) {
   });
 }
 
-/**
- * Makes these cards (one, or two partners) the deck's commanders. A new commander already on
- * the main board moves up from it, keeping its picked printing; former commanders leave the deck.
- */
-export function setCommanders(db: Db, deckId: number, oracleIds: string[]) {
+/** Makes this card the deck's Legend; the former Legend leaves the deck. */
+export function setLegend(db: Db, deckId: number, legendId: number) {
   db.transaction((tx) => {
     deckOrThrow(tx, deckId);
-    checkCards(tx, oracleIds);
-    const wanted = new Set(oracleIds);
+    checkCards(tx, [legendId]);
     const current = tx
       .select()
       .from(deckSlots)
-      .where(and(eq(deckSlots.deckId, deckId), eq(deckSlots.board, 'commander')))
+      .where(and(eq(deckSlots.deckId, deckId), eq(deckSlots.board, 'legend')))
       .all();
+    let kept = false;
     for (const slot of current) {
-      if (wanted.has(slot.oracleId)) {
-        wanted.delete(slot.oracleId);
+      if (slot.cardId === legendId && !kept) {
+        kept = true;
         if (slot.quantity !== 1) {
           tx.update(deckSlots).set({ quantity: 1 }).where(eq(deckSlots.id, slot.id)).run();
         }
@@ -266,30 +258,8 @@ export function setCommanders(db: Db, deckId: number, oracleIds: string[]) {
         tx.delete(deckSlots).where(eq(deckSlots.id, slot.id)).run();
       }
     }
-    for (const oracleId of wanted) {
-      const main = findSlot(tx, deckId, oracleId, 'main');
-      if (main && main.quantity === 1) {
-        tx.update(deckSlots).set({ board: 'commander' }).where(eq(deckSlots.id, main.id)).run();
-        continue;
-      }
-      if (main) {
-        tx.update(deckSlots)
-          .set({ quantity: main.quantity - 1 })
-          .where(eq(deckSlots.id, main.id))
-          .run();
-      }
-      const commander = tx
-        .insert(deckSlots)
-        .values({
-          deckId,
-          oracleId,
-          board: 'commander',
-          quantity: 1,
-          pickedPrintingId: main?.pickedPrintingId ?? null,
-        })
-        .returning({ id: deckSlots.id })
-        .get();
-      if (main) copyTags(tx, main.id, commander.id);
+    if (!kept) {
+      tx.insert(deckSlots).values({ deckId, cardId: legendId, board: 'legend', quantity: 1 }).run();
     }
     touch(tx, deckId);
   });
@@ -299,8 +269,8 @@ export function setCommanders(db: Db, deckId: number, oracleIds: string[]) {
 export function addSlot(db: Db, deckId: number, input: DeckSlotInput): number {
   return db.transaction((tx) => {
     deckOrThrow(tx, deckId);
-    checkCards(tx, [input.oracleId]);
-    const existing = findSlot(tx, deckId, input.oracleId, input.board);
+    checkCards(tx, [input.cardId]);
+    const existing = findSlot(tx, deckId, input.cardId, input.board);
     touch(tx, deckId);
     if (existing) {
       tx.update(deckSlots)
@@ -313,7 +283,7 @@ export function addSlot(db: Db, deckId: number, input: DeckSlotInput): number {
       .insert(deckSlots)
       .values({
         deckId,
-        oracleId: input.oracleId,
+        cardId: input.cardId,
         board: input.board,
         quantity: input.quantity,
         ...hintColumns(input.hint),
@@ -339,7 +309,7 @@ export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: Boa
   return db.transaction((tx) => {
     const slot = slotOrThrow(tx, deckId, slotId);
     if (slot.board === board) return slot.id;
-    const target = findSlot(tx, deckId, slot.oracleId, board);
+    const target = findSlot(tx, deckId, slot.cardId, board);
     touch(tx, deckId);
     if (!target) {
       tx.update(deckSlots).set({ board }).where(eq(deckSlots.id, slot.id)).run();
@@ -349,7 +319,7 @@ export function moveSlotBoard(db: Db, deckId: number, slotId: number, board: Boa
       .set({
         quantity: target.quantity + slot.quantity,
         pickedPrintingId: target.pickedPrintingId ?? slot.pickedPrintingId,
-        ...(target.hintSetCode ? {} : hintColumns(hintOf(slot))),
+        ...(target.hintPublicCode ? {} : hintColumns(hintOf(slot))),
       })
       .where(eq(deckSlots.id, target.id))
       .run();
@@ -368,27 +338,19 @@ export function setSlotPrinting(db: Db, deckId: number, slotId: number, printing
   db.transaction((tx) => {
     const slot = slotOrThrow(tx, deckId, slotId);
     const found = tx
-      .select({
-        oracleId: printings.oracleId,
-        setCode: printings.setCode,
-        collectorNumber: printings.collectorNumber,
-      })
+      .select({ cardId: printings.cardId, publicCode: printings.publicCode })
       .from(printings)
-      .where(eq(printings.printingId, printing.printingId))
+      .where(eq(printings.riftcodexId, printing.printingId))
       .get();
     if (!found) {
       throw new AppError(404, 'printing_not_found', 'That printing isn’t in the card data.');
     }
-    if (found.oracleId !== slot.oracleId) {
+    if (found.cardId !== slot.cardId) {
       throw new AppError(400, 'wrong_card', 'That printing is of a different card.');
     }
     tx.update(deckSlots)
       .set({
-        ...hintColumns({
-          setCode: found.setCode,
-          collectorNumber: found.collectorNumber,
-          foil: printing.foil,
-        }),
+        ...hintColumns({ publicCode: found.publicCode, foil: printing.foil }),
         pickedPrintingId:
           slot.pickedPrintingId === printing.printingId ? slot.pickedPrintingId : null,
       })
@@ -399,9 +361,7 @@ export function setSlotPrinting(db: Db, deckId: number, slotId: number, printing
 }
 
 function hintOf(slot: SlotDbRow): PrintingHint | null {
-  return slot.hintSetCode && slot.hintCollectorNumber
-    ? { setCode: slot.hintSetCode, collectorNumber: slot.hintCollectorNumber, foil: slot.hintFoil }
-    : null;
+  return slot.hintPublicCode ? { publicCode: slot.hintPublicCode, foil: slot.hintFoil } : null;
 }
 
 export function removeSlot(db: Db, deckId: number, slotId: number) {
@@ -422,21 +382,21 @@ export function replaceSlots(db: Db, deckId: number, slots: DeckSlotInput[]) {
     deckOrThrow(tx, deckId);
     checkCards(
       tx,
-      slots.map((slot) => slot.oracleId),
+      slots.map((slot) => slot.cardId),
     );
     const old = tx.select().from(deckSlots).where(eq(deckSlots.deckId, deckId)).all();
-    const pickedByCard = new Map<string, string>();
+    const pickedByCard = new Map<number, string>();
     for (const slot of old) {
-      if (slot.pickedPrintingId && !pickedByCard.has(slot.oracleId)) {
-        pickedByCard.set(slot.oracleId, slot.pickedPrintingId);
+      if (slot.pickedPrintingId && !pickedByCard.has(slot.cardId)) {
+        pickedByCard.set(slot.cardId, slot.pickedPrintingId);
       }
     }
-    const oldByKey = new Map(old.map((slot) => [`${slot.board}\n${slot.oracleId}`, slot]));
+    const oldByKey = new Map(old.map((slot) => [`${slot.board}\n${slot.cardId}`, slot]));
     const kept = new Set<number>();
     const tagged: [number, string[]][] = [];
 
     for (const slot of mergeInputs(slots)) {
-      const existing = oldByKey.get(`${slot.board}\n${slot.oracleId}`);
+      const existing = oldByKey.get(`${slot.board}\n${slot.cardId}`);
       if (existing) {
         kept.add(existing.id);
         tx.update(deckSlots)
@@ -449,10 +409,10 @@ export function replaceSlots(db: Db, deckId: number, slots: DeckSlotInput[]) {
           .insert(deckSlots)
           .values({
             deckId,
-            oracleId: slot.oracleId,
+            cardId: slot.cardId,
             board: slot.board,
             quantity: slot.quantity,
-            pickedPrintingId: pickedByCard.get(slot.oracleId) ?? null,
+            pickedPrintingId: pickedByCard.get(slot.cardId) ?? null,
             ...hintColumns(slot.hint),
           })
           .returning({ id: deckSlots.id })

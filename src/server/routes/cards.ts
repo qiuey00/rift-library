@@ -8,14 +8,14 @@ import { validate } from '../validate';
 // Mounted at /api in src/server/app.ts. Chain each route onto this instance, as in
 // `new Hono().get(...).post(...)`, so the typed client in src/client/api.ts sees it.
 export const cardsRoutes = new Hono()
-  .get('/cards/search', validate('query', CardSearchQuery), (c) => {
-    const { q, commander, identity, limit } = c.req.valid('query');
-    const results = searchCards(getDb(), { q, commander: commander === '1', identity, limit });
+  .get('/cards', validate('query', CardSearchQuery), (c) => {
+    const { q, type, domains, limit } = c.req.valid('query');
+    const results = searchCards(getDb(), { q, type, domains, limit });
     return c.json({ results });
   })
-  .get('/cards/:oracleId', validate('param', CardParams), (c) => {
-    const { oracleId } = c.req.valid('param');
-    const details = cardDetails(getDb(), oracleId);
+  .get('/cards/:id', validate('param', CardParams), (c) => {
+    const { id } = c.req.valid('param');
+    const details = cardDetails(getDb(), id);
     if (!details) {
       throw new AppError(
         404,

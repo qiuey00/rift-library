@@ -1,20 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
-import type { Board } from '../../shared/api/common';
 import type { CardDecks } from '../../shared/api/deck-checks';
 import { api } from '../api';
+import { BOARD_WORDS } from '../lib/card-text';
 import { Panel } from './Panel';
 import { StatePill } from './StatePill';
 
-const boardWord: Record<Board, string> = {
-  commander: 'Commander',
-  main: 'Main board',
-  maybe: 'Maybe board',
-};
-
-async function fetchCardDecks(oracleId: string): Promise<CardDecks> {
-  const res = await api.cards[':oracleId'].decks.$get({ param: { oracleId } });
+async function fetchCardDecks(cardId: number): Promise<CardDecks> {
+  const res = await api.cards[':id'].decks.$get({ param: { id: String(cardId) } });
   if (!res.ok) {
     throw new Error("Couldn't load the decks using this card.");
   }
@@ -22,10 +16,10 @@ async function fetchCardDecks(oracleId: string): Promise<CardDecks> {
 }
 
 /** The card page's list of decks that use a card, with its demand warning when Jeff owns too few. */
-export function CardDecksSection({ oracleId }: { oracleId: string }) {
+export function CardDecksSection({ cardId }: { cardId: number }) {
   const query = useQuery({
-    queryKey: ['cards', oracleId, 'decks'],
-    queryFn: () => fetchCardDecks(oracleId),
+    queryKey: ['cards', cardId, 'decks'],
+    queryFn: () => fetchCardDecks(cardId),
   });
 
   return (
@@ -63,7 +57,7 @@ export function CardDecksSection({ oracleId }: { oracleId: string }) {
                   {deck.name}
                 </Link>
                 <span className="text-muted-foreground text-xs">
-                  {boardWord[deck.board]} · {deck.quantity}{' '}
+                  {BOARD_WORDS[deck.board]} · {deck.quantity}{' '}
                   {deck.quantity === 1 ? 'copy' : 'copies'}
                 </span>
               </span>

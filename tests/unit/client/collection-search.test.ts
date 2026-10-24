@@ -4,15 +4,14 @@ import {
   findFilter,
   removeTerm,
   replaceFilter,
-  toggleColor,
 } from '../../../src/client/lib/collection-search';
 import { parseCollectionQuery } from '../../../src/shared/collection-query';
 
 describe('removeTerm', () => {
   it('takes one term out of the text and keeps the rest', () => {
-    const q = 't:creature  f:foil loc:"Rares binder"';
+    const q = 't:unit  f:foil loc:"Rares binder"';
     const [, foil] = parseCollectionQuery(q);
-    expect(removeTerm(q, foil)).toBe('t:creature loc:"Rares binder"');
+    expect(removeTerm(q, foil)).toBe('t:unit loc:"Rares binder"');
   });
 
   it('leaves nothing when the last term goes', () => {
@@ -30,49 +29,36 @@ describe('replaceFilter', () => {
 
   it('replaces every term of the same kind', () => {
     expect(
-      replaceFilter('f:foil signet f:etched', 'finish', { kind: 'finish', value: 'nonfoil' }),
-    ).toBe('signet f:nonfoil');
+      replaceFilter('f:foil signet f:normal', 'finish', { kind: 'finish', value: 'normal' }),
+    ).toBe('signet f:normal');
+    expect(replaceFilter('domain:fury', 'domain', { kind: 'domain', value: 'calm' })).toBe(
+      'domain:calm',
+    );
   });
 
   it('removes the kind with null', () => {
-    expect(replaceFilter('is:real t:land', 'proxy', null)).toBe('t:land');
+    expect(replaceFilter('is:real t:rune', 'proxy', null)).toBe('t:rune');
   });
 });
 
 describe('findFilter', () => {
   it('finds the first term of a kind', () => {
-    const terms = parseCollectionQuery('c:wu t:creature');
-    expect(findFilter(terms, 'color')?.value).toBe('WU');
+    const terms = parseCollectionQuery('domain:mind t:unit');
+    expect(findFilter(terms, 'domain')?.value).toBe('mind');
     expect(findFilter(terms, 'set')).toBeUndefined();
-  });
-});
-
-describe('toggleColor', () => {
-  it('adds and removes colors in WUBRG order', () => {
-    expect(toggleColor(undefined, 'G')).toBe('G');
-    expect(toggleColor('G', 'W')).toBe('WG');
-    expect(toggleColor('WG', 'G')).toBe('W');
-    expect(toggleColor('W', 'W')).toBeNull();
-  });
-
-  it('treats colorless on its own', () => {
-    expect(toggleColor('WU', 'C')).toBe('');
-    expect(toggleColor('', 'C')).toBeNull();
-    expect(toggleColor('', 'R')).toBe('R');
   });
 });
 
 describe('chipLabel', () => {
   it('says what each term means', () => {
     const labels = parseCollectionQuery(
-      'bolt set:sos c:bg c:c t:creature f:foil is:proxy is:real loc:"Rares binder" f:shiny',
+      'bolt set:ogn domain:fury t:unit f:foil is:proxy is:real loc:"Rares binder" f:shiny',
     ).map(chipLabel);
     expect(labels).toEqual([
       'Name: bolt',
-      'Set: SOS',
-      'Colors: B G',
-      'Colorless',
-      'Type: creature',
+      'Set: OGN',
+      'Domain: Fury',
+      'Type: unit',
       'Finish: foil',
       'Proxies only',
       'Real only',

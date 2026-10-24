@@ -41,20 +41,16 @@ function deckSlot(db: Db, deckId: number, slotId: number) {
 /** The printing's card, or undefined when the printing is not in the card data. */
 function printingCard(db: Db, printingId: string) {
   return db
-    .select({ oracleId: cards.oracleId, name: cards.name, lang: printings.lang })
+    .select({ cardId: cards.id, name: cards.name })
     .from(printings)
-    .innerJoin(cards, eq(cards.oracleId, printings.oracleId))
-    .where(eq(printings.printingId, printingId))
+    .innerJoin(cards, eq(cards.id, printings.cardId))
+    .where(eq(printings.riftcodexId, printingId))
     .get();
 }
 
 /** The 400 for a copy or printing of a different card than the slot's. */
-function wrongCard(db: Db, oracleId: string, what: 'copy' | 'printing'): AppError {
-  const name = db
-    .select({ name: cards.name })
-    .from(cards)
-    .where(eq(cards.oracleId, oracleId))
-    .get()?.name;
+function wrongCard(db: Db, cardId: number, what: 'copy' | 'printing'): AppError {
+  const name = db.select({ name: cards.name }).from(cards).where(eq(cards.id, cardId)).get()?.name;
   return new AppError(400, 'wrong_card', `That ${what} is not ${name ?? 'this card'}`);
 }
 
@@ -90,7 +86,7 @@ export function pullCopies(db: Db, deckId: number, body: PullRequest): PullResul
     const stack = tx.select().from(copyStacks).where(eq(copyStacks.id, body.stackId)).get();
     if (!stack || stack.quantity < body.quantity) throw new StaleCopyError();
     const card = printingCard(tx, stack.printingId);
-    if (card?.oracleId !== slot.oracleId) throw wrongCard(tx, slot.oracleId, 'copy');
+    if (!card || card.cardId !== slot.cardId) throw wrongCard(tx, slot.cardId, 'copy');
     if (stack.locationId === deck.deckBoxId) {
       throw new AppError(400, 'already_there', `That copy is already in ${deck.boxName}`);
     }
@@ -132,16 +128,16 @@ export function addProxy(db: Db, deckId: number, body: ProxyRequest): ProxyResul
     if (!card) {
       throw new AppError(404, 'printing_not_found', 'That printing is not in the card data');
     }
-    if (card.oracleId !== slot.oracleId) throw wrongCard(tx, slot.oracleId, 'printing');
+    if (card.cardId !== slot.cardId) throw wrongCard(tx, slot.cardId, 'printing');
 
     const batchId = joinOrCreateBatch(tx, deckId, 'pick_list', body.batchId);
     const { movementId } = addCopies(tx, {
       printingId: body.printingId,
       quantity: body.quantity,
       locationId: deck.deckBoxId,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
-      language: card.lang,
+      language: 'en',
       misprint: false,
       altered: false,
       isProxy: true,

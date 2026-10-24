@@ -2,8 +2,8 @@ import { expect, type Page, test } from '@playwright/test';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
 import { deckViewSample, slotTagsSample } from '../../src/shared/api/samples/decks';
 
-// Tags in the deck view, with the API mocked from the samples: the Hearthhull deck (id 1),
-// where Augur of Autumn (slot 130) is tagged Card draw and Ramp.
+// Tags in the deck view, with the API mocked from the samples: the Jinx Burn deck (id 1),
+// where Copper Mender (slot 130) is tagged Card draw and Ramp.
 
 test.beforeEach(async ({ page }) => {
   // Card images come from the internet; tests never reach it.
@@ -37,17 +37,17 @@ test('Group by Tag puts a card under each of its tags', async ({ page }) => {
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'Tag', exact: true }).click();
   await expect(groupNames(page)).toHaveText([
-    'Commander1',
+    'Legend1',
     'Card draw3',
     'Ramp5',
     'Removal3',
-    /^Lands\d+$/,
+    'Runes17',
     /^Untagged\d+$/,
   ]);
-  await expect(group(page, 'Card draw')).toContainText('Augur of Autumn');
-  await expect(group(page, 'Ramp')).toContainText('Augur of Autumn');
-  await expect(group(page, 'Untagged')).not.toContainText('Augur of Autumn');
-  await expect(group(page, 'Lands')).toContainText('Forest');
+  await expect(group(page, 'Card draw')).toContainText('Copper Mender');
+  await expect(group(page, 'Ramp')).toContainText('Copper Mender');
+  await expect(group(page, 'Untagged')).not.toContainText('Copper Mender');
+  await expect(group(page, 'Runes')).toContainText('Calm Rune');
   // The deck's count still counts each card once.
   await expect(page.getByRole('region', { name: 'Deck header' })).toContainText('95 cards');
   // The maybe board's cards have no tags.
@@ -106,28 +106,28 @@ test('Edit tags… from the card menu saves the tags and shows the answer', asyn
   ]);
   await page.getByRole('menuitem', { name: 'Edit tags…' }).click();
 
-  const dialog = page.getByRole('dialog', { name: 'Sol Ring' });
+  const dialog = page.getByRole('dialog', { name: 'Sun Disc' });
   await expect(dialog.getByRole('list', { name: 'Card tags' })).toHaveText('Ramp');
   const field = dialog.getByRole('textbox', { name: 'Tags' });
   // The deck's other tags are offered while typing.
   await field.fill('car');
   await expect(dialog.getByRole('list', { name: 'Suggested tags' })).toHaveText('Card draw');
   await dialog.getByRole('button', { name: 'Card draw' }).click();
-  await field.fill('mana rock');
+  await field.fill('energy rock');
   await field.press('Enter');
   await field.pressSequentially('ramp,');
   await expect(dialog.getByRole('list', { name: 'Card tags' }).getByRole('listitem')).toHaveText([
     'Ramp',
     'Card draw',
-    'mana rock',
+    'energy rock',
   ]);
   await dialog.getByRole('button', { name: 'Remove Card draw' }).click();
   await dialog.getByRole('button', { name: 'Save' }).click();
 
   await expect(dialog).toHaveCount(0);
-  expect(sent).toEqual({ tags: ['Ramp', 'mana rock'] });
+  expect(sent).toEqual({ tags: ['Ramp', 'energy rock'] });
   await expect(row(page, 114).getByRole('list', { name: 'Tags' }).getByRole('listitem')).toHaveText(
-    ['mana rock', 'Ramp'],
+    ['energy rock', 'Ramp'],
   );
 });
 
@@ -142,13 +142,13 @@ test('Edit tags… opens from the keyboard and in Edit mode, and shows server er
   );
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
-  // The commander's menu has it too.
+  // The Legend's menu has it too.
   await row(page, 101).getByRole('link').first().focus();
   await page.keyboard.press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Edit tags…' }).press('Enter');
 
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: 'Tags' }).fill('#commander');
+  await dialog.getByRole('textbox', { name: 'Tags' }).fill('#legend');
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog.getByRole('alert')).toHaveText('A tag can’t contain #');
   await expect(dialog).toBeVisible();
@@ -158,9 +158,11 @@ test('Export opens the deck list export dialog for the deck', async ({ page }) =
   await page.goto('/decks/1');
   const header = page.getByRole('region', { name: 'Deck header' });
   const buttons = header.getByRole('link').or(header.getByRole('button'));
+  // allTextContents doesn't wait, so wait for the header's actions first.
+  await expect(header.getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   const names = await buttons.allTextContents();
   expect(names.indexOf('Export')).toBe(names.indexOf('Take apart') + 1);
 
   await header.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('Hearthhull');
+  await expect(page.getByRole('dialog')).toContainText('Jinx Burn');
 });

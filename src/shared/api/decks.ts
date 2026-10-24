@@ -3,6 +3,7 @@ import {
   Board,
   CardSummary,
   DeckState,
+  Domain,
   Id,
   LocationRef,
   PrintingSummary,
@@ -14,7 +15,6 @@ import {
 
 const Count = z.number().int().nonnegative();
 const Quantity = z.number().int().positive();
-const OracleId = z.string().min(1);
 const DeckName = z.string().trim().min(1, 'Give the deck a name');
 /** UTC, such as "2026-10-18T21:40:00Z". */
 const Time = z.iso.datetime();
@@ -23,13 +23,14 @@ const Time = z.iso.datetime();
 export const DeckRef = z.object({ id: Id, name: z.string() });
 export type DeckRef = z.infer<typeof DeckRef>;
 
-/** Cards in the commander and main boards by where they are, counted by slot quantity. */
+/** Cards on the boards that are pulled, by where they are, counted by slot quantity. */
 export const DeckCounts = z.object({
   inBox: Count,
   free: Count,
   otherDecks: Count,
   missing: Count,
-  basics: Count,
+  /** Runes are always available (D-15), so they are only counted. */
+  runes: Count,
 });
 export type DeckCounts = z.infer<typeof DeckCounts>;
 
@@ -38,9 +39,12 @@ export const DeckSummary = z.object({
   name: z.string(),
   /** The deck's own deck box, a location. */
   deckBoxId: Id,
-  commanders: z.array(CardSummary),
-  /** The commanders' colors together, such as "BRG"; "" for colorless. */
-  colorIdentity: z.string(),
+  /** Null until the deck has a Legend. */
+  legend: CardSummary.nullable(),
+  /** The Chosen Champion; null until the deck has one. */
+  champion: CardSummary.nullable(),
+  /** The Legend's domains; empty without a Legend. */
+  domains: z.array(Domain),
   state: DeckState,
   counts: DeckCounts,
   /** Every copy in the deck box, including any the slots no longer need. */
@@ -50,11 +54,10 @@ export const DeckSummary = z.object({
 });
 export type DeckSummary = z.infer<typeof DeckSummary>;
 
-/** The printing a deck list named for a slot: its set, collector number and foil. */
+/** The printing a deck list named for a slot: its public code and foil. */
 export const PrintingHint = z.object({
-  /** Lowercase, such as "eoc". */
-  setCode: z.string(),
-  collectorNumber: z.string(),
+  /** Such as "OGN-042". */
+  publicCode: z.string(),
   foil: z.boolean(),
 });
 export type PrintingHint = z.infer<typeof PrintingHint>;
@@ -83,7 +86,7 @@ export const SlotRow = z.object({
    * when neither is known. The deck view shows its image.
    */
   printing: PrintingSummary.nullable(),
-  /** Null for slots added in the app rather than from a deck list with sets. */
+  /** Null for slots added in the app rather than from a deck list with public codes. */
   hint: PrintingHint.nullable(),
   /** Null on the maybe board. */
   status: SlotStatus.nullable(),
@@ -101,30 +104,24 @@ export type SlotRow = z.infer<typeof SlotRow>;
 export const DeckList = z.object({ decks: z.array(DeckSummary) });
 export type DeckList = z.infer<typeof DeckList>;
 
-/** GET /api/decks/:id and PUT /api/decks/:id/commanders. */
+/** GET /api/decks/:id and PUT /api/decks/:id/legend. */
 export const DeckView = z.object({ deck: DeckSummary, slots: z.array(SlotRow) });
 export type DeckView = z.infer<typeof DeckView>;
 
-/** One commander, or two partners. */
-const Commanders = z
-  .array(OracleId)
-  .min(1, 'Pick a commander')
-  .max(2, 'A deck has at most two commanders');
-
-/** POST /api/decks. */
-export const NewDeck = z.object({ name: DeckName, commanders: Commanders });
+/** POST /api/decks: the deck and its Legend. */
+export const NewDeck = z.object({ name: DeckName, legendId: Id });
 export type NewDeck = z.infer<typeof NewDeck>;
 
 /** PATCH /api/decks/:id. */
 export const DeckRename = z.object({ name: DeckName });
 export type DeckRename = z.infer<typeof DeckRename>;
 
-/** PUT /api/decks/:id/commanders. */
-export const DeckCommanders = z.object({ oracleIds: Commanders });
-export type DeckCommanders = z.infer<typeof DeckCommanders>;
+/** PUT /api/decks/:id/legend: replaces the deck's Legend. */
+export const DeckLegend = z.object({ legendId: Id });
+export type DeckLegend = z.infer<typeof DeckLegend>;
 
 /** A card and how many of it on one board: POST /api/decks/:id/slots, and the unsaved lists deck checks take. */
-export const SlotInput = z.object({ oracleId: OracleId, board: Board, quantity: Quantity });
+export const SlotInput = z.object({ cardId: Id, board: Board, quantity: Quantity });
 export type SlotInput = z.infer<typeof SlotInput>;
 
 /** A slot's tag as Jeff types it. Tags with the same tag key (lower case, spaces as -) are one tag. */

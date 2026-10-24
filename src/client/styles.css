@@ -1,15 +1,12 @@
 @import "tailwindcss" source(".");
 @import "tw-animate-css";
 
-/* Fonts and symbol fonts ship with the app, so it looks right with no network. */
+/* Fonts ship with the app, so it looks right with no network. */
 @import "@fontsource/instrument-sans/400.css";
 @import "@fontsource/instrument-sans/500.css";
 @import "@fontsource/instrument-sans/600.css";
 @import "@fontsource/instrument-sans/700.css";
 @import "@fontsource/instrument-serif/400.css";
-/* Mana symbols (`ms ms-g`) and set symbols (`ss ss-eoc ss-rare`), layered so utilities win. */
-@import "mana-font/css/mana.css" layer(base);
-@import "keyrune/css/keyrune.css" layer(base);
 
 /* shadcn/ui parts carry `dark:` classes; the app is light only, so they apply only under a `.dark` class it never sets. */
 @custom-variant dark (&:is(.dark *));
@@ -92,9 +89,9 @@
   --color-status-missing: #b0201f;
   --color-status-missing-fill: #c8352c;
   --color-status-missing-soft: #fde8e7;
-  --color-status-basic: #636a7a;
-  --color-status-basic-fill: #d5d9e0;
-  --color-status-basic-soft: #f1f2f4;
+  --color-status-rune: #636a7a;
+  --color-status-rune-fill: #d5d9e0;
+  --color-status-rune-soft: #f1f2f4;
 
   --color-proxy: #7b61c4;
   --color-proxy-ink: #5b3fa8;

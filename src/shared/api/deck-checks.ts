@@ -2,25 +2,30 @@ import { z } from 'zod';
 import { Board, CardSummary, DeckState, Id } from './common';
 import { DeckRef, SlotInput } from './decks';
 
-// Deck checks (Commander rules) and deck demand (decks wanting more copies than Jeff owns).
+// Deck checks (Riftbound's deck rules) and deck demand (decks wanting more copies than Jeff owns).
 // They are warnings only: nothing is blocked. Each schema has a type of the same name.
 
 const Count = z.number().int().nonnegative();
 const Quantity = z.number().int().positive();
 
+/** The Riftbound rules the checks look at (DECK-6). The checks come with #16. */
 export const DeckWarningKind = z.enum([
+  'legend',
+  'champion',
   'count',
-  'singleton',
-  'color_identity',
-  'banned',
-  'commander',
+  'copies',
+  'signature',
+  'domains',
+  'runes',
+  'battlefields',
+  'sideboard',
 ]);
 export type DeckWarningKind = z.infer<typeof DeckWarningKind>;
 
-/** One Commander rule the list breaks. */
+/** One deck rule the list breaks. */
 export const DeckWarning = z.object({
   kind: DeckWarningKind,
-  /** Written for Jeff, such as "Dockside Extortionist is banned in Commander." */
+  /** Written for Jeff, such as "The main deck has 38 cards; it needs at least 40." */
   message: z.string(),
   /** The cards it is about; empty for the card count. */
   cards: z.array(CardSummary),
@@ -30,7 +35,7 @@ export type DeckWarning = z.infer<typeof DeckWarning>;
 /** A card the decks want more copies of than Jeff owns (proxies count as owned). */
 export const DemandWarning = z.object({
   card: CardSummary,
-  /** Copies the decks' commander and main boards want. */
+  /** Copies the decks' legend, champion, main, battlefield and sideboard boards want. */
   demand: Quantity,
   owned: Count,
   /** demand minus owned, above zero. */
@@ -67,7 +72,7 @@ export const CardDeck = z.object({
 });
 export type CardDeck = z.infer<typeof CardDeck>;
 
-/** GET /api/cards/:oracleId/decks: the decks with the card, and its demand warning if it is short. */
+/** GET /api/cards/:id/decks: the decks with the card, and its demand warning if it is short. */
 export const CardDecks = z.object({
   decks: z.array(CardDeck),
   demand: DemandWarning.nullable(),

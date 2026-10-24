@@ -21,13 +21,14 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ErrorBody, type StackRow } from '../../shared/api/common';
+import { Domain, ErrorBody, type StackRow } from '../../shared/api/common';
 import { type CollectionValue, type StacksPage, StacksQuery } from '../../shared/api/stacks';
 import { type CollectionTerm, parseCollectionQuery } from '../../shared/collection-query';
 import { api } from '../api';
 import { AddCardDialog } from '../components/AddCardDialog';
 import { AddToBuyListDialog } from '../components/AddToBuyListDialog';
 import { type CopyStackAction, CopyStackTable } from '../components/CopyStackTable';
+import { DOMAIN_WORDS } from '../components/DomainIcon';
 import { LocationPicker, useLocationTree } from '../components/LocationPicker';
 import { MoveToDialog } from '../components/MoveToDialog';
 import { Panel } from '../components/Panel';
@@ -43,13 +44,7 @@ import { Input } from '../components/ui/input';
 import { NativeSelect, NativeSelectOption } from '../components/ui/native-select';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { useSetProxy } from '../components/useSetProxy';
-import {
-  chipLabel,
-  findFilter,
-  removeTerm,
-  replaceFilter,
-  toggleColor,
-} from '../lib/collection-search';
+import { chipLabel, findFilter, removeTerm, replaceFilter } from '../lib/collection-search';
 import { formatCents, pricesUpdated } from '../lib/money';
 import { cn } from '../lib/utils';
 
@@ -76,27 +71,8 @@ const sorts: [Sort, string][] = [
 /** How long typing pauses before the search is sent. */
 const SEARCH_DELAY_MS = 300;
 
-/** The main card types the Type filter offers. */
-const cardTypes = [
-  'Artifact',
-  'Battle',
-  'Creature',
-  'Enchantment',
-  'Instant',
-  'Kindred',
-  'Land',
-  'Planeswalker',
-  'Sorcery',
-];
-
-const colors = [
-  ['W', 'White'],
-  ['U', 'Blue'],
-  ['B', 'Black'],
-  ['R', 'Red'],
-  ['G', 'Green'],
-  ['C', 'Colorless'],
-] as const;
+/** The card types the Type filter offers. */
+const cardTypes = ['Legend', 'Unit', 'Spell', 'Gear', 'Battlefield', 'Rune', 'Token'];
 
 /** The error message a failed answer carries, written for Jeff. */
 async function failure(res: Response, fallback: string): Promise<Error> {
@@ -305,7 +281,7 @@ export function Collection() {
         <AddToBuyListDialog
           open
           onOpenChange={(open) => !open && setBuying(null)}
-          oracleId={buying.card.oracleId}
+          cardId={buying.card.id}
           printingId={buying.printing.printingId}
         />
       )}
@@ -361,7 +337,7 @@ function PreviewPane({ store, fallback }: { store: HoverStore; fallback: StackRo
   const hovered = useSyncExternalStore(store.subscribe, store.get);
   const row = hovered ?? fallback;
   if (!row) return null;
-  const image = row.printing.imageNormal ?? row.card.imageNormal;
+  const image = row.printing.imageUrl ?? row.card.imageUrl;
   return (
     <aside className="sticky top-3 hidden w-[240px] shrink-0 lg:block">
       <Panel role="region" aria-label="Card preview" className="flex flex-col gap-2.5 p-2.5 pb-3.5">
@@ -389,7 +365,7 @@ function PreviewPane({ store, fallback }: { store: HoverStore; fallback: StackRo
                   : `${formatCents(row.unitPrice)} each · ${formatCents(row.value)} for ${row.quantity}`}
           </span>
           <Link
-            to={`/cards/${row.card.oracleId}`}
+            to={`/cards/${row.card.id}`}
             className="flex items-center gap-1 font-semibold text-[13px] text-primary hover:underline"
           >
             Open card page
@@ -438,7 +414,7 @@ function SearchBox({ value, onChange }: { value: string; onChange: (q: string) =
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='Try a name, set:sos, c:wu, t:creature, f:foil, is:proxy, loc:"Rares binder"'
+        placeholder='Try a name, set:ogn, domain:fury, t:unit, f:foil, is:proxy, loc:"Rares binder"'
         className="pl-9"
         autoComplete="off"
         spellCheck={false}
@@ -467,7 +443,7 @@ function Filters({
   const finish = findFilter(terms, 'finish');
   const proxy = findFilter(terms, 'proxy');
   const type = findFilter(terms, 'type');
-  const color = findFilter(terms, 'color');
+  const domain = findFilter(terms, 'domain');
   const location = findFilter(terms, 'location');
   const set = findFilter(terms, 'set');
   const forTrade = findFilter(terms, 'trade')?.value === true;
@@ -490,37 +466,29 @@ function Filters({
           onChange={(code) => onChange(replaceFilter(q, 'set', { kind: 'set', value: code }))}
         />
       </Field>
-      <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
-        <legend className="mb-1 font-medium text-muted-foreground text-xs">Color</legend>
-        <div className="flex h-10 items-center gap-1">
-          {colors.map(([letter, name]) => {
-            const on =
-              color !== undefined &&
-              (letter === 'C' ? color.value === '' : color.value.includes(letter));
-            return (
-              <button
-                key={letter}
-                type="button"
-                aria-pressed={on}
-                aria-label={name}
-                title={name}
-                onClick={() => {
-                  const value = toggleColor(color?.value, letter);
-                  onChange(
-                    replaceFilter(q, 'color', value === null ? null : { kind: 'color', value }),
-                  );
-                }}
-                className={cn(
-                  'inline-flex size-9 items-center justify-center rounded-full border-2 text-lg',
-                  on ? 'border-primary bg-[#e8eefc]' : 'border-transparent opacity-60',
-                )}
-              >
-                <i className={`ms ms-${letter.toLowerCase()} ms-cost`} aria-hidden="true" />
-              </button>
+      <Field label="Domain" id={`${ids}-domain`}>
+        <NativeSelect
+          id={`${ids}-domain`}
+          value={domain?.value ?? ''}
+          onChange={(event) => {
+            const value = Domain.safeParse(event.target.value);
+            onChange(
+              replaceFilter(
+                q,
+                'domain',
+                value.success ? { kind: 'domain', value: value.data } : null,
+              ),
             );
-          })}
-        </div>
-      </fieldset>
+          }}
+        >
+          <NativeSelectOption value="">Any domain</NativeSelectOption>
+          {Domain.options.map((value) => (
+            <NativeSelectOption key={value} value={value}>
+              {DOMAIN_WORDS[value]}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </Field>
       <Field label="Type" id={`${ids}-type`}>
         <NativeSelect
           id={`${ids}-type`}
@@ -553,17 +521,14 @@ function Filters({
               replaceFilter(
                 q,
                 'finish',
-                value === 'foil' || value === 'nonfoil' || value === 'etched'
-                  ? { kind: 'finish', value }
-                  : null,
+                value === 'normal' || value === 'foil' ? { kind: 'finish', value } : null,
               ),
             );
           }}
         >
           <NativeSelectOption value="">Any finish</NativeSelectOption>
-          <NativeSelectOption value="nonfoil">Nonfoil</NativeSelectOption>
+          <NativeSelectOption value="normal">Normal</NativeSelectOption>
           <NativeSelectOption value="foil">Foil</NativeSelectOption>
-          <NativeSelectOption value="etched">Etched</NativeSelectOption>
         </NativeSelect>
       </Field>
       <Field label="Proxy" id={`${ids}-proxy`}>
@@ -704,9 +669,8 @@ function SetFilter({
                 }}
                 className="m-1 min-h-9 rounded-md"
               >
-                <i className={`ss ss-${set.code}`} aria-hidden="true" />
                 <span className="truncate">{set.name}</span>
-                <span className="text-muted-foreground text-xs">{set.code.toUpperCase()}</span>
+                <span className="text-muted-foreground text-xs">{set.code}</span>
                 <Check
                   aria-hidden="true"
                   className={cn(

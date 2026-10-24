@@ -73,7 +73,7 @@ export function MissingSection({
                     : gap
                       ? 'Leaving a gap'
                       : line.hint
-                        ? `Decklist printing: ${line.hint.setCode.toUpperCase()} #${line.hint.collectorNumber}${line.hint.foil ? ' · Foil' : ''}`
+                        ? `Decklist printing: ${line.hint.publicCode}${line.hint.foil ? ' · Foil' : ''}`
                         : 'Missing'}
                 </span>
               </div>
@@ -123,7 +123,7 @@ export function MissingSection({
         <AddToBuyListDialog
           open
           onOpenChange={(open) => !open && setBuying(null)}
-          oracleId={buying.card.oracleId}
+          cardId={buying.card.id}
           quantity={buying.quantity}
         />
       )}
@@ -131,16 +131,16 @@ export function MissingSection({
   );
 }
 
-/** Basic lands close the list as one line of counts. They aren't tracked, so ticking is only visual. */
-export function BasicLandsLine({ basics }: { basics: { name: string; quantity: number }[] }) {
+/** Runes close the list as one line of counts. They aren't tracked, so ticking is only visual. */
+export function RunesLine({ runes }: { runes: { name: string; quantity: number }[] }) {
   const [done, setDone] = useState(false);
-  const text = basics.map((land) => `${land.quantity} ${land.name}`).join(', ');
+  const text = runes.map((rune) => `${rune.quantity} ${rune.name}`).join(', ');
   return (
-    <Panel role="region" aria-label="Basic lands" className="overflow-hidden">
+    <Panel role="region" aria-label="Runes" className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-border border-b bg-[#f6f7f9] px-4 py-3">
-        <h2 className="m-0 font-bold text-base">Basic lands</h2>
+        <h2 className="m-0 font-bold text-base">Runes</h2>
         <span className="font-semibold text-[13px] text-muted-foreground">
-          Add these from your basics. They are not tracked as copies.
+          Add these from your runes. They are not tracked as copies.
         </span>
       </div>
       <label className="flex cursor-pointer items-center gap-3 px-4 py-3">

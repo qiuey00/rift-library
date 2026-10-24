@@ -10,6 +10,7 @@ import {
 } from '../../shared/api/common';
 import type { AddCopiesBody } from '../../shared/api/copies';
 import { api } from '../api';
+import { typeLine } from '../lib/card-text';
 import { cn } from '../lib/utils';
 import { CardSearchPicker } from './CardSearchPicker';
 import { LocationPicker, useLocationTree } from './LocationPicker';
@@ -33,10 +34,10 @@ export type AddCardDialogProps = {
   /** The location the new copies go to unless Jeff picks another. */
   defaultLocationId?: Id;
   /** The card to start with, when opened from a card. */
-  defaultOracleId?: string;
+  defaultCardId?: Id;
 };
 
-const finishWords: Record<Finish, string> = { nonfoil: 'Nonfoil', foil: 'Foil', etched: 'Etched' };
+const finishWords: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
 
 /** The conditions, best first. */
 const conditions: [value: string, label: string][] = [
@@ -85,7 +86,7 @@ export function AddCardDialog({
   open,
   onOpenChange,
   defaultLocationId,
-  defaultOracleId,
+  defaultCardId,
 }: AddCardDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,7 +94,7 @@ export function AddCardDialog({
         {/* Mounted only while open, so each opening starts from the props again. */}
         <AddCardForm
           defaultLocationId={defaultLocationId}
-          defaultOracleId={defaultOracleId}
+          defaultCardId={defaultCardId}
           onDone={() => onOpenChange(false)}
         />
       </DialogContent>
@@ -103,11 +104,11 @@ export function AddCardDialog({
 
 function AddCardForm({
   defaultLocationId,
-  defaultOracleId,
+  defaultCardId,
   onDone,
 }: {
   defaultLocationId?: Id;
-  defaultOracleId?: string;
+  defaultCardId?: Id;
   onDone: () => void;
 }) {
   const ids = useId();
@@ -115,7 +116,7 @@ function AddCardForm({
   const undoBar = useUndoBar();
   const tree = useLocationTree();
 
-  const [oracleId, setOracleId] = useState<string | null>(defaultOracleId ?? null);
+  const [cardId, setCardId] = useState<number | null>(defaultCardId ?? null);
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [pickedFinish, setPickedFinish] = useState<Finish | null>(null);
@@ -127,10 +128,10 @@ function AddCardForm({
   const [altered, setAltered] = useState(false);
 
   const details = useQuery({
-    queryKey: ['cards', oracleId],
-    enabled: oracleId !== null,
+    queryKey: ['cards', cardId],
+    enabled: cardId !== null,
     queryFn: async (): Promise<CardDetailsResponse> => {
-      const res = await api.cards[':oracleId'].$get({ param: { oracleId: oracleId ?? '' } });
+      const res = await api.cards[':id'].$get({ param: { id: String(cardId ?? 0) } });
       if (!res.ok) {
         throw await failure(res, "Couldn't load this card.");
       }
@@ -161,7 +162,7 @@ function AddCardForm({
   // The finish follows the printing: a pick it doesn't come in falls back to its first finish.
   const finishes = printing?.finishes ?? [];
   const finish = pickedFinish && finishes.includes(pickedFinish) ? pickedFinish : finishes[0];
-  const language = pickedLanguage ?? printing?.lang ?? 'en';
+  const language = pickedLanguage ?? 'en';
   const inboxId = tree.data?.nodes.find((node) => node.type === 'inbox')?.id ?? null;
   const locationId = pickedLocation ?? defaultLocationId ?? inboxId;
 
@@ -176,7 +177,7 @@ function AddCardForm({
   };
 
   const changeCard = () => {
-    setOracleId(null);
+    setCardId(null);
     setChosenId(null);
     setPickedFinish(null);
     setPickedLanguage(null);
@@ -203,14 +204,14 @@ function AddCardForm({
   const languageChoices = languages.some(([code]) => code === language)
     ? languages
     : [...languages, [language, language] as [string, string]];
-  const image = printing?.imageNormal ?? card?.imageNormal ?? null;
+  const image = printing?.imageUrl ?? card?.imageUrl ?? null;
 
   return (
     <form onSubmit={submit} className="grid gap-4">
       <DialogHeader>
         <DialogTitle>Add a card</DialogTitle>
         <DialogDescription>
-          {oracleId === null
+          {cardId === null
             ? 'Search for the card, then pick its printing and where it goes.'
             : card
               ? card.name
@@ -220,12 +221,8 @@ function AddCardForm({
         </DialogDescription>
       </DialogHeader>
 
-      {oracleId === null ? (
-        <CardSearchPicker
-          label="Card"
-          onPick={(picked) => setOracleId(picked.oracleId)}
-          autoFocus
-        />
+      {cardId === null ? (
+        <CardSearchPicker label="Card" onPick={(picked) => setCardId(picked.id)} autoFocus />
       ) : (
         <div className="flex gap-5">
           <div className="aspect-[488/680] w-[168px] shrink-0 self-start overflow-hidden rounded-[8px] bg-muted">
@@ -241,8 +238,8 @@ function AddCardForm({
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             {card && (
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[13px] text-muted-foreground">{card.typeLine}</p>
-                {defaultOracleId === undefined && (
+                <p className="truncate text-[13px] text-muted-foreground">{typeLine(card)}</p>
+                {defaultCardId === undefined && (
                   <Button type="button" variant="outline" size="sm" onClick={changeCard}>
                     Change card
                   </Button>
@@ -270,7 +267,7 @@ function AddCardForm({
                 {printings.map((p) => {
                   const checked = p.printingId === printing?.printingId;
                   return (
-                    // biome-ignore lint/a11y/useSemanticElements: a row with a set symbol, not a bare radio input
+                    // biome-ignore lint/a11y/useSemanticElements: a row with a set name and code, not a bare radio input
                     <button
                       key={p.printingId}
                       type="button"
@@ -283,10 +280,9 @@ function AddCardForm({
                         checked && 'bg-primary/10 hover:bg-primary/10',
                       )}
                     >
-                      <i aria-hidden="true" className={`ss ss-fw ss-${p.setCode} ss-${p.rarity}`} />
                       <span className="truncate font-medium">{p.setName}</span>
                       <span className="shrink-0 text-muted-foreground tabular-nums">
-                        {p.setCode.toUpperCase()} #{p.collectorNumber}
+                        {p.publicCode}
                       </span>
                     </button>
                   );

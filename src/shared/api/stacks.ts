@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Cents, StackRow } from './common';
+import { Cents, IdParam, StackRow } from './common';
 import { LocationNode } from './locations';
 
 // The stacks area: lists of copy stacks for the Collection screen, a location's contents and
@@ -70,8 +70,8 @@ export const LocationStacks = z.object({
 });
 export type LocationStacks = z.infer<typeof LocationStacks>;
 
-/** `:oracleId` in /api/cards/:oracleId/copies: a card's oracle id. */
-export const OracleIdParams = z.object({ oracleId: z.guid() });
+/** `:id` in /api/cards/:id/copies: a card's id. */
+export const CardIdParams = z.object({ id: IdParam });
 
 /** How many copies of a card there are. */
 export const CopyCounts = z.object({
@@ -85,7 +85,7 @@ export const CopyCounts = z.object({
 });
 export type CopyCounts = z.infer<typeof CopyCounts>;
 
-/** GET /api/cards/:oracleId/copies: every stack of any printing of the card. */
+/** GET /api/cards/:id/copies: every stack of any printing of the card. */
 export const CardCopies = z.object({
   rows: z.array(StackRow),
   counts: CopyCounts,

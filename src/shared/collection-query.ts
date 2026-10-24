@@ -1,4 +1,4 @@
-import type { Finish } from './api/common';
+import { type Domain, Domain as DomainSchema, type Finish } from './api/common';
 
 // The Collection screen's search text, read the same way by the screen (for its filter chips)
 // and by the server (for GET /api/stacks?q=). Terms are separated by spaces; a value with
@@ -16,16 +16,13 @@ export type CollectionTerm = CollectionFilter & {
 export type CollectionFilter =
   /** A plain word or "quoted words": the card's name contains it (any case). */
   | { kind: 'name'; value: string }
-  /** `set:sos`: the printing's set code, in lower case. */
+  /** `set:ogn`: the printing's set code, in upper case. */
   | { kind: 'set'; value: string }
-  /**
-   * `c:wu`: the card's color identity includes all of these colors, in WUBRG order, such as
-   * "WU". `c:c` is colorless, written as "".
-   */
-  | { kind: 'color'; value: string }
-  /** `t:creature`: the card's type line contains it (any case). */
+  /** `domain:fury`: one of the card's domains is this one. */
+  | { kind: 'domain'; value: Domain }
+  /** `t:unit`: the card's type contains it (any case). */
   | { kind: 'type'; value: string }
-  /** `f:foil`, `f:nonfoil`, `f:etched`. */
+  /** `f:normal`, `f:foil`. */
   | { kind: 'finish'; value: Finish }
   /** `is:proxy` (true) or `is:real` (false). */
   | { kind: 'proxy'; value: boolean }
@@ -36,9 +33,8 @@ export type CollectionFilter =
   /** A term the search can't use, such as `f:shiny`. The server answers 400 `invalid_query`. */
   | { kind: 'invalid'; message: string };
 
-const finishes: readonly Finish[] = ['nonfoil', 'foil', 'etched'];
-const colorOrder = 'WUBRG';
-const keys = ['set', 'c', 't', 'f', 'is', 'loc', 'trade'] as const;
+const finishes: readonly Finish[] = ['normal', 'foil'];
+const keys = ['set', 'domain', 't', 'f', 'is', 'loc', 'trade'] as const;
 type Key = (typeof keys)[number];
 const isKey = (key: string): key is Key => (keys as readonly string[]).includes(key);
 
@@ -64,14 +60,13 @@ export function parseCollectionQuery(q: string): CollectionTerm[] {
     } else if (keyMatch && value !== '') {
       terms.push({
         kind: 'invalid',
-        message: `${keyMatch[0]} isn't a search term. Use set:, c:, t:, f:, is:, loc: or trade:.`,
+        message: `${keyMatch[0]} isn't a search term. Use set:, domain:, t:, f:, is:, loc: or trade:.`,
         text,
         start,
         end: i,
       });
     } else {
-      // A plain word. One that ends in a colon, such as the "Protection:" of
-      // "Circle of Protection: Red", is part of a card name too.
+      // A plain word. One that ends in a colon, such as "Ambush:", is part of a card name too.
       const name = (keyMatch ? text : value).toLowerCase();
       terms.push({ kind: 'name', value: name, text, start, end: i });
     }
@@ -98,7 +93,7 @@ function readFilter(key: Key, value: string): CollectionFilter {
   const lower = value.toLowerCase();
   switch (key) {
     case 'set':
-      return { kind: 'set', value: lower };
+      return { kind: 'set', value: value.toUpperCase() };
     case 't':
       return { kind: 'type', value: lower };
     case 'loc':
@@ -107,7 +102,7 @@ function readFilter(key: Key, value: string): CollectionFilter {
       const finish = finishes.find((f) => f === lower);
       return finish
         ? { kind: 'finish', value: finish }
-        : { kind: 'invalid', message: 'f: takes foil, nonfoil or etched.' };
+        : { kind: 'invalid', message: 'f: takes normal or foil.' };
     }
     case 'is':
       if (lower === 'proxy') return { kind: 'proxy', value: true };
@@ -117,24 +112,22 @@ function readFilter(key: Key, value: string): CollectionFilter {
       if (lower === 'yes') return { kind: 'trade', value: true };
       if (lower === 'no') return { kind: 'trade', value: false };
       return { kind: 'invalid', message: 'trade: takes yes or no.' };
-    case 'c': {
-      const upper = lower.toUpperCase();
-      if (upper === 'C') return { kind: 'color', value: '' };
-      if (![...upper].every((letter) => colorOrder.includes(letter))) {
-        return {
-          kind: 'invalid',
-          message: 'c: takes the colors w, u, b, r and g, such as c:wu, or c:c for colorless.',
-        };
-      }
-      return { kind: 'color', value: [...colorOrder].filter((x) => upper.includes(x)).join('') };
+    case 'domain': {
+      const domain = DomainSchema.safeParse(lower);
+      return domain.success
+        ? { kind: 'domain', value: domain.data }
+        : {
+            kind: 'invalid',
+            message: 'domain: takes fury, calm, mind, body, chaos or order.',
+          };
     }
   }
 }
 
 const examples: Record<Key, string> = {
-  set: 'set:sos',
-  c: 'c:wu',
-  t: 't:creature',
+  set: 'set:ogn',
+  domain: 'domain:fury',
+  t: 't:unit',
   f: 'f:foil',
   is: 'is:proxy',
   loc: 'loc:"Rares binder"',
@@ -152,9 +145,9 @@ export function formatCollectionFilter(filter: CollectionFilter): string {
     case 'name':
       return quote(filter.value);
     case 'set':
-      return `set:${quote(filter.value)}`;
-    case 'color':
-      return `c:${filter.value === '' ? 'c' : filter.value.toLowerCase()}`;
+      return `set:${quote(filter.value.toLowerCase())}`;
+    case 'domain':
+      return `domain:${filter.value}`;
     case 'type':
       return `t:${quote(filter.value)}`;
     case 'finish':

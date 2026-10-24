@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { deckViewSample, hearthhull } from '../../src/shared/api/samples/decks';
+import { deckViewSample, jinxBurn } from '../../src/shared/api/samples/decks';
 import { putAwaySample } from '../../src/shared/api/samples/put-away';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' });
@@ -23,7 +23,9 @@ test('opens on Decks, in the app frame', async ({ page }) => {
 test('every screen address opens', async ({ page }) => {
   // The deck view shows its deck's name, so it gets a deck to show.
   await page.route('**/api/decks/3', (route) =>
-    route.fulfill({ json: { ...deckViewSample, deck: { ...hearthhull, id: 3, name: 'Lathril' } } }),
+    route.fulfill({
+      json: { ...deckViewSample, deck: { ...jinxBurn, id: 3, name: 'Viktor Tempo' } },
+    }),
   );
   // The take-apart screen shows the put-away list's deck name.
   await page.route('**/api/decks/3/put-away', (route) => route.fulfill({ json: putAwaySample }));
@@ -34,11 +36,11 @@ test('every screen address opens', async ({ page }) => {
     ['/buy-list', 'Buy list'],
     ['/history', 'History'],
     ['/settings', 'Settings'],
-    ['/cards/0bc7f093-bef0-4f1a-852c-4b75ebf54838', 'Arcane Signet'],
+    ['/cards/13', 'Ember Signet'],
     ['/decks/new', 'New deck'],
-    ['/decks/3', 'Lathril'],
+    ['/decks/3', 'Viktor Tempo'],
     ['/decks/3/assemble', 'Pick list'],
-    ['/decks/3/take-apart', 'Take apart Hearthhull'],
+    ['/decks/3/take-apart', 'Take apart Jinx Burn'],
     ['/decks/3/swap', 'Swap list'],
   ];
   for (const [path, title] of screens) {

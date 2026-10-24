@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Schemas every area's API uses. Each schema has a type of the same name.
 
-/** App row ids are whole numbers. Card data ids (oracle ids, printing ids) are strings. */
+/** App row ids are whole numbers, card ids included. Printing ids are Riftcodex's ids, as strings. */
 export const Id = z.number().int().positive();
 export type Id = z.infer<typeof Id>;
 
@@ -13,17 +13,46 @@ export type Cents = z.infer<typeof Cents>;
 /** An app id taken from a path or query string, where it arrives as text, such as `/decks/:id`. */
 export const IdParam = z.coerce.number().int().positive();
 
-export const Finish = z.enum(['nonfoil', 'foil', 'etched']);
+export const Finish = z.enum(['normal', 'foil']);
 export type Finish = z.infer<typeof Finish>;
 
 export const LocationType = z.enum(['binder', 'box', 'deck_box', 'tray', 'inbox']);
 export type LocationType = z.infer<typeof LocationType>;
 
-export const Board = z.enum(['commander', 'main', 'maybe']);
+/**
+ * A deck's seven boards. Every board but maybe holds real cards that live in the deck box;
+ * rune slots are always available (D-15).
+ */
+export const Board = z.enum([
+  'legend',
+  'champion',
+  'main',
+  'battlefield',
+  'rune',
+  'sideboard',
+  'maybe',
+]);
 export type Board = z.infer<typeof Board>;
 
-export const SlotStatus = z.enum(['in_box', 'free', 'other_decks', 'missing', 'basic']);
+export const SlotStatus = z.enum(['in_box', 'free', 'other_decks', 'missing', 'rune']);
 export type SlotStatus = z.infer<typeof SlotStatus>;
+
+/** Riftbound's six domains. */
+export const Domain = z.enum(['fury', 'calm', 'mind', 'body', 'chaos', 'order']);
+export type Domain = z.infer<typeof Domain>;
+
+/** A card's type, from its first printing that isn't alternate art. */
+export const CardType = z.enum([
+  'legend',
+  'unit',
+  'spell',
+  'gear',
+  'battlefield',
+  'rune',
+  'token',
+  'other',
+]);
+export type CardType = z.infer<typeof CardType>;
 
 export const DeckState = z.enum(['not_assembled', 'partly_assembled', 'assembled']);
 export type DeckState = z.infer<typeof DeckState>;
@@ -39,34 +68,46 @@ export type ErrorBody = z.infer<typeof ErrorBody>;
 
 /** One card (all its printings), from the card data. */
 export const CardSummary = z.object({
-  oracleId: z.string(),
-  /** The full "Front // Back" name for double-faced cards. */
+  id: Id,
   name: z.string(),
-  frontFaceName: z.string(),
-  manaCost: z.string(),
-  manaValue: z.number(),
-  typeLine: z.string(),
-  /** Such as "BRG"; "" for colorless. */
-  colorIdentity: z.string(),
-  imageSmall: z.string().nullable(),
-  imageNormal: z.string().nullable(),
-  canBeCommander: z.boolean(),
-  isBasicLand: z.boolean(),
+  type: CardType,
+  /** Such as "champion", "signature" or "token"; null for none. */
+  supertype: z.string().nullable(),
+  /** Empty for cards with no domain, such as battlefields. */
+  domains: z.array(Domain),
+  /** Null for cards without the number, such as battlefields and legends. */
+  energy: z.number().int().nullable(),
+  might: z.number().int().nullable(),
+  power: z.number().int().nullable(),
+  /** The champion the card belongs to, such as "Jinx"; null for none. */
+  championTag: z.string().nullable(),
+  /** The image of its first printing that isn't alternate art; null when there is none. */
+  imageUrl: z.string().nullable(),
 });
 export type CardSummary = z.infer<typeof CardSummary>;
 
+/** One printing's price per finish, in whole cents; null when there is none. */
+export const PrintingPrices = z.object({ normal: Cents.nullable(), foil: Cents.nullable() });
+export type PrintingPrices = z.infer<typeof PrintingPrices>;
+
 /** One printing of a card, from the card data. */
 export const PrintingSummary = z.object({
+  /** Riftcodex's id. */
   printingId: z.string(),
-  oracleId: z.string(),
+  /** Such as "OGN-042/298". */
+  publicCode: z.string(),
+  /** Such as "OGN". Screens show sets by their code. */
   setCode: z.string(),
   setName: z.string(),
   collectorNumber: z.string(),
-  lang: z.string(),
-  finishes: z.array(Finish),
+  /** Such as "rare". */
   rarity: z.string(),
-  imageSmall: z.string().nullable(),
-  imageNormal: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  alternateArt: z.boolean(),
+  overnumbered: z.boolean(),
+  signature: z.boolean(),
+  finishes: z.array(Finish),
+  unitPrice: PrintingPrices,
 });
 export type PrintingSummary = z.infer<typeof PrintingSummary>;
 

@@ -4,6 +4,7 @@ import type { NewBuyItem } from '../../shared/api/buy-list';
 import type { CardDetailsResponse } from '../../shared/api/cards';
 import { ErrorBody, type PrintingSummary } from '../../shared/api/common';
 import { api } from '../api';
+import { typeLine } from '../lib/card-text';
 import { useUndoBar } from './UndoBar';
 import { Button } from './ui/button';
 import {
@@ -21,7 +22,7 @@ import { NativeSelect, NativeSelectOption } from './ui/native-select';
 export type AddToBuyListDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  oracleId: string;
+  cardId: number;
   /** A wanted printing; without one any printing will do. */
   printingId?: string;
   quantity?: number;
@@ -36,7 +37,7 @@ async function failure(res: Response, fallback: string): Promise<Error> {
   return new Error(body.success ? body.data.error.message : fallback);
 }
 
-/** Such as "Edge of Eternities Commander (EOC) #53". */
+/** Such as "Origins (EOC) #53". */
 export function printingLabel(printing: PrintingSummary) {
   return `${printing.setName} (${printing.setCode.toUpperCase()}) #${printing.collectorNumber}`;
 }
@@ -45,7 +46,7 @@ export function printingLabel(printing: PrintingSummary) {
 export function AddToBuyListDialog({
   open,
   onOpenChange,
-  oracleId,
+  cardId,
   printingId,
   quantity,
 }: AddToBuyListDialogProps) {
@@ -54,7 +55,7 @@ export function AddToBuyListDialog({
       <DialogContent>
         {/* Mounted only while open, so each opening starts from the props again. */}
         <AddToBuyListForm
-          oracleId={oracleId}
+          cardId={cardId}
           printingId={printingId}
           quantity={quantity}
           onDone={() => onOpenChange(false)}
@@ -65,12 +66,12 @@ export function AddToBuyListDialog({
 }
 
 function AddToBuyListForm({
-  oracleId,
+  cardId,
   printingId,
   quantity: initialQuantity,
   onDone,
 }: {
-  oracleId: string;
+  cardId: number;
   printingId?: string;
   quantity?: number;
   onDone: () => void;
@@ -83,9 +84,9 @@ function AddToBuyListForm({
   const [note, setNote] = useState('');
 
   const details = useQuery({
-    queryKey: ['cards', oracleId],
+    queryKey: ['cards', cardId],
     queryFn: async (): Promise<CardDetailsResponse> => {
-      const res = await api.cards[':oracleId'].$get({ param: { oracleId } });
+      const res = await api.cards[':id'].$get({ param: { id: String(cardId) } });
       if (!res.ok) {
         throw await failure(res, "Couldn't load this card.");
       }
@@ -119,7 +120,7 @@ function AddToBuyListForm({
       return;
     }
     add.mutate({
-      oracleId,
+      cardId,
       quantity: count,
       ...(chosenId ? { printingId: chosenId } : {}),
       ...(note.trim() ? { note: note.trim() } : {}),
@@ -131,7 +132,7 @@ function AddToBuyListForm({
   const picked = printings.find((printing) => printing.printingId === chosenId);
   // A wanted printing the card data doesn't list still shows, so it isn't dropped silently.
   const unlisted = chosenId && details.isSuccess && !picked;
-  const image = picked?.imageNormal ?? card?.imageNormal ?? null;
+  const image = picked?.imageUrl ?? card?.imageUrl ?? null;
 
   return (
     <form onSubmit={submit} className="grid gap-4">
@@ -147,7 +148,7 @@ function AddToBuyListForm({
           {image && <img src={image} alt={card?.name ?? ''} className="size-full object-contain" />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          {card && <p className="text-[13px] text-muted-foreground">{card.typeLine}</p>}
+          {card && <p className="text-[13px] text-muted-foreground">{typeLine(card)}</p>}
           <div className="flex flex-col gap-1.5">
             <label htmlFor={`${ids}-quantity`} className="font-medium text-sm">
               Quantity

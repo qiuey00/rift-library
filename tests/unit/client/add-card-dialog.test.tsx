@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AddCardDialog } from '../../../src/client/components/AddCardDialog';
 import { UndoBarProvider } from '../../../src/client/components/UndoBar';
-import { arcaneSignet, arcaneSignetDetails } from '../../../src/shared/api/samples/cards';
+import { emberSignet, emberSignetDetails } from '../../../src/shared/api/samples/cards';
 import { addCopiesResultSample } from '../../../src/shared/api/samples/copies';
 import { locationTreeSample } from '../../../src/shared/api/samples/locations';
 
@@ -34,7 +34,7 @@ function mockApi() {
       const request = new Request(new URL(String(input), 'http://127.0.0.1:4300'), init);
       const url = new URL(request.url).pathname;
       if (url === '/api/locations/tree') return Response.json(locationTreeSample);
-      if (url === `/api/cards/${arcaneSignet.oracleId}`) return Response.json(arcaneSignetDetails);
+      if (url === `/api/cards/${emberSignet.id}`) return Response.json(emberSignetDetails);
       calls.push({ url, body: request.method === 'GET' ? undefined : await request.json() });
       return Response.json(addCopiesResultSample);
     }),
@@ -51,7 +51,7 @@ describe('AddCardDialog', () => {
           <AddCardDialog
             open
             onOpenChange={() => {}}
-            defaultOracleId={arcaneSignet.oracleId}
+            defaultCardId={emberSignet.id}
             defaultLocationId={6}
           />
         </UndoBarProvider>
@@ -73,7 +73,7 @@ describe('AddCardDialog', () => {
     expect(calls[0]).toEqual({
       url: '/api/stacks/add',
       body: expect.objectContaining({
-        printingId: arcaneSignetDetails.printings[0]?.printingId,
+        printingId: emberSignetDetails.printings[0]?.printingId,
         locationId: 6,
         quantity: 1,
       }),

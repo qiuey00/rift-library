@@ -2,11 +2,11 @@ import { expect, type Page, test } from '@playwright/test';
 import type { NewBuyItems } from '../../src/shared/api/buy-list';
 import type { DeckSummary } from '../../src/shared/api/decks';
 import { buyListSample } from '../../src/shared/api/samples/buy-list';
-import { arcaneSignetDetails, arcaneSignetPrintings } from '../../src/shared/api/samples/cards';
+import { emberSignetDetails, emberSignetPrintings } from '../../src/shared/api/samples/cards';
 import { deckChecksSample } from '../../src/shared/api/samples/deck-checks';
-import { deckViewSample, hearthhull, slotSample } from '../../src/shared/api/samples/decks';
+import { deckViewSample, jinxBurn, slotSample } from '../../src/shared/api/samples/decks';
 
-// The deck view with the API mocked from the samples: the Hearthhull deck (id 1).
+// The deck view with the API mocked from the samples: the Jinx Burn deck (id 1).
 
 async function mockDeck(page: Page, deck: Partial<DeckSummary> = {}) {
   // Card images come from the internet; tests never reach it.
@@ -15,7 +15,7 @@ async function mockDeck(page: Page, deck: Partial<DeckSummary> = {}) {
     (route) => route.abort(),
   );
   await page.route('**/api/decks/1', (route) =>
-    route.fulfill({ json: { ...deckViewSample, deck: { ...hearthhull, ...deck } } }),
+    route.fulfill({ json: { ...deckViewSample, deck: { ...jinxBurn, ...deck } } }),
   );
   await page.route('**/api/decks/1/checks', (route) => route.fulfill({ json: deckChecksSample }));
 }
@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the header shows the deck, its state and its actions', async ({ page }) => {
   await page.goto('/decks/1');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hearthhull');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Jinx Burn');
   const header = page.getByRole('region', { name: 'Deck header' });
   await expect(header).toContainText('Partly assembled');
   await expect(header).toContainText('95 cards');
@@ -51,7 +51,7 @@ test('the header shows the deck, its state and its actions', async ({ page }) =>
 
   await header.getByRole('button', { name: 'More actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete deck' }).click();
-  await expect(page.getByRole('dialog', { name: 'Delete Hearthhull' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Delete Jinx Burn' })).toBeVisible();
 });
 
 test('an assembled deck has no Assemble; an empty deck box has no Take apart', async ({ page }) => {
@@ -74,7 +74,7 @@ test('Rename saves the new name', async ({ page }) => {
   await page.route('**/api/decks/1', (route) => {
     if (route.request().method() !== 'PATCH') return route.fallback();
     sent = route.request().postDataJSON();
-    return route.fulfill({ json: { ...hearthhull, name: 'Worldseed' } });
+    return route.fulfill({ json: { ...jinxBurn, name: 'Worldseed' } });
   });
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'More actions' }).click();
@@ -91,7 +91,7 @@ test('the availability panel counts the cards by where they are', async ({ page 
   const panel = page.getByRole('region', { name: 'Where the cards are' });
   await expect(
     panel.getByRole('img', {
-      name: '58 in deck box, 13 free, 4 in other decks, 3 missing, 17 basic lands',
+      name: '58 in deck box, 13 free, 4 in other decks, 3 missing, 17 runes',
     }),
   ).toBeVisible();
   await expect(panel.getByRole('listitem')).toHaveText([
@@ -99,7 +99,7 @@ test('the availability panel counts the cards by where they are', async ({ page 
     '13free',
     '4in other decks',
     '3missing',
-    '17basic lands',
+    '17runes',
   ]);
 });
 
@@ -115,9 +115,9 @@ test('Add missing sends every missing card to the buy list after one confirmatio
   await page.getByRole('button', { name: 'Add missing to buy list' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add missing cards to the buy list?' });
   await expect(dialog.getByRole('listitem')).toHaveText([
-    '1Soul of Windgrace',
-    '1Omnath, Locus of Rage',
-    '1Splendid Reclamation',
+    '1Swift Ox',
+    '1Nasus, Trickster',
+    '1Twilight Flare',
   ]);
   expect(sent).toBeNull();
   await dialog.getByRole('button', { name: 'Add 3 to buy list' }).click();
@@ -125,9 +125,9 @@ test('Add missing sends every missing card to the buy list after one confirmatio
   await expect(page.getByRole('status').getByText('Added 3 cards to the buy list')).toBeVisible();
   expect(sent).toEqual({
     items: [
-      { oracleId: deckViewSample.slots.find((s) => s.id === 119)?.card.oracleId, quantity: 1 },
-      { oracleId: deckViewSample.slots.find((s) => s.id === 120)?.card.oracleId, quantity: 1 },
-      { oracleId: deckViewSample.slots.find((s) => s.id === 124)?.card.oracleId, quantity: 1 },
+      { cardId: deckViewSample.slots.find((s) => s.id === 119)?.card.id, quantity: 1 },
+      { cardId: deckViewSample.slots.find((s) => s.id === 120)?.card.id, quantity: 1 },
+      { cardId: deckViewSample.slots.find((s) => s.id === 124)?.card.id, quantity: 1 },
     ],
   });
 });
@@ -136,7 +136,7 @@ test('rows show only the cards until Show status is turned on', async ({ page })
   await page.goto('/decks/1');
   const toggle = page.getByRole('button', { name: 'Show status' });
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await expect(row(page, 119)).toContainText('Soul of Windgrace');
+  await expect(row(page, 119)).toContainText('Swift Ox');
   await expect(page.getByRole('region', { name: 'Decklist' }).locator('[data-status]')).toHaveCount(
     0,
   );
@@ -156,19 +156,19 @@ test('rows show each status, with location paths and the other decks', async ({ 
   await page.getByRole('button', { name: 'Show status' }).click();
 
   // In the deck box, with a proxy.
-  await expect(row(page, 160)).toContainText('Moraug, Fury of Akoum');
+  await expect(row(page, 160)).toContainText('Senna, Outlaw');
   await expect(row(page, 160)).toContainText('In deck box');
   await expect(row(page, 160)).toContainText('Proxy');
 
   // Free: the best location's path, and how many more locations have one.
   await expect(row(page, 104)).toContainText('Free');
-  await expect(row(page, 104)).toContainText('Long box › Black & Green+1 more');
-  await expect(row(page, 106)).toContainText('Long box › Black & Green');
+  await expect(row(page, 104)).toContainText('Long box › Chaos & Calm+1 more');
+  await expect(row(page, 106)).toContainText('Long box › Chaos & Calm');
   await expect(row(page, 106)).not.toContainText('more');
 
   // Only in other decks, naming them.
   await expect(row(page, 118)).toContainText('In other deck');
-  await expect(row(page, 118)).toContainText('Atraxa, Meren');
+  await expect(row(page, 118)).toContainText('Lux Control, Ahri Midrange');
 
   // Missing. Rows carry no Add to buy list link; it is on the right-click menu.
   await expect(row(page, 119)).toContainText('Missing');
@@ -176,39 +176,41 @@ test('rows show each status, with location paths and the other decks', async ({ 
     page.getByRole('region', { name: 'Decklist' }).getByText('Add to buy list'),
   ).toHaveCount(0);
 
-  // Basic lands show a grey count; maybe board rows have no status.
-  await expect(row(page, 125)).toContainText('8Forest');
-  await expect(row(page, 125)).toContainText('Basic');
+  // Runes show a grey count; maybe board rows have no status.
+  await expect(row(page, 125)).toContainText('8Calm Rune');
+  await expect(row(page, 125)).toContainText('Rune');
   await expect(row(page, 185).locator('[data-status]')).toHaveCount(0);
 
   // The name opens the card page.
-  await row(page, 114).getByRole('link', { name: 'Sol Ring' }).click();
-  await expect(page).toHaveURL(/\/cards\/[0-9a-f-]+$/);
+  await row(page, 114).getByRole('link', { name: 'Sun Disc' }).click();
+  await expect(page).toHaveURL(/\/cards\/\d+$/);
 });
 
-test('Group by Type puts cards in deck list order, with basics in Lands', async ({ page }) => {
+test('Group by Type puts cards in deck list order, with the boards after the main deck', async ({
+  page,
+}) => {
   await page.goto('/decks/1');
   await expect(groupNames(page)).toHaveText([
-    /^Commander1$/,
-    /^Creatures\d+$/,
-    /^Instants\d+$/,
-    /^Sorceries\d+$/,
-    /^Artifacts\d+$/,
-    /^Enchantments\d+$/,
-    /^Lands\d+$/,
+    'Legend1',
+    /^Units\d+$/,
+    /^Spells\d+$/,
+    /^Gear\d+$/,
+    /^Other\d+$/,
+    'Battlefields3',
+    'Runes17',
   ]);
 
-  const lands = group(page, 'Lands');
-  const names = await lands.locator('li a').allTextContents();
-  expect(names).toContain('Forest');
-  expect(names).toContain('Wastes');
+  const runes = group(page, 'Runes');
+  const names = await runes.locator('li a').allTextContents();
+  expect(names).toContain('Calm Rune');
+  expect(names).toContain('Body Rune');
   expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-  // Hearthhull is a Spacecraft artifact, but the commander goes in Commander.
-  await expect(group(page, 'Commander')).toContainText('Hearthhull, the Worldseed');
-  await expect(group(page, 'Artifacts')).not.toContainText('Hearthhull');
+  // The Legend goes in Legend, never with the main deck's cards.
+  await expect(group(page, 'Legend')).toContainText('Jinx, Loose Cannon');
+  await expect(group(page, 'Gear')).not.toContainText('Jinx, Loose Cannon');
 });
 
-test('Group by Where it is, and Sort by mana value', async ({ page }) => {
+test('Group by Where it is, and Sort by energy', async ({ page }) => {
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'Show status' }).click();
   await page.getByRole('button', { name: 'Where it is' }).click();
@@ -217,7 +219,7 @@ test('Group by Where it is, and Sort by mana value', async ({ page }) => {
     'Free in storage13',
     'Only in other decks4',
     'Missing3',
-    'Basic lands17',
+    'Runes17',
   ]);
 
   // Free cards stay in location order.
@@ -228,14 +230,14 @@ test('Group by Where it is, and Sort by mana value', async ({ page }) => {
     );
   expect(paths).toEqual([...paths].sort((a, b) => a.localeCompare(b)));
 
-  await page.getByRole('button', { name: 'Mana value' }).click();
-  await expect(page.getByRole('button', { name: 'Mana value' })).toHaveAttribute(
+  await page.getByRole('button', { name: 'Energy' }).click();
+  await expect(page.getByRole('button', { name: 'Energy' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   const missing = await group(page, 'Missing').locator('li a').allTextContents();
-  // Soul of Windgrace and Splendid Reclamation (4) go by name, then Omnath (7).
-  expect(missing).toEqual(['Soul of Windgrace', 'Splendid Reclamation', 'Omnath, Locus of Rage']);
+  // Swift Ox and Twilight Flare (4) go by name, then Nasus, Trickster (7).
+  expect(missing).toEqual(['Swift Ox', 'Twilight Flare', 'Nasus, Trickster']);
 });
 
 test('the maybe board is its own panel below the decklist, grouped by type', async ({ page }) => {
@@ -243,13 +245,13 @@ test('the maybe board is its own panel below the decklist, grouped by type', asy
   const decklist = page.getByRole('region', { name: 'Decklist' });
   const maybe = page.getByRole('region', { name: 'Maybe board', exact: true });
   await expect(maybe.getByRole('heading', { level: 2 })).toHaveText('Maybe board5 cards');
-  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Creatures5']);
+  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Units5']);
   await expect(maybe.locator('li a')).toHaveText([
-    'Centaur Vinecrasher',
-    'Groundskeeper',
-    'Loamcrafter Faun',
-    'Uurg, Spawn of Turg',
-    'World Breaker',
+    'Dawn Harrier',
+    'Hextech Captain',
+    'Ivory Reaver',
+    'Primal Priest',
+    'Volibear, Vanguard',
   ]);
   await expect(decklist.locator('li[data-slot-id="185"]')).toHaveCount(0);
   // Below the decklist, not beside it.
@@ -259,9 +261,9 @@ test('the maybe board is its own panel below the decklist, grouped by type', asy
 
   // Maybe cards have no status, so the panel keeps its type groups under Where it is.
   await page.getByRole('button', { name: 'Where it is' }).click();
-  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Creatures5']);
+  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Units5']);
   await page.getByRole('button', { name: 'Images' }).click();
-  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Creatures5']);
+  await expect(maybe.getByRole('heading', { level: 3 })).toHaveText(['Units5']);
   await expect(maybe.locator('li[data-slot-id]')).toHaveCount(5);
 });
 
@@ -281,11 +283,11 @@ test('a deck with no maybe cards has no maybe board panel', async ({ page }) => 
 
 test('the demand warning shows in the side pane, not on the card row', async ({ page }) => {
   await page.goto('/decks/1');
-  await expect(row(page, 118)).toContainText('Arcane Signet');
+  await expect(row(page, 118)).toContainText('Ember Signet');
   await expect(row(page, 118)).not.toContainText('decks want');
   const demand = page.getByRole('list', { name: 'Demand warnings' });
-  await expect(demand).toContainText('Arcane Signet');
-  await expect(demand).toContainText('3 decks want Arcane Signet, you own 2');
+  await expect(demand).toContainText('Ember Signet');
+  await expect(demand).toContainText('3 decks want Ember Signet, you own 2');
 });
 
 test('right-clicking a card offers Add to buy list, with the missing count', async ({ page }) => {
@@ -314,7 +316,7 @@ async function captureSlotChanges(page: Page, slotId: number) {
   return sent;
 }
 
-test('right-click moves a card between the main and maybe boards, never a commander', async ({
+test('right-click moves a card between the main and maybe boards, never the Legend', async ({
   page,
 }) => {
   const toMaybe = await captureSlotChanges(page, 114);
@@ -339,7 +341,7 @@ test('right-click moves a card between the main and maybe boards, never a comman
 test('Change printing lists the printings and saves the one picked, with foil', async ({
   page,
 }) => {
-  await page.route('**/api/cards/*', (route) => route.fulfill({ json: arcaneSignetDetails }));
+  await page.route('**/api/cards/*', (route) => route.fulfill({ json: emberSignetDetails }));
   const changes = await captureSlotChanges(page, 118);
   await page.goto('/decks/1');
 
@@ -350,28 +352,28 @@ test('Change printing lists the printings and saves the one picked, with foil', 
   const dialog = page.getByRole('dialog', { name: 'Change printing' });
   const printings = dialog.getByRole('radiogroup', { name: 'Printings' }).getByRole('radio');
   await expect(printings).toHaveCount(3);
-  await expect(printings.first()).toHaveAccessibleName(/EOC #53 \(in the deck now\)/);
+  await expect(printings.first()).toHaveAccessibleName(/OGN #53 \(in the deck now\)/);
   await expect(printings.first()).toHaveAttribute('aria-checked', 'true');
   await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
   await expect(dialog.getByLabel('Foil')).toBeDisabled();
 
-  const cmm = arcaneSignetPrintings[1];
-  await dialog.getByRole('radio', { name: /CMM #367/ }).click();
+  const ven = emberSignetPrintings[1];
+  await dialog.getByRole('radio', { name: /VEN #367/ }).click();
   await dialog.getByLabel('Foil').check();
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
-  expect(changes).toEqual([{ printing: { printingId: cmm?.printingId, foil: true } }]);
+  expect(changes).toEqual([{ printing: { printingId: ven?.printingId, foil: true } }]);
 });
 
 test('Change printing says a copy in the deck box stays', async ({ page }) => {
   await page.route('**/api/cards/*', (route) =>
-    route.fulfill({ json: { ...arcaneSignetDetails, printings: arcaneSignetPrintings } }),
+    route.fulfill({ json: { ...emberSignetDetails, printings: emberSignetPrintings } }),
   );
   const view = structuredClone(deckViewSample);
   const signet = view.slots.find((slot) => slot.id === 118);
-  if (signet) Object.assign(signet, { inBoxQuantity: 1, pickedPrinting: arcaneSignetPrintings[0] });
+  if (signet) Object.assign(signet, { inBoxQuantity: 1, pickedPrinting: emberSignetPrintings[0] });
   await page.route('**/api/decks/1', (route) =>
-    route.fulfill({ json: { ...view, deck: hearthhull } }),
+    route.fulfill({ json: { ...view, deck: jinxBurn } }),
   );
   await page.goto('/decks/1');
 
@@ -380,15 +382,15 @@ test('Change printing says a copy in the deck box stays', async ({ page }) => {
   await row(page, 118).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Change printing…' }).click();
   const dialog = page.getByRole('dialog', { name: 'Change printing' });
-  await dialog.getByRole('radio', { name: /ELD #331/ }).click();
+  await dialog.getByRole('radio', { name: /SPD #331/ }).click();
   await expect(dialog).toContainText(
-    'The deck box already holds the EOC #53 copy. It stays there and still counts for this card.',
+    'The deck box already holds the OGN #53 copy. It stays there and still counts for this card.',
   );
 });
 
 test('the card menu opens from the keyboard', async ({ page }) => {
   await page.goto('/decks/1');
-  await row(page, 114).getByRole('link', { name: 'Sol Ring' }).focus();
+  await row(page, 114).getByRole('link', { name: 'Sun Disc' }).focus();
   await page.keyboard.press('Shift+F10');
   await page.getByRole('menuitem', { name: 'Add to buy list' }).press('Enter');
   await expect(page.getByRole('dialog', { name: 'Add to buy list' })).toBeVisible();
@@ -405,9 +407,9 @@ test('the side pane lists the deck checks as notes', async ({ page }) => {
 test('the card preview follows the hovered row', async ({ page }) => {
   await page.goto('/decks/1');
   const preview = page.getByRole('region', { name: 'Card preview' });
-  await expect(preview.getByRole('img')).toHaveAttribute('alt', 'Hearthhull, the Worldseed');
+  await expect(preview.getByRole('img')).toHaveAttribute('alt', 'Jinx, Loose Cannon');
   await row(page, 114).hover();
-  await expect(preview.getByRole('img')).toHaveAttribute('alt', 'Sol Ring');
+  await expect(preview.getByRole('img')).toHaveAttribute('alt', 'Sun Disc');
   await expect(preview.getByRole('link', { name: 'Open card page' })).toBeVisible();
 });
 
@@ -450,13 +452,13 @@ test('a long side pane scrolls the deck checks under a pinned card preview', asy
 test('the rows / images switch is remembered', async ({ page }) => {
   await page.goto('/decks/1');
   await page.getByRole('button', { name: 'Images' }).click();
-  await expect(row(page, 114).getByRole('img', { name: 'Sol Ring' })).toBeVisible();
+  await expect(row(page, 114).getByRole('img', { name: 'Sun Disc' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Images' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await expect(row(page, 114).getByRole('img', { name: 'Sol Ring' })).toBeVisible();
+  await expect(row(page, 114).getByRole('img', { name: 'Sun Disc' })).toBeVisible();
   await page.getByRole('button', { name: 'Rows' }).click();
   await expect(row(page, 114).getByRole('img')).toHaveCount(0);
 });
@@ -471,12 +473,12 @@ test('the deck view keeps its own rows / images choice', async ({ page }) => {
   expect(stored).toEqual(['images', null]);
 });
 
-test('a deck with only its commander offers Add cards', async ({ page }) => {
+test('a deck with only its Legend offers Add cards', async ({ page }) => {
   await page.route('**/api/decks/1', (route) =>
     route.fulfill({
       json: {
         ...deckViewSample,
-        slots: deckViewSample.slots.filter((slot) => slot.board === 'commander'),
+        slots: deckViewSample.slots.filter((slot) => slot.board === 'legend'),
       },
     }),
   );

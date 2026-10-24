@@ -9,16 +9,16 @@ import {
 import { UndoBarProvider } from '../../../src/client/components/UndoBar';
 import type { NewBuyItem } from '../../../src/shared/api/buy-list';
 import { buyItemSample } from '../../../src/shared/api/samples/buy-list';
-import { arcaneSignetDetails, arcaneSignetPrintings } from '../../../src/shared/api/samples/cards';
+import { emberSignetDetails, emberSignetPrintings } from '../../../src/shared/api/samples/cards';
 
-// The dialog with the API mocked from the samples: Arcane Signet and its three printings.
+// The dialog with the API mocked from the samples: Ember Signet and its three printings.
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-const oracleId = arcaneSignetDetails.card.oracleId;
+const cardId = emberSignetDetails.card.id;
 
 type Call = { url: string; method: string; body: unknown };
 
@@ -31,7 +31,7 @@ function mockApi(post: () => Response = () => Response.json(buyItemSample, { sta
       const body = request.method === 'GET' ? undefined : await request.json();
       calls.push({ url: new URL(request.url).pathname, method: request.method, body });
       if (request.method === 'GET') {
-        return Response.json(arcaneSignetDetails);
+        return Response.json(emberSignetDetails);
       }
       return post();
     }),
@@ -44,7 +44,7 @@ function renderDialog(props: Partial<AddToBuyListDialogProps> = {}) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <UndoBarProvider>
-        <AddToBuyListDialog open onOpenChange={onOpenChange} oracleId={oracleId} {...props} />
+        <AddToBuyListDialog open onOpenChange={onOpenChange} cardId={cardId} {...props} />
       </UndoBarProvider>
     </QueryClientProvider>,
   );
@@ -59,28 +59,28 @@ describe('AddToBuyListDialog', () => {
   it('shows the card with its printings, defaulting to any printing and one copy', async () => {
     const calls = mockApi();
     renderDialog();
-    expect(await screen.findByText('Arcane Signet')).toBeTruthy();
-    expect(calls[0]).toMatchObject({ method: 'GET', url: `/api/cards/${oracleId}` });
+    expect(await screen.findByText('Ember Signet')).toBeTruthy();
+    expect(calls[0]).toMatchObject({ method: 'GET', url: `/api/cards/${cardId}` });
     expect(field('Quantity').value).toBe('1');
     const printing = field('Printing') as unknown as HTMLSelectElement;
     expect(printing.value).toBe('');
     expect([...printing.options].map((option) => option.text)).toEqual([
       'Any printing',
-      'Edge of Eternities Commander (EOC) #53',
-      'Commander Masters (CMM) #367',
-      'Throne of Eldraine (ELD) #331',
+      'Origins (OGN) #53',
+      'Vendetta (VEN) #367',
+      'Spiritforged Prerelease (SPD) #331',
     ]);
   });
 
   it('sends the card, quantity, printing and note', async () => {
     const calls = mockApi();
     const { onOpenChange } = renderDialog();
-    await screen.findByText('Arcane Signet');
+    await screen.findByText('Ember Signet');
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
 
     fireEvent.change(field('Quantity'), { target: { value: '2' } });
-    fireEvent.change(field('Printing'), { target: { value: arcaneSignetPrintings[1].printingId } });
-    fireEvent.change(field('Note'), { target: { value: 'Foil for Atraxa' } });
+    fireEvent.change(field('Printing'), { target: { value: emberSignetPrintings[1].printingId } });
+    fireEvent.change(field('Note'), { target: { value: 'Foil for Lux Control' } });
     fireEvent.click(addButton());
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
@@ -89,49 +89,49 @@ describe('AddToBuyListDialog', () => {
         method: 'POST',
         url: '/api/buy-list',
         body: {
-          oracleId,
+          cardId,
           quantity: 2,
-          printingId: arcaneSignetPrintings[1].printingId,
-          note: 'Foil for Atraxa',
+          printingId: emberSignetPrintings[1].printingId,
+          note: 'Foil for Lux Control',
         } satisfies NewBuyItem,
       },
     ]);
     expect(screen.getByRole('status').textContent).toContain(
-      'Added 2 × Arcane Signet to the buy list',
+      'Added 2 × Ember Signet to the buy list',
     );
   });
 
   it('starts from the quantity and printing it was opened with', async () => {
     const calls = mockApi();
-    renderDialog({ quantity: 3, printingId: arcaneSignetPrintings[2].printingId });
-    await screen.findByText('Arcane Signet');
+    renderDialog({ quantity: 3, printingId: emberSignetPrintings[2].printingId });
+    await screen.findByText('Ember Signet');
     expect(field('Quantity').value).toBe('3');
-    expect(field('Printing').value).toBe(arcaneSignetPrintings[2].printingId);
+    expect(field('Printing').value).toBe(emberSignetPrintings[2].printingId);
 
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(addButton());
     await waitFor(() => expect(posts(calls)).toHaveLength(1));
     expect(posts(calls)[0].body).toEqual({
-      oracleId,
+      cardId,
       quantity: 3,
-      printingId: arcaneSignetPrintings[2].printingId,
+      printingId: emberSignetPrintings[2].printingId,
     });
   });
 
   it('leaves out the printing and note when any printing will do', async () => {
     const calls = mockApi();
     renderDialog();
-    await screen.findByText('Arcane Signet');
+    await screen.findByText('Ember Signet');
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(addButton());
     await waitFor(() => expect(posts(calls)).toHaveLength(1));
-    expect(posts(calls)[0].body).toEqual({ oracleId, quantity: 1 });
+    expect(posts(calls)[0].body).toEqual({ cardId, quantity: 1 });
   });
 
   it('will not add less than one copy', async () => {
     const calls = mockApi();
     renderDialog();
-    await screen.findByText('Arcane Signet');
+    await screen.findByText('Ember Signet');
     fireEvent.change(field('Quantity'), { target: { value: '0' } });
     expect((addButton() as HTMLButtonElement).disabled).toBe(true);
     fireEvent.submit(addButton());
@@ -146,7 +146,7 @@ describe('AddToBuyListDialog', () => {
       ),
     );
     const { onOpenChange } = renderDialog();
-    await screen.findByText('Arcane Signet');
+    await screen.findByText('Ember Signet');
     await waitFor(() => expect((addButton() as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(addButton());
     expect((await screen.findByRole('alert')).textContent).toBe(

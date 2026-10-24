@@ -11,8 +11,8 @@ function status(): CardDataStatus {
   return {
     state: 'ready',
     progress: 1,
-    bulkUpdatedAt: null,
-    lastCheckedAt: null,
+    cardsSyncedAt: null,
+    pricesUpdatedAt: null,
     cardCount: db.select({ n: count() }).from(cards).get()?.n ?? 0,
     printingCount: db.select({ n: count() }).from(printings).get()?.n ?? 0,
     error: null,

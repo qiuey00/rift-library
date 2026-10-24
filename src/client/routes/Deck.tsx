@@ -44,8 +44,8 @@ import { CardSearchPicker } from '../components/CardSearchPicker';
 import { ChangePrintingDialog } from '../components/ChangePrintingDialog';
 import { DeckListExportDialog } from '../components/DeckListExportDialog';
 import { DeleteDeckDialog } from '../components/DeleteDeckDialog';
+import { DomainIcons } from '../components/DomainIcon';
 import { LocationTile } from '../components/LocationTile';
-import { ManaCost } from '../components/ManaCost';
 import { Panel } from '../components/Panel';
 import { ProxyTag } from '../components/ProxyTag';
 import { StatePill } from '../components/StatePill';
@@ -77,6 +77,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { Input } from '../components/ui/input';
 import { NativeSelect, NativeSelectOption } from '../components/ui/native-select';
+import { typeLine } from '../lib/card-text';
 import {
   deckTags,
   type GroupBy,
@@ -156,13 +157,13 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
   );
   const maybeCount = groups.maybe.reduce((sum, group) => sum + group.count, 0);
   const [hoveredId, setHoveredId] = useState<Id | null>(null);
-  const [buying, setBuying] = useState<{ oracleId: string; quantity: number } | null>(null);
+  const [buying, setBuying] = useState<{ cardId: number; quantity: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const edits = useDeckEdits(deck.id);
   const [changingQuantity, setChangingQuantity] = useState<SlotRow | null>(null);
   const [changingPrinting, setChangingPrinting] = useState<SlotRow | null>(null);
   const [editingTags, setEditingTags] = useState<SlotRow | null>(null);
-  const [commanderDialog, setCommanderDialog] = useState<CommanderDialogMode | null>(null);
+  const [changingLegend, setChangingLegend] = useState(false);
 
   const previewed =
     slots.find((slot) => slot.id === hoveredId) ?? groups.decklist[0]?.slots[0] ?? slots[0] ?? null;
@@ -172,7 +173,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
     hovered: slot.id === previewed?.id,
     showStatus,
     onHover: () => setHoveredId(slot.id),
-    onBuy: (quantity) => setBuying({ oracleId: slot.card.oracleId, quantity }),
+    onBuy: (quantity) => setBuying({ cardId: slot.card.id, quantity }),
     onChangePrinting: () => setChangingPrinting(slot),
     onEditTags: () => setEditingTags(slot),
     onMove: (board) => edits.mutate({ kind: 'change', slot, change: { board } }),
@@ -180,10 +181,9 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
     menu: editing ? (
       <SlotMenu
         slot={slot}
-        commanders={deck.commanders}
         busy={edits.isPending}
         onChangeQuantity={() => setChangingQuantity(slot)}
-        onCommanderDialog={setCommanderDialog}
+        onChangeLegend={() => setChangingLegend(true)}
         onEdit={edits.mutate}
       />
     ) : undefined,
@@ -196,7 +196,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         <SwapBanner deckId={deck.id} />
         <AvailabilityPanel deck={deck} slots={slots} />
         {editing && <EditPanel deck={deck} edits={edits} onDone={() => setEditing(false)} />}
-        {!editing && slots.every((slot) => slot.board === 'commander') && (
+        {!editing && slots.every((slot) => slot.board === 'legend') && (
           <EmptyDeck onEdit={() => setEditing(true)} />
         )}
 
@@ -228,7 +228,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
             onChange={setSortBy}
             options={[
               { value: 'name', label: 'Name' },
-              { value: 'mana_value', label: 'Mana value' },
+              { value: 'energy', label: 'Energy' },
             ]}
           />
           <TagFilterSelect tags={tags} value={tagFilter} onChange={setTagFilter} />
@@ -266,7 +266,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
                 <div className="flex items-baseline justify-between gap-4 px-2">
                   <h2 className="font-serif text-[26px] leading-none">
                     Maybe board
-                    <span className="ml-2.5 font-sans font-semibold text-[15px] text-status-basic tabular-nums">
+                    <span className="ml-2.5 font-sans font-semibold text-[15px] text-status-rune tabular-nums">
                       {maybeCount} {maybeCount === 1 ? 'card' : 'cards'}
                     </span>
                   </h2>
@@ -290,7 +290,7 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
         <AddToBuyListDialog
           open
           onOpenChange={(open) => !open && setBuying(null)}
-          oracleId={buying.oracleId}
+          cardId={buying.cardId}
           quantity={buying.quantity}
         />
       )}
@@ -320,19 +320,18 @@ function DeckScreen({ view, checks }: { view: DeckView; checks: DeckChecks | und
           onClose={() => setEditingTags(null)}
         />
       )}
-      {commanderDialog && (
-        <CommanderDialog
-          mode={commanderDialog}
-          commanders={deck.commanders}
-          onSave={(oracleIds) => edits.mutateAsync({ kind: 'commanders', oracleIds })}
-          onClose={() => setCommanderDialog(null)}
+      {changingLegend && (
+        <LegendDialog
+          legend={deck.legend}
+          onSave={(legendId) => edits.mutateAsync({ kind: 'legend', legendId })}
+          onClose={() => setChangingLegend(false)}
         />
       )}
     </>
   );
 }
 
-/** Shown while the deck holds only its commander: start adding cards. */
+/** Shown while the deck holds only its Legend: start adding cards. */
 function EmptyDeck({ onEdit }: { onEdit: () => void }) {
   return (
     <Panel
@@ -341,7 +340,7 @@ function EmptyDeck({ onEdit }: { onEdit: () => void }) {
       className="flex flex-col items-center gap-3 px-6 py-8 text-center"
     >
       <p className="text-[15px] text-muted-foreground">
-        This deck has no cards besides its commander yet.
+        This deck has no cards besides its Legend yet.
       </p>
       <div className="flex flex-wrap justify-center gap-2.5">
         <Button onClick={onEdit}>
@@ -369,7 +368,7 @@ function DeckHeader({
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { counts } = deck;
-  const cardCount = counts.inBox + counts.free + counts.otherDecks + counts.missing + counts.basics;
+  const cardCount = counts.inBox + counts.free + counts.otherDecks + counts.missing + counts.runes;
   const lightButton =
     'h-[42px] border border-white/35 bg-transparent px-4 text-white hover:bg-white/15 hover:text-white';
 
@@ -385,8 +384,12 @@ function DeckHeader({
           </Link>
           <h1 className="font-serif text-[52px] leading-none">{deck.name}</h1>
           <div className="flex flex-wrap items-center gap-3.5 text-[#d9dde5]">
-            <ColorPips colors={deck.colorIdentity} />
-            <span>{deck.commanders.map((card) => card.name).join(' & ')}</span>
+            <DomainIcons domains={deck.domains} className="text-base" />
+            <span>
+              {[deck.legend, deck.champion]
+                .flatMap((card) => (card ? [card.name] : []))
+                .join(' & ')}
+            </span>
             <span aria-hidden="true" className="text-[#7c8291]">
               ·
             </span>
@@ -463,27 +466,6 @@ function DeckHeader({
         />
       )}
     </section>
-  );
-}
-
-const colorWords: Record<string, string> = {
-  W: 'white',
-  U: 'blue',
-  B: 'black',
-  R: 'red',
-  G: 'green',
-};
-
-function ColorPips({ colors }: { colors: string }) {
-  const letters = colors === '' ? ['C'] : [...colors];
-  const words = colors === '' ? 'colorless' : letters.map((c) => colorWords[c] ?? c).join(', ');
-  return (
-    <span className="flex gap-[3px] text-base">
-      {letters.map((letter) => (
-        <i key={letter} aria-hidden="true" className={`ms ms-cost ms-${letter.toLowerCase()}`} />
-      ))}
-      <span className="sr-only">Colors: {words}</span>
-    </span>
   );
 }
 
@@ -587,11 +569,11 @@ const availability = [
     fill: 'bg-status-missing-fill',
   },
   {
-    key: 'basics',
-    word: 'basic lands',
+    key: 'runes',
+    word: 'runes',
     icon: Layers,
-    text: 'text-status-basic',
-    fill: 'bg-status-basic-fill',
+    text: 'text-status-rune',
+    fill: 'bg-status-rune-fill',
   },
 ] as const;
 
@@ -654,7 +636,7 @@ function AddMissingDialog({
     mutationFn: async () => {
       const res = await api['buy-list'].bulk.$post({
         json: {
-          items: toBuy.map(({ slot, quantity }) => ({ oracleId: slot.card.oracleId, quantity })),
+          items: toBuy.map(({ slot, quantity }) => ({ cardId: slot.card.id, quantity })),
         },
       });
       if (!res.ok) throw await failure(res, "Couldn't add the cards to the buy list.");
@@ -854,7 +836,7 @@ function GroupHeading({
   return (
     <Heading className="flex justify-between gap-2.5 break-after-avoid border-border border-b px-2 pb-1.5 font-bold text-[#2b303b] text-xs uppercase tracking-[0.06em]">
       {title}
-      <span className="font-semibold text-status-basic">{count}</span>
+      <span className="font-semibold text-status-rune">{count}</span>
     </Heading>
   );
 }
@@ -940,7 +922,7 @@ function SlotListRow({ slot, hovered, showStatus, onHover, menu, ...actions }: R
         <span className="flex min-w-0 flex-col gap-1">
           <span className="flex min-w-0 items-center gap-1.5">
             <Link
-              to={`/cards/${slot.card.oracleId}`}
+              to={`/cards/${slot.card.id}`}
               className="truncate font-medium hover:text-primary hover:underline"
             >
               {slot.card.name}
@@ -950,7 +932,7 @@ function SlotListRow({ slot, hovered, showStatus, onHover, menu, ...actions }: R
           </span>
           {showStatus && <SlotWhereLine slot={slot} />}
         </span>
-        <ManaCost cost={slot.card.manaCost} frontOnly className="mt-[3px] text-xs" />
+        <DomainIcons domains={slot.card.domains} className="mt-[3px] text-xs" />
         {menu}
       </li>
     </SlotContextMenu>
@@ -976,7 +958,7 @@ function TagChips({ tags, className }: { tags: string[]; className?: string }) {
 
 /**
  * Right-clicking a card, or the Menu key or Shift+F10 while it has focus, offers Change
- * printing, a move between the main and maybe boards (not for commanders), Edit tags and Add
+ * printing, a move between the main and maybe boards (not for the Legend), Edit tags and Add
  * to buy list. The buy list quantity starts at how many copies are missing, or 1.
  */
 function SlotContextMenu({
@@ -1075,7 +1057,7 @@ function SlotWhereLine({ slot }: { slot: SlotRow }) {
 }
 
 function cardImage(slot: SlotRow) {
-  return slot.printing?.imageNormal ?? slot.card.imageNormal;
+  return slot.printing?.imageUrl ?? slot.card.imageUrl;
 }
 
 function SlotImage({ slot, hovered, showStatus, onHover, menu, ...actions }: RowProps) {
@@ -1089,7 +1071,7 @@ function SlotImage({ slot, hovered, showStatus, onHover, menu, ...actions }: Row
         className="relative flex flex-col gap-1.5"
       >
         <Link
-          to={`/cards/${slot.card.oracleId}`}
+          to={`/cards/${slot.card.id}`}
           className={cn(
             'block aspect-[488/680] overflow-hidden rounded-[4.75%/3.5%] bg-[#15161a]',
             hovered && 'ring-2 ring-primary',
@@ -1129,9 +1111,9 @@ type DeckEdit =
   | { kind: 'add'; card: CardSearchResult }
   | { kind: 'change'; slot: SlotRow; change: SlotChange }
   | { kind: 'remove'; slot: SlotRow }
-  | { kind: 'commanders'; oracleIds: string[] };
+  | { kind: 'legend'; legendId: Id };
 
-/** Saves one change to the deck's slots or commanders, then reloads the deck and its checks. */
+/** Saves one change to the deck's slots or Legend, then reloads the deck and its checks. */
 function useDeckEdits(deckId: Id) {
   const queryClient = useQueryClient();
   const id = String(deckId);
@@ -1141,7 +1123,7 @@ function useDeckEdits(deckId: Id) {
       if (edit.kind === 'add') {
         res = await api.decks[':id'].slots.$post({
           param: { id },
-          json: { oracleId: edit.card.oracleId, board: 'main', quantity: 1 },
+          json: { cardId: edit.card.id, board: 'main', quantity: 1 },
         });
       } else if (edit.kind === 'change') {
         res = await api.decks[':id'].slots[':slotId'].$patch({
@@ -1153,9 +1135,9 @@ function useDeckEdits(deckId: Id) {
           param: { id, slotId: String(edit.slot.id) },
         });
       } else {
-        res = await api.decks[':id'].commanders.$put({
+        res = await api.decks[':id'].legend.$put({
           param: { id },
-          json: { oracleIds: edit.oracleIds },
+          json: { legendId: edit.legendId },
         });
       }
       if (!res.ok) throw await failure(res, "Couldn't save the change to the deck.");
@@ -1191,8 +1173,8 @@ function EditPanel({
         <div className="flex flex-col gap-0.5">
           <h2 className="font-semibold text-[17px]">Edit the decklist</h2>
           <p className="text-[13px] text-muted-foreground">
-            Search shows only cards in the commanders' colors. Each card's menu changes its
-            quantity, board or commander.
+            Search shows only cards in the Legend's domains. Each card's menu changes its quantity
+            or board, and the Legend's menu changes the Legend.
           </p>
         </div>
         <Button variant="outline" onClick={onDone}>
@@ -1202,7 +1184,7 @@ function EditPanel({
       <div className="max-w-[560px]">
         <CardSearchPicker
           label="Add card"
-          identity={deck.colorIdentity}
+          domains={deck.domains}
           busy={edits.isPending}
           onPick={add}
           autoFocus
@@ -1223,25 +1205,20 @@ function EditPanel({
   );
 }
 
-type CommanderDialogMode = { kind: 'change'; oracleId: string } | { kind: 'partner' };
-
-/** The edit menu on one slot: board and quantity for cards, commander changes on the commander board. */
+/** The edit menu on one slot: board and quantity for cards, a new Legend on the Legend board. */
 function SlotMenu({
   slot,
-  commanders,
   busy,
   onChangeQuantity,
-  onCommanderDialog,
+  onChangeLegend,
   onEdit,
 }: {
   slot: SlotRow;
-  commanders: CardSummary[];
   busy: boolean;
   onChangeQuantity: () => void;
-  onCommanderDialog: (mode: CommanderDialogMode) => void;
+  onChangeLegend: () => void;
   onEdit: (edit: DeckEdit) => void;
 }) {
-  const oracleId = slot.card.oracleId;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1255,31 +1232,8 @@ function SlotMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
-        {slot.board === 'commander' ? (
-          <>
-            <DropdownMenuItem onSelect={() => onCommanderDialog({ kind: 'change', oracleId })}>
-              Change commander
-            </DropdownMenuItem>
-            {commanders.length < 2 ? (
-              <DropdownMenuItem onSelect={() => onCommanderDialog({ kind: 'partner' })}>
-                Add a partner
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() =>
-                  onEdit({
-                    kind: 'commanders',
-                    oracleIds: commanders
-                      .map((card) => card.oracleId)
-                      .filter((id) => id !== oracleId),
-                  })
-                }
-              >
-                Remove this partner
-              </DropdownMenuItem>
-            )}
-          </>
+        {slot.board === 'legend' ? (
+          <DropdownMenuItem onSelect={onChangeLegend}>Change legend</DropdownMenuItem>
         ) : (
           <>
             <DropdownMenuItem onSelect={onChangeQuantity}>Change quantity</DropdownMenuItem>
@@ -1567,36 +1521,27 @@ function EditTagsDialog({
   );
 }
 
-/** Picks a new commander, or a partner, from a search limited to cards that can be commanders. */
-function CommanderDialog({
-  mode,
-  commanders,
+/** Picks a new Legend from a search limited to Legends. */
+function LegendDialog({
+  legend,
   onSave,
   onClose,
 }: {
-  mode: CommanderDialogMode;
-  commanders: CardSummary[];
-  onSave: (oracleIds: string[]) => Promise<void>;
+  legend: CardSummary | null;
+  onSave: (legendId: Id) => Promise<void>;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const current = commanders.map((card) => card.oracleId);
-  const replaced =
-    mode.kind === 'change' ? commanders.find((c) => c.oracleId === mode.oracleId) : null;
 
   const pick = async (card: CardSearchResult) => {
-    const oracleIds =
-      mode.kind === 'change'
-        ? current.map((id) => (id === mode.oracleId ? card.oracleId : id))
-        : [...current, card.oracleId];
     setSaving(true);
     setError(null);
     try {
-      await onSave(oracleIds);
+      await onSave(card.id);
       onClose();
     } catch (failed) {
-      setError(failed instanceof Error ? failed.message : "Couldn't save the commanders.");
+      setError(failed instanceof Error ? failed.message : "Couldn't save the Legend.");
       setSaving(false);
     }
   };
@@ -1605,14 +1550,14 @@ function CommanderDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{mode.kind === 'change' ? 'Change commander' : 'Add a partner'}</DialogTitle>
+          <DialogTitle>Change legend</DialogTitle>
           <DialogDescription>
-            {replaced
-              ? `Pick the commander that replaces ${replaced.name}. Cards outside the new colors show as warnings in the deck checks.`
-              : 'Pick a second commander. The deck checks say whether the two can partner.'}
+            {legend
+              ? `Pick the Legend that replaces ${legend.name}. Cards outside its domains show as warnings in the deck checks.`
+              : 'Pick the deck’s Legend.'}
           </DialogDescription>
         </DialogHeader>
-        <CardSearchPicker label="Commander" commander busy={saving} onPick={pick} autoFocus />
+        <CardSearchPicker label="Legend" type="legend" busy={saving} onPick={pick} autoFocus />
         {error && (
           <p role="alert" className="text-destructive text-sm">
             {error}
@@ -1655,7 +1600,7 @@ function SidePane({ slot, checks }: { slot: SlotRow | null; checks: DeckChecks |
         ) : checks.warnings.length === 0 ? (
           <p className="flex items-center gap-2 text-[13px] text-status-in-box">
             <CircleCheck aria-hidden="true" className="size-4" />
-            No Commander rule problems.
+            No deck rule problems.
           </p>
         ) : (
           <ul aria-label="Deck checks" className="flex flex-col gap-2 text-[13px]">
@@ -1681,9 +1626,9 @@ function SidePane({ slot, checks }: { slot: SlotRow | null; checks: DeckChecks |
             </h2>
             <ul aria-label="Demand warnings" className="flex flex-col gap-1.5 text-[13px]">
               {checks.demand.map((warning) => (
-                <li key={warning.card.oracleId} className="flex flex-col">
+                <li key={warning.card.id} className="flex flex-col">
                   <Link
-                    to={`/cards/${warning.card.oracleId}`}
+                    to={`/cards/${warning.card.id}`}
                     className="font-semibold text-primary hover:underline"
                   >
                     {warning.card.name}
@@ -1718,9 +1663,9 @@ function CardPreview({ slot }: { slot: SlotRow }) {
       </div>
       <div className="flex flex-col gap-1 px-1.5">
         <span className="font-semibold">{slot.card.name}</span>
-        <span className="text-[13px] text-muted-foreground">{slot.card.typeLine}</span>
+        <span className="text-[13px] text-muted-foreground">{typeLine(slot.card)}</span>
         <Link
-          to={`/cards/${slot.card.oracleId}`}
+          to={`/cards/${slot.card.id}`}
           className="flex items-center gap-1 font-semibold text-[13px] text-primary hover:underline"
         >
           Open card page

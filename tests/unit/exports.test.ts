@@ -3,8 +3,8 @@ import Papa from 'papaparse';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import { cards, copyStacks, locations, printings } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { copyStacks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { collectionCsvFileName } from '../../src/server/services/exports/collection-csv';
 import type { Finish } from '../../src/shared/api/common';
 import { COLLECTION_CSV_COLUMNS } from '../../src/shared/api/exports';
@@ -23,31 +23,16 @@ function location(name: string, type: typeof locations.$inferInsert.type, parent
 
 /** A card with one printing per entry, such as ['eoc', '53']. */
 function card(name: string, ...sets: [setCode: string, collectorNumber: string][]) {
-  const oracleId = `oracle-${name}`;
-  db.insert(cards)
-    .values({
-      oracleId,
-      name,
-      frontFaceName: name.split(' // ')[0],
-      typeLine: 'Card',
-      commanderLegality: 'legal',
-      isBasicLand: name === 'Forest',
-    })
-    .run();
+  const cardId = insertCard(db, { name, type: name === 'Calm Rune' ? 'rune' : 'gear' });
   for (const [setCode, collectorNumber] of sets) {
-    db.insert(printings)
-      .values({
-        printingId: printingKey(name, setCode, collectorNumber),
-        oracleId,
-        setCode,
-        setName: `Set ${setCode.toUpperCase()}`,
-        collectorNumber,
-        lang: 'en',
-        finishes: ['nonfoil', 'foil', 'etched'],
-        rarity: 'rare',
-        releasedAt: '2025-08-01',
-      })
-      .run();
+    insertPrinting(db, {
+      riftcodexId: printingKey(name, setCode, collectorNumber),
+      cardId,
+      setCode,
+      setName: `Set ${setCode.toUpperCase()}`,
+      collectorNumber,
+      rarity: 'rare',
+    });
   }
 }
 
@@ -64,7 +49,7 @@ function stack(
     .values({
       printingId,
       quantity,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       locationId,
@@ -80,17 +65,17 @@ beforeEach(() => {
   longBox = location('Long box', 'box');
   lands = location('Lands', 'box', longBox);
   trade = location('Trade binder', 'binder');
-  deckBox = location('Hearthhull deck box', 'deck_box');
+  deckBox = location('Jinx Burn deck box', 'deck_box');
 
-  card('Hearthhull, the Worldseed', ['eoc', '1']);
-  card('Arcane Signet', ['eoc', '53'], ['fic', '332']);
-  card('Augur of Autumn', ['eoc', '92']);
-  card('Beast Within', ['eoc', '93']);
-  card('Cultivate', ['eoc', '95']);
-  card('Forest', ['eoe', '276']);
-  card('Harmonized Trio // Brainstorm', ['sos', '52']);
-  card('Groundskeeper', ['eoc', '97']);
-  card('Sol Ring', ['eoc', '57']);
+  card('Jinx, Loose Cannon', ['eoc', '1']);
+  card('Ember Signet', ['eoc', '53'], ['fic', '332']);
+  card('Copper Mender', ['eoc', '92']);
+  card('Unbound Volley', ['eoc', '93']);
+  card('Grim Scheme', ['eoc', '95']);
+  card('Calm Rune', ['eoe', '276']);
+  card('Gilded Whelp', ['sos', '52']);
+  card('Hextech Captain', ['eoc', '97']);
+  card('Sun Disc', ['eoc', '57']);
 });
 
 afterEach(() => db.$client.close());
@@ -105,26 +90,19 @@ describe('GET /api/exports/collection.csv', () => {
     extra?: Partial<typeof copyStacks.$inferInsert>,
   ];
   const stacks: Stack[] = [
-    ['Harmonized Trio // Brainstorm', 'sos', '52', () => inbox, 1],
+    ['Gilded Whelp', 'sos', '52', () => inbox, 1],
+    ['Ember Signet', 'eoc', '53', () => lands, 2, { purchasePrice: 0.85, purchaseCurrency: 'USD' }],
     [
-      'Arcane Signet',
-      'eoc',
-      '53',
-      () => lands,
-      2,
-      { purchasePrice: 0.85, purchaseCurrency: 'USD' },
-    ],
-    [
-      'Beast Within',
+      'Unbound Volley',
       'eoc',
       '93',
       () => lands,
       1,
       { finish: 'foil' as Finish, condition: 'lightly_played', language: 'de' },
     ],
-    ['Sol Ring', 'eoc', '57', () => longBox, 1, { isProxy: true, misprint: true, altered: true }],
-    ['Arcane Signet', 'fic', '332', () => trade, 1, { finish: 'etched' as Finish }],
-    ['Hearthhull, the Worldseed', 'eoc', '1', () => deckBox, 1, { cameFromLocationId: longBox }],
+    ['Sun Disc', 'eoc', '57', () => longBox, 1, { isProxy: true, misprint: true, altered: true }],
+    ['Ember Signet', 'fic', '332', () => trade, 1, { finish: 'foil' as Finish }],
+    ['Jinx, Loose Cannon', 'eoc', '1', () => deckBox, 1, { cameFromLocationId: longBox }],
   ];
   beforeEach(() => {
     for (const [name, set, number, where, qty, extra] of stacks)
@@ -149,12 +127,12 @@ describe('GET /api/exports/collection.csv', () => {
     expect(COLLECTION_CSV_COLUMNS.slice(-2)).toEqual(['Location', 'Proxy']);
     // A location at a time in tree order: the inbox first, deck boxes last.
     expect(rows).toEqual([
-      'Harmonized Trio // Brainstorm,SOS,Set SOS,52,normal,rare,1,harmonized-trio-brainstorm-sos-52,,false,false,near_mint,en,,To sort,false',
-      'Sol Ring,EOC,Set EOC,57,normal,rare,1,sol-ring-eoc-57,,true,true,near_mint,en,,Long box,true',
-      'Arcane Signet,EOC,Set EOC,53,normal,rare,2,arcane-signet-eoc-53,0.85,false,false,near_mint,en,USD,Long box › Lands,false',
-      'Beast Within,EOC,Set EOC,93,foil,rare,1,beast-within-eoc-93,,false,false,lightly_played,de,,Long box › Lands,false',
-      'Arcane Signet,FIC,Set FIC,332,etched,rare,1,arcane-signet-fic-332,,false,false,near_mint,en,,Trade binder,false',
-      '"Hearthhull, the Worldseed",EOC,Set EOC,1,normal,rare,1,hearthhull-the-worldseed-eoc-1,,false,false,near_mint,en,,Hearthhull deck box,false',
+      'Gilded Whelp,SOS,Set SOS,52,normal,rare,1,gilded-whelp-sos-52,,false,false,near_mint,en,,To sort,false',
+      'Sun Disc,EOC,Set EOC,57,normal,rare,1,sun-disc-eoc-57,,true,true,near_mint,en,,Long box,true',
+      'Ember Signet,EOC,Set EOC,53,normal,rare,2,ember-signet-eoc-53,0.85,false,false,near_mint,en,USD,Long box › Lands,false',
+      'Unbound Volley,EOC,Set EOC,93,foil,rare,1,unbound-volley-eoc-93,,false,false,lightly_played,de,,Long box › Lands,false',
+      'Ember Signet,FIC,Set FIC,332,foil,rare,1,ember-signet-fic-332,,false,false,near_mint,en,,Trade binder,false',
+      '"Jinx, Loose Cannon",EOC,Set EOC,1,normal,rare,1,jinx-loose-cannon-eoc-1,,false,false,near_mint,en,,Jinx Burn deck box,false',
     ]);
   });
 
@@ -168,7 +146,7 @@ describe('GET /api/exports/collection.csv', () => {
     const read = parsed.data.map((row) => [
       row['Printing ID'],
       Number(row.Quantity),
-      row.Foil === 'normal' ? 'nonfoil' : row.Foil,
+      row.Foil === 'normal' ? 'normal' : row.Foil,
       row.Condition,
       row.Language,
       row.Misprint === 'true',
@@ -183,7 +161,7 @@ describe('GET /api/exports/collection.csv', () => {
       [longBox]: 'Long box',
       [lands]: 'Long box › Lands',
       [trade]: 'Trade binder',
-      [deckBox]: 'Hearthhull deck box',
+      [deckBox]: 'Jinx Burn deck box',
     };
     const written = db
       .select()
@@ -203,7 +181,7 @@ describe('GET /api/exports/collection.csv', () => {
         paths[s.locationId],
       ]);
     expect(read.sort()).toEqual(written.sort());
-    expect(parsed.data.map((row) => row.Name)).toContain('Hearthhull, the Worldseed');
+    expect(parsed.data.map((row) => row.Name)).toContain('Jinx, Loose Cannon');
   });
 
   it('writes only the header for an empty collection', async () => {

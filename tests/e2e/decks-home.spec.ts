@@ -30,21 +30,21 @@ test('a tile per deck, in the server order, with pills and bars', async ({ page 
     'Not assembled',
   ]);
 
-  const hearthhull = tiles(page).first();
-  await expect(hearthhull.getByRole('img', { name: 'Hearthhull, the Worldseed' })).toBeVisible();
+  const jinxBurn = tiles(page).first();
+  await expect(jinxBurn.getByRole('img', { name: 'Jinx, Loose Cannon' })).toBeVisible();
   await expect(
-    hearthhull.getByRole('img', {
+    jinxBurn.getByRole('img', {
       name: '58 in deck box, 13 free, 4 in other deck, 3 missing',
     }),
   ).toBeVisible();
-  await expect(hearthhull.getByText('Colors: black, red, green')).toBeAttached();
-  await expect(hearthhull.locator('.ms')).toHaveCount(3);
+  await expect(jinxBurn.getByRole('img', { name: 'Fury' })).toBeVisible();
+  await expect(jinxBurn.getByRole('img', { name: 'Chaos' })).toBeVisible();
 
-  // Two partners show both commanders.
+  // A deck with a Chosen Champion shows it beside the Legend.
   const partners = tiles(page).last();
   await expect(partners.locator('img')).toHaveCount(2);
 
-  await hearthhull.click();
+  await jinxBurn.click();
   await expect(page).toHaveURL(`/decks/${deckListSample.decks[0].id}`);
 });
 
@@ -59,8 +59,8 @@ test('the table shows the same decks and the choice is remembered', async ({ pag
   await expect(rows).toHaveCount(7);
   await expect(rows.first().getByRole('columnheader')).toHaveText([
     'Name',
-    'Commander',
-    'Colors',
+    'Legend',
+    'Domains',
     'State',
     'In box',
     'Free',
@@ -71,9 +71,9 @@ test('the table shows the same decks and the choice is remembered', async ({ pag
   const body = page.locator('tbody tr');
   await expect(body.locator('td:first-child')).toHaveText(names);
   await expect(body.first().locator('td')).toContainText([
-    'Hearthhull',
-    'Hearthhull, the Worldseed',
-    'Colors: black, red, green',
+    'Jinx Burn',
+    'Jinx, Loose Cannon',
+    '',
     'Partly assembled',
     '58',
     '13',
@@ -81,7 +81,9 @@ test('the table shows the same decks and the choice is remembered', async ({ pag
     '3',
   ]);
   await expect(body.last().locator('td').nth(1)).toHaveText(
-    deckListSample.decks[5].commanders.map((c) => c.name).join(' and '),
+    [deckListSample.decks[5].legend, deckListSample.decks[5].champion]
+      .flatMap((card) => (card ? [card.name] : []))
+      .join(' and '),
   );
 
   await page.reload();

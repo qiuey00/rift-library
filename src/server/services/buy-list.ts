@@ -17,14 +17,14 @@ export function addToBuyList(db: Db, items: NewBuyItem[]): number[] {
 }
 
 function addOne(db: Db, item: NewBuyItem): number {
-  const card = db.select().from(cards).where(eq(cards.oracleId, item.oracleId)).get();
+  const card = db.select().from(cards).where(eq(cards.id, item.cardId)).get();
   if (!card) {
     throw new AppError(400, 'card_not_found', "That card isn't in the card data.");
   }
   const printingId = item.printingId ?? null;
   if (printingId !== null) {
-    const printing = db.select().from(printings).where(eq(printings.printingId, printingId)).get();
-    if (!printing || printing.oracleId !== item.oracleId) {
+    const printing = db.select().from(printings).where(eq(printings.riftcodexId, printingId)).get();
+    if (!printing || printing.cardId !== item.cardId) {
       throw new AppError(
         400,
         'printing_not_found',
@@ -39,7 +39,7 @@ function addOne(db: Db, item: NewBuyItem): number {
     .from(buyListItems)
     .where(
       and(
-        eq(buyListItems.oracleId, item.oracleId),
+        eq(buyListItems.cardId, item.cardId),
         printingId === null
           ? isNull(buyListItems.printingId)
           : eq(buyListItems.printingId, printingId),
@@ -55,7 +55,7 @@ function addOne(db: Db, item: NewBuyItem): number {
   }
   const added = db
     .insert(buyListItems)
-    .values({ oracleId: item.oracleId, printingId, quantity: item.quantity, note: note ?? '' })
+    .values({ cardId: item.cardId, printingId, quantity: item.quantity, note: note ?? '' })
     .returning({ id: buyListItems.id })
     .get();
   return added.id;

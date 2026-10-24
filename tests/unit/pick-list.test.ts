@@ -3,15 +3,8 @@ import { hc } from 'hono/client';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import {
-  cards,
-  copyStacks,
-  deckSlots,
-  decks,
-  locations,
-  printings,
-} from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { copyStacks, deckSlots, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { pickList } from '../../src/server/queries/pick-list';
 import type { Board, Finish, LocationType } from '../../src/shared/api/common';
 import { type PickList, PickListResponse } from '../../src/shared/api/pick-list';
@@ -41,38 +34,21 @@ function location(name: string, type: LocationType = 'binder', parentId?: number
   return db.insert(locations).values({ name, type, parentId, position }).returning().get().id;
 }
 
-function card(name: string, options: { basic?: boolean; allowsMany?: boolean } = {}) {
-  const oracleId = `oracle-${name}`;
-  db.insert(cards)
-    .values({
-      oracleId,
-      name,
-      frontFaceName: name,
-      typeLine: options.basic ? 'Basic Land — Forest' : 'Creature',
-      commanderLegality: 'legal',
-      isBasicLand: options.basic ?? false,
-      allowsMany: options.allowsMany ?? false,
-    })
-    .run();
-  return oracleId;
+function card(name: string, options: { rune?: boolean } = {}) {
+  return insertCard(db, { name, type: options.rune ? 'rune' : 'unit' });
 }
 
-function printing(oracleId: string, setCode: string, collectorNumber: string) {
-  const printingId = `${oracleId}-${setCode}-${collectorNumber}`;
-  db.insert(printings)
-    .values({
-      printingId,
-      oracleId,
-      setCode,
-      setName: setCode.toUpperCase(),
-      collectorNumber,
-      lang: 'en',
-      finishes: ['nonfoil', 'foil'],
-      rarity: 'rare',
-      releasedAt: '2025-01-01',
-    })
-    .run();
-  return printingId;
+function printing(cardId: number, setCode: string, collectorNumber: string) {
+  const riftcodexId = `card-${cardId}-${setCode}-${collectorNumber}`;
+  insertPrinting(db, {
+    riftcodexId,
+    cardId,
+    setCode,
+    setName: setCode.toUpperCase(),
+    collectorNumber,
+    rarity: 'rare',
+  });
+  return riftcodexId;
 }
 
 function stack(
@@ -86,7 +62,7 @@ function stack(
       printingId,
       locationId,
       quantity: options.quantity ?? 1,
-      finish: options.finish ?? 'nonfoil',
+      finish: options.finish ?? 'normal',
       condition: 'near_mint',
       language: 'en',
       isProxy: options.isProxy ?? false,
@@ -104,7 +80,7 @@ function deck(name: string) {
 
 function slot(
   deckId: number,
-  oracleId: string,
+  cardId: number,
   options: {
     board?: Board;
     quantity?: number;
@@ -116,12 +92,11 @@ function slot(
     .insert(deckSlots)
     .values({
       deckId,
-      oracleId,
+      cardId,
       board: options.board ?? 'main',
       quantity: options.quantity ?? 1,
       pickedPrintingId: options.picked,
-      hintSetCode: options.hint?.[0],
-      hintCollectorNumber: options.hint?.[1],
+      hintPublicCode: options.hint && `${options.hint[0]}-${options.hint[1].padStart(3, '0')}`,
       hintFoil: options.hint?.[2] ?? false,
     })
     .returning()
@@ -268,23 +243,23 @@ describe('pickList', () => {
       groups: [],
       otherDecks: [],
       missing: [],
-      basics: [],
+      runes: [],
       totals: { lines: 0, cards: 0 },
     });
   });
 
-  it('lists basic lands at the end as counts to add', () => {
-    const forest = card('Forest', { basic: true });
-    const island = card('Island', { basic: true });
-    printing(forest, 'fdn', '1');
+  it('lists runes at the end as counts to add', () => {
+    const calmRune = card('Calm Rune', { rune: true });
+    const mindRune = card('Mind Rune', { rune: true });
+    printing(calmRune, 'fdn', '1');
     const { id } = deck('Test');
-    slot(id, island, { quantity: 9 });
-    slot(id, forest, { quantity: 12 });
-    slot(id, forest, { board: 'commander', quantity: 1 });
+    slot(id, mindRune, { quantity: 9 });
+    slot(id, calmRune, { quantity: 12 });
+    slot(id, calmRune, { board: 'sideboard', quantity: 1 });
     const pick = list(id);
-    expect(pick.basics.map((b) => [b.card.name, b.quantity])).toEqual([
-      ['Forest', 13],
-      ['Island', 9],
+    expect(pick.runes.map((b) => [b.card.name, b.quantity])).toEqual([
+      ['Calm Rune', 13],
+      ['Mind Rune', 9],
     ]);
     expect(pick.groups).toEqual([]);
     expect(pick.totals).toEqual({ lines: 0, cards: 0 });
@@ -327,7 +302,7 @@ describe('pickList', () => {
 
   it('uses storage first and only takes the rest from other decks', () => {
     const binder = location('Binder');
-    const a = card('Alpha', { allowsMany: true });
+    const a = card('Alpha');
     const p = printing(a, 'aaa', '1');
     const free = stack(p, binder, { quantity: 2 });
     const other = deck('Other');
@@ -344,7 +319,7 @@ describe('pickList', () => {
   it('asks for the full quantity of a card that allows any number, one line per stack', () => {
     const first = location('First', 'binder', undefined, 0);
     const second = location('Second', 'binder', undefined, 1);
-    const rats = card('Relentless Rats', { allowsMany: true });
+    const rats = card('Sly Nomad');
     const p = printing(rats, 'rat', '1');
     const many = stack(p, first, { quantity: 12 });
     const few = stack(p, second, { quantity: 6 });
@@ -370,7 +345,7 @@ describe('pickList', () => {
     const beta = slot(id, b, { quantity: 3 });
     const pick = list(id);
     expect(pick.missing.map((m) => [m.slotId, m.quantity, m.hint])).toEqual([
-      [alpha, 1, { setCode: 'eoc', collectorNumber: '126', foil: false }],
+      [alpha, 1, { publicCode: 'eoc-126', foil: false }],
       [beta, 2, null],
     ]);
   });
@@ -459,7 +434,7 @@ describe('pickList with trade locations', () => {
   it('takes trade copies only for what storage and other decks can’t fill', () => {
     const binder = location('Binder', 'binder', undefined, 0);
     const trade = tradeLocation('Trade binder');
-    const a = card('Alpha', { allowsMany: true });
+    const a = card('Alpha');
     const p = printing(a, 'aaa', '1');
     const fromBinder = stack(p, binder, { quantity: 2 });
     const fromTrade = stack(p, trade, { quantity: 5 });

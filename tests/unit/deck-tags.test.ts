@@ -3,18 +3,17 @@ import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import { cards, deckSlots, deckSlotTags } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { deckSlots, deckSlotTags } from '../../src/server/db/schema';
+import { createTestDb, insertCard } from '../../src/server/db/test-db';
 import { deckView } from '../../src/server/queries/decks';
 import {
   createDeck,
   moveSlotBoard,
   removeSlot,
-  setCommanders,
   setSlotTags,
   tagKey,
 } from '../../src/server/services/decks';
-import type { Board } from '../../src/shared/api/common';
+import type { Board, CardType } from '../../src/shared/api/common';
 import { ErrorBody } from '../../src/shared/api/common';
 import { SlotRow } from '../../src/shared/api/decks';
 
@@ -22,35 +21,28 @@ const api = hc<AppType>('http://localhost', {
   fetch: (input: RequestInfo | URL, init?: RequestInit) => app.request(input, init),
 }).api;
 
-const oracle = (name: string) => `oracle-${name}`;
-const HEARTHHULL = oracle('Hearthhull, the Worldseed');
-const SOL_RING = oracle('Sol Ring');
+/** The card ids of the test's cards, by name. */
+const cardIds = new Map<string, number>();
+const card = (name: string) => cardIds.get(name) ?? 0;
+const HEARTHHULL = 'Jinx, Loose Cannon';
+const SOL_RING = 'Sun Disc';
 
 let db: OpenDb;
 let deckId: number;
 
-function insertCard(name: string, options: { canBeCommander?: boolean } = {}) {
-  db.insert(cards)
-    .values({
-      oracleId: oracle(name),
-      name,
-      frontFaceName: name,
-      typeLine: 'Card',
-      commanderLegality: 'legal',
-      ...options,
-    })
-    .run();
+function addCard(name: string, type: CardType = 'unit') {
+  cardIds.set(name, insertCard(db, { name, type }));
 }
 
-function slotId(oracleId: string, board: Board, deck = deckId) {
+function slotId(name: string, board: Board, deck = deckId) {
   const slot = db
     .select({ id: deckSlots.id })
     .from(deckSlots)
     .where(
-      and(eq(deckSlots.deckId, deck), eq(deckSlots.oracleId, oracleId), eq(deckSlots.board, board)),
+      and(eq(deckSlots.deckId, deck), eq(deckSlots.cardId, card(name)), eq(deckSlots.board, board)),
     )
     .get();
-  if (!slot) throw new Error(`no ${board} slot for ${oracleId}`);
+  if (!slot) throw new Error(`no ${board} slot for ${name}`);
   return slot.id;
 }
 
@@ -64,29 +56,29 @@ function tagsByCard(deck = deckId) {
 beforeEach(() => {
   db = createTestDb();
   setDb(db);
-  insertCard('Hearthhull, the Worldseed', { canBeCommander: true });
-  insertCard('Atraxa, Grand Unifier', { canBeCommander: true });
+  addCard('Jinx, Loose Cannon', 'legend');
+  addCard('Lux, Lady of Luminosity', 'legend');
   for (const name of [
-    'Sol Ring',
-    'Arcane Signet',
-    'Farseek',
+    'Sun Disc',
+    'Ember Signet',
+    'Iron Insight',
     'Chaos Warp',
     'Adeline, Resplendent Cathar',
     'Ashaya, Soul of the Wild',
     "Avacyn's Pilgrim",
     'Beast Whisperer',
-    'Beast Within',
+    'Unbound Volley',
   ]) {
-    insertCard(name);
+    addCard(name);
   }
   deckId = createDeck(db, {
-    name: 'Hearthhull',
+    name: 'Jinx Burn',
     slots: [
-      { oracleId: HEARTHHULL, board: 'commander', quantity: 1 },
-      { oracleId: SOL_RING, board: 'main', quantity: 1 },
-      { oracleId: oracle('Arcane Signet'), board: 'main', quantity: 1 },
-      { oracleId: oracle('Farseek'), board: 'main', quantity: 1 },
-      { oracleId: oracle('Farseek'), board: 'maybe', quantity: 1 },
+      { cardId: card(HEARTHHULL), board: 'legend', quantity: 1 },
+      { cardId: card(SOL_RING), board: 'main', quantity: 1 },
+      { cardId: card('Ember Signet'), board: 'main', quantity: 1 },
+      { cardId: card('Iron Insight'), board: 'main', quantity: 1 },
+      { cardId: card('Iron Insight'), board: 'maybe', quantity: 1 },
     ],
   });
 });
@@ -101,15 +93,15 @@ async function putTags(tags: string[], slot = slotId(SOL_RING, 'main'), deck = d
 
 describe('PUT /api/decks/:id/slots/:slotId/tags', () => {
   it('replaces the slot’s tags and answers the slot, tags sorted ignoring case', async () => {
-    const res = await putTags(['Ramp', 'mana rock', 'Artifact']);
+    const res = await putTags(['Ramp', 'energy rock', 'Artifact']);
     expect(res.status).toBe(200);
     const row = SlotRow.parse(await res.json());
     expect(row).toMatchObject({ id: slotId(SOL_RING, 'main'), quantity: 1 });
-    expect(row.tags).toEqual(['Artifact', 'mana rock', 'Ramp']);
+    expect(row.tags).toEqual(['Artifact', 'energy rock', 'Ramp']);
 
     const again = SlotRow.parse(await (await putTags(['Fast mana'])).json());
     expect(again.tags).toEqual(['Fast mana']);
-    expect(tagsByCard()['main Sol Ring']).toEqual(['Fast mana']);
+    expect(tagsByCard()['main Sun Disc']).toEqual(['Fast mana']);
   });
 
   it('trims each tag and merges tags with the same key, keeping the first spelling', async () => {
@@ -134,15 +126,15 @@ describe('PUT /api/decks/:id/slots/:slotId/tags', () => {
     await putTags(['card draw']);
     expect(SlotRow.parse(await (await putTags(['Card Draw'])).json()).tags).toEqual(['Card Draw']);
 
-    const signet = slotId(oracle('Arcane Signet'), 'main');
+    const signet = slotId('Ember Signet', 'main');
     const res = await putTags(['CARD-DRAW'], signet);
     expect(SlotRow.parse(await res.json()).tags).toEqual(['Card Draw']);
   });
 
   it('answers 404 slot_not_found for a slot of another deck', async () => {
     const other = createDeck(db, {
-      name: 'Atraxa',
-      slots: [{ oracleId: SOL_RING, board: 'main', quantity: 1 }],
+      name: 'Lux Control',
+      slots: [{ cardId: card(SOL_RING), board: 'main', quantity: 1 }],
     });
     const res = await putTags(['Ramp'], slotId(SOL_RING, 'main', other));
     expect(res.status).toBe(404);
@@ -175,18 +167,12 @@ describe('tag rules', () => {
   });
 
   it('keeps the tags of both slots when a board move merges them', () => {
-    setSlotTags(db, deckId, slotId(oracle('Farseek'), 'main'), ['Ramp', 'Land search']);
-    setSlotTags(db, deckId, slotId(oracle('Farseek'), 'maybe'), ['ramp', 'Cheap']);
-    const merged = moveSlotBoard(db, deckId, slotId(oracle('Farseek'), 'main'), 'maybe');
-    expect(merged).toBe(slotId(oracle('Farseek'), 'maybe'));
-    expect(tagsByCard()['maybe Farseek']).toEqual(['Cheap', 'Land search', 'Ramp']);
-    expect(tagsByCard()['main Farseek']).toBeUndefined();
-  });
-
-  it('keeps a card’s tags when it moves up to be the commander', () => {
-    setSlotTags(db, deckId, slotId(SOL_RING, 'main'), ['Ramp']);
-    setCommanders(db, deckId, [SOL_RING]);
-    expect(tagsByCard()['commander Sol Ring']).toEqual(['Ramp']);
+    setSlotTags(db, deckId, slotId('Iron Insight', 'main'), ['Ramp', 'Land search']);
+    setSlotTags(db, deckId, slotId('Iron Insight', 'maybe'), ['ramp', 'Cheap']);
+    const merged = moveSlotBoard(db, deckId, slotId('Iron Insight', 'main'), 'maybe');
+    expect(merged).toBe(slotId('Iron Insight', 'maybe'));
+    expect(tagsByCard()['maybe Iron Insight']).toEqual(['Cheap', 'Land search', 'Ramp']);
+    expect(tagsByCard()['main Iron Insight']).toBeUndefined();
   });
 
   it('never changes a slot’s status, counts or the deck’s state', () => {

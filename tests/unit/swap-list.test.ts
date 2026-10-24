@@ -1,19 +1,13 @@
+import { eq } from 'drizzle-orm';
 import { hc } from 'hono/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type AppType, app } from '../../src/server/app';
 import { type OpenDb, setDb } from '../../src/server/db/database';
-import {
-  cards,
-  copyStacks,
-  deckSlots,
-  decks,
-  locations,
-  printings,
-} from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { cards, copyStacks, deckSlots, decks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { swapList } from '../../src/server/queries/swap-list';
 import { createBatch, moveCopies } from '../../src/server/services/copies';
-import { ErrorBody } from '../../src/shared/api/common';
+import { type Board, ErrorBody } from '../../src/shared/api/common';
 import { SwapResponse } from '../../src/shared/api/swap';
 
 const client = hc<AppType>('http://localhost', {
@@ -23,17 +17,17 @@ const client = hc<AppType>('http://localhost', {
 let db: OpenDb;
 let inbox: number;
 let binder: number;
-let blackGreen: number;
-let hearthhullBox: number;
-let hearthhull: number;
+let chaosCalm: number;
+let jinxBurnBox: number;
+let jinxBurn: number;
 
 const SIGNET = 'printing-arcane-signet';
 const SIGNET_PROMO = 'printing-arcane-signet-promo';
-const FARSEEK = 'printing-farseek';
+const FARSEEK = 'printing-ironInsight';
 const BALOTHS = 'printing-rampaging-baloths';
-const URUG = 'printing-uurg';
+const URUG = 'printing-volibearVanguard';
 const BREAKER = 'printing-world-breaker';
-const HEARTHHULL = 'printing-hearthhull';
+const HEARTHHULL = 'printing-jinxBurn';
 
 function location(
   name: string,
@@ -48,26 +42,17 @@ function location(
     .get().id;
 }
 
+/** A printing of a card, adding the card the first time its name comes up. */
 function card(printingId: string, name: string) {
-  const oracleId = `oracle-${name}`;
-  db.insert(cards)
-    .values({ oracleId, name, frontFaceName: name, typeLine: 'Card', commanderLegality: 'legal' })
-    .onConflictDoNothing()
-    .run();
-  db.insert(printings)
-    .values({
-      printingId,
-      oracleId,
-      setCode: 'eoc',
-      setName: 'Edge of Eternities Commander',
-      collectorNumber: printingId,
-      lang: 'en',
-      finishes: ['nonfoil', 'foil'],
-      rarity: 'rare',
-      releasedAt: '2025-08-01',
-    })
-    .run();
-  return oracleId;
+  const known = db.select({ id: cards.id }).from(cards).where(eq(cards.name, name)).get();
+  const cardId = known?.id ?? insertCard(db, { name, type: 'unit' });
+  insertPrinting(db, {
+    riftcodexId: printingId,
+    cardId,
+    collectorNumber: printingId,
+    rarity: 'rare',
+  });
+  return cardId;
 }
 
 function stack(
@@ -80,7 +65,7 @@ function stack(
     .values({
       printingId,
       quantity: 1,
-      finish: 'nonfoil',
+      finish: 'normal',
       condition: 'near_mint',
       language: 'en',
       locationId,
@@ -92,28 +77,28 @@ function stack(
 
 /** Pulls copies from storage into the deck box the way the pick list does, setting came-from. */
 function pull(stackId: number, quantity: number) {
-  const batchId = createBatch(db, 'pick_list', { deckId: hearthhull });
-  return moveCopies(db, stackId, quantity, hearthhullBox, {
+  const batchId = createBatch(db, 'pick_list', { deckId: jinxBurn });
+  return moveCopies(db, stackId, quantity, jinxBurnBox, {
     reason: 'assembled',
     batchId,
-    deckId: hearthhull,
+    deckId: jinxBurn,
   }).destStackId;
 }
 
 function slot(
-  oracleId: string,
+  cardId: number,
   quantity = 1,
-  board: 'commander' | 'main' | 'maybe' = 'main',
+  board: Board = 'main',
   pickedPrintingId: string | null = null,
 ) {
   return db
     .insert(deckSlots)
-    .values({ deckId: hearthhull, oracleId, board, quantity, pickedPrintingId })
+    .values({ deckId: jinxBurn, cardId, board, quantity, pickedPrintingId })
     .returning({ id: deckSlots.id })
     .get().id;
 }
 
-async function getSwap(deckId = hearthhull) {
+async function getSwap(deckId = jinxBurn) {
   const res = await app.request(`/api/decks/${deckId}/swap`);
   expect(res.status).toBe(200);
   return SwapResponse.parse(await res.json());
@@ -125,47 +110,47 @@ const takeOut = (list: SwapResponse) =>
     group.lines.map((line) => [line.card.name, line.quantity]),
   ]);
 
-let signet: string;
-let farseek: string;
-let baloths: string;
-let uurg: string;
-let breaker: string;
-let commander: string;
+let signet: number;
+let ironInsight: number;
+let baloths: number;
+let volibearVanguard: number;
+let breaker: number;
+let legend: number;
 
 beforeEach(() => {
   db = createTestDb();
   setDb(db);
   inbox = db.select().from(locations).get()?.id ?? 0;
-  // Tree order: inbox, Long box › Black & Green, then Rares binder.
+  // Tree order: inbox, Long box › Chaos & Calm, then Rares binder.
   binder = location('Rares binder', 'binder', undefined, 1);
   const longBox = location('Long box', 'box', undefined, 0);
-  blackGreen = location('Black & Green', 'box', longBox, 0);
-  hearthhullBox = location('Hearthhull deck box', 'deck_box');
-  hearthhull = db
+  chaosCalm = location('Chaos & Calm', 'box', longBox, 0);
+  jinxBurnBox = location('Jinx Burn deck box', 'deck_box');
+  jinxBurn = db
     .insert(decks)
-    .values({ name: 'Hearthhull', deckBoxId: hearthhullBox })
+    .values({ name: 'Jinx Burn', deckBoxId: jinxBurnBox })
     .returning({ id: decks.id })
     .get().id;
-  signet = card(SIGNET, 'Arcane Signet');
-  card(SIGNET_PROMO, 'Arcane Signet');
-  farseek = card(FARSEEK, 'Farseek');
-  baloths = card(BALOTHS, 'Rampaging Baloths');
-  uurg = card(URUG, 'Uurg, Spawn of Turg');
-  breaker = card(BREAKER, 'World Breaker');
-  commander = card(HEARTHHULL, 'Hearthhull, the Worldseed');
+  signet = card(SIGNET, 'Ember Signet');
+  card(SIGNET_PROMO, 'Ember Signet');
+  ironInsight = card(FARSEEK, 'Iron Insight');
+  baloths = card(BALOTHS, 'Swift Skirmisher');
+  volibearVanguard = card(URUG, 'Volibear, Vanguard');
+  breaker = card(BREAKER, 'Dawn Harrier');
+  legend = card(HEARTHHULL, 'Jinx, Loose Cannon');
 });
 afterEach(() => db.$client.close());
 
-/** Hearthhull fully built: commander, Arcane Signet, two Farseek and Rampaging Baloths. */
+/** Jinx Burn fully built: its Legend, Ember Signet, two Iron Insight and Swift Skirmisher. */
 function buildDeck() {
-  slot(commander, 1, 'commander');
+  slot(legend, 1, 'legend');
   slot(signet);
-  slot(farseek, 2);
+  slot(ironInsight, 2);
   const balothsSlot = slot(baloths);
   pull(stack(HEARTHHULL, binder), 1);
   pull(stack(SIGNET, binder), 1);
-  pull(stack(FARSEEK, blackGreen, { quantity: 3 }), 2);
-  pull(stack(BALOTHS, blackGreen), 1);
+  pull(stack(FARSEEK, chaosCalm, { quantity: 3 }), 2);
+  pull(stack(BALOTHS, chaosCalm), 1);
   return { balothsSlot };
 }
 
@@ -173,13 +158,13 @@ describe('swapList', () => {
   it('is empty for an unchanged assembled deck', async () => {
     buildDeck();
     const list = await getSwap();
-    expect(list.deck).toEqual({ id: hearthhull, name: 'Hearthhull', state: 'assembled' });
+    expect(list.deck).toEqual({ id: jinxBurn, name: 'Jinx Burn', state: 'assembled' });
     expect(list.takeOut).toEqual({ groups: [], count: 0 });
     expect(list.pullIn).toEqual({
       groups: [],
       otherDecks: [],
       missing: [],
-      basics: [],
+      runes: [],
       totals: { lines: 0, cards: 0 },
     });
     expect(list.counts).toEqual({ takeOut: 0, pullIn: 0 });
@@ -190,27 +175,27 @@ describe('swapList', () => {
     db.$client.prepare('DELETE FROM deck_slots WHERE id = ?').run(balothsSlot);
 
     const list = await getSwap();
-    expect(takeOut(list)).toEqual([['Long box › Black & Green', [['Rampaging Baloths', 1]]]]);
+    expect(takeOut(list)).toEqual([['Long box › Chaos & Calm', [['Swift Skirmisher', 1]]]]);
     const line = list.takeOut.groups[0].lines[0];
-    expect(line.destination).toMatchObject({ id: blackGreen });
-    expect(line.cameFrom).toMatchObject({ id: blackGreen });
+    expect(line.destination).toMatchObject({ id: chaosCalm });
+    expect(line.cameFrom).toMatchObject({ id: chaosCalm });
     expect(list.counts).toEqual({ takeOut: 1, pullIn: 0 });
   });
 
   it('takes out only the extra copies when a quantity goes down', async () => {
     buildDeck();
-    db.$client.prepare('UPDATE deck_slots SET quantity = 1 WHERE oracle_id = ?').run(farseek);
+    db.$client.prepare('UPDATE deck_slots SET quantity = 1 WHERE card_id = ?').run(ironInsight);
 
     const list = await getSwap();
-    expect(takeOut(list)).toEqual([['Long box › Black & Green', [['Farseek', 1]]]]);
+    expect(takeOut(list)).toEqual([['Long box › Chaos & Calm', [['Iron Insight', 1]]]]);
     expect(list.takeOut.count).toBe(1);
   });
 
   it('takes out maybe board cards in the box', async () => {
     buildDeck();
-    db.$client.prepare("UPDATE deck_slots SET board = 'maybe' WHERE oracle_id = ?").run(baloths);
+    db.$client.prepare("UPDATE deck_slots SET board = 'maybe' WHERE card_id = ?").run(baloths);
     expect(takeOut(await getSwap())).toEqual([
-      ['Long box › Black & Green', [['Rampaging Baloths', 1]]],
+      ['Long box › Chaos & Calm', [['Swift Skirmisher', 1]]],
     ]);
   });
 
@@ -218,7 +203,7 @@ describe('swapList', () => {
     slot(signet, 1, 'main', SIGNET);
     pull(stack(SIGNET, binder), 1);
     pull(stack(SIGNET_PROMO, binder), 1);
-    stack(SIGNET, hearthhullBox, { isProxy: true });
+    stack(SIGNET, jinxBurnBox, { isProxy: true });
 
     const list = await getSwap();
     expect(list.takeOut.groups.map((g) => g.location.id)).toEqual([inbox, binder]);
@@ -232,9 +217,9 @@ describe('swapList', () => {
 
   it('pulls in an added card like the pick list', async () => {
     buildDeck();
-    slot(uurg);
+    slot(volibearVanguard);
     slot(breaker);
-    const uurgStack = stack(URUG, blackGreen);
+    const volibearVanguardStack = stack(URUG, chaosCalm);
     const breakerStack = stack(BREAKER, binder);
 
     const list = await getSwap();
@@ -245,8 +230,8 @@ describe('swapList', () => {
         g.lines.map((l) => [l.card.name, l.suggested.stackId]),
       ]),
     ).toEqual([
-      ['Long box › Black & Green', [['Uurg, Spawn of Turg', uurgStack]]],
-      ['Rares binder', [['World Breaker', breakerStack]]],
+      ['Long box › Chaos & Calm', [['Volibear, Vanguard', volibearVanguardStack]]],
+      ['Rares binder', [['Dawn Harrier', breakerStack]]],
     ]);
     expect(list.counts).toEqual({ takeOut: 0, pullIn: 2 });
   });
@@ -259,14 +244,14 @@ describe('swapList', () => {
 describe('GET /api/decks/:id/swap', () => {
   it('answers 404 deck_not_found for a deleted deck', async () => {
     db.update(decks).set({ deletedAt: new Date().toISOString() }).run();
-    const res = await app.request(`/api/decks/${hearthhull}/swap`);
+    const res = await app.request(`/api/decks/${jinxBurn}/swap`);
     expect(res.status).toBe(404);
     expect(ErrorBody.parse(await res.json()).error.code).toBe('deck_not_found');
   });
 
   it('is seen by the typed client', async () => {
     buildDeck();
-    const res = await client.decks[':id'].swap.$get({ param: { id: String(hearthhull) } });
+    const res = await client.decks[':id'].swap.$get({ param: { id: String(jinxBurn) } });
     const list: SwapResponse = await res.json();
     expect(list.counts).toEqual({ takeOut: 0, pullIn: 0 });
   });

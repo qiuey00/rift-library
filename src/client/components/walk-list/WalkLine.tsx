@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 import { ProxyTag } from '../ProxyTag';
 import type { WalkCopy, WalkLineData, WalkTag } from './types';
 
-const finishWord: Record<Finish, string> = { nonfoil: 'Nonfoil', foil: 'Foil', etched: 'Etched' };
+const finishWord: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
 
 /** "near_mint" reads "Near mint". */
 function conditionWord(condition: string) {
@@ -13,23 +13,16 @@ function conditionWord(condition: string) {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** A copy as Jeff reads it on a line, such as "EOC #126 · Foil · Near mint". */
+/** A copy as Jeff reads it on a line, such as "OGN #126 · Foil · Near mint". */
 export function copyText(copy: WalkCopy) {
-  return `${copy.setCode.toUpperCase()} #${copy.collectorNumber} · ${finishWord[copy.finish]} · ${conditionWord(copy.condition)}`;
+  return `${copy.setCode} #${copy.collectorNumber} · ${finishWord[copy.finish]} · ${conditionWord(copy.condition)}`;
 }
 
-/** A copy's Keyrune set symbol, then its details, then a Proxy tag for proxies. */
+/** A copy's details, then a Proxy tag for proxies. */
 export function CopyLabel({ copy, className }: { copy: WalkCopy; className?: string }) {
   return (
     <span className={cn('inline-flex flex-wrap items-center gap-2', className)}>
-      <span className="inline-flex items-center gap-1.5">
-        <i
-          aria-hidden="true"
-          data-set={copy.setCode}
-          className={cn('ss', `ss-${copy.setCode}`, `ss-${copy.rarity}`)}
-        />
-        {copyText(copy)}
-      </span>
+      <span data-set={copy.setCode}>{copyText(copy)}</span>
       {copy.isProxy && <ProxyTag />}
     </span>
   );
@@ -74,7 +67,7 @@ export function WalkLine({
   actions?: ReactNode;
 }) {
   const [showImage, setShowImage] = useState(false);
-  const image = line.card.imageNormal ?? line.card.imageSmall;
+  const image = line.card.imageUrl ?? line.card.imageUrl;
   const checkboxId = `walk-line-${line.key}`;
   return (
     <li
@@ -101,7 +94,7 @@ export function WalkLine({
           <span className={cn('truncate font-semibold text-[15px]', line.done && 'line-through')}>
             {line.quantity}{' '}
             <Link
-              to={`/cards/${line.card.oracleId}`}
+              to={`/cards/${line.card.id}`}
               className="text-foreground hover:text-primary hover:underline"
               onMouseEnter={() => setShowImage(true)}
               onMouseLeave={() => setShowImage(false)}

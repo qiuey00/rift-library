@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { IdParam } from '../../shared/api/common';
 import {
-  DeckCommanders,
+  DeckLegend,
   DeckRename,
   NewDeck,
   SlotChange,
@@ -20,7 +20,7 @@ import {
   moveSlotBoard,
   removeSlot,
   renameDeck,
-  setCommanders,
+  setLegend,
   setSlotPrinting,
   setSlotQuantity,
   setSlotTags,
@@ -42,11 +42,11 @@ function found<T>(value: T | undefined): T {
 export const decksRoutes = new Hono()
   .get('/decks', (c) => c.json({ decks: deckList(getDb()) }))
   .post('/decks', validate('json', NewDeck), (c) => {
-    const { name, commanders } = c.req.valid('json');
+    const { name, legendId } = c.req.valid('json');
     const db = getDb();
     const id = createDeck(db, {
       name,
-      slots: commanders.map((oracleId) => ({ oracleId, board: 'commander', quantity: 1 })),
+      slots: [{ cardId: legendId, board: 'legend', quantity: 1 }],
     });
     return c.json(found(deckSummary(db, id)), 201);
   })
@@ -62,10 +62,10 @@ export const decksRoutes = new Hono()
     renameDeck(db, id, c.req.valid('json').name);
     return c.json(found(deckSummary(db, id)));
   })
-  .put('/decks/:id/commanders', deckParam, validate('json', DeckCommanders), (c) => {
+  .put('/decks/:id/legend', deckParam, validate('json', DeckLegend), (c) => {
     const { id } = c.req.valid('param');
     const db = getDb();
-    setCommanders(db, id, c.req.valid('json').oracleIds);
+    setLegend(db, id, c.req.valid('json').legendId);
     return c.json(found(deckView(db, id)));
   })
   .post('/decks/:id/slots', deckParam, validate('json', SlotInput), (c) => {

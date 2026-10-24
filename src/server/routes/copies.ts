@@ -3,9 +3,11 @@ import {
   AddCopiesBody,
   MoveContentsBody,
   MoveCopiesBody,
+  RemoveCopiesBody,
   SetProxyBody,
 } from '../../shared/api/copies';
 import { LocationIdParams } from '../../shared/api/locations';
+import { removeCopiesResultSample } from '../../shared/api/samples/copies';
 import { getDb } from '../db/database';
 import { addToCollection, markProxy, moveContents, moveStacks } from '../services/moves';
 import { validate } from '../validate';
@@ -28,4 +30,8 @@ export const copiesRoutes = new Hono()
   })
   .post('/stacks/add', validate('json', AddCopiesBody), (c) =>
     c.json(addToCollection(getDb(), c.req.valid('json'))),
+  )
+  // STUB until #10
+  .post('/copies/remove', validate('json', RemoveCopiesBody), (c) =>
+    c.json(removeCopiesResultSample),
   );

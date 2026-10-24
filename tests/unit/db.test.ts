@@ -6,15 +6,14 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type OpenDb, openDataDatabase } from '../../src/server/db/database';
-import { cards, copyStacks, locations, printings } from '../../src/server/db/schema';
-import { createTestDb } from '../../src/server/db/test-db';
+import { copyStacks, locations } from '../../src/server/db/schema';
+import { createTestDb, insertCard, insertPrinting } from '../../src/server/db/test-db';
 import { startServer } from '../../src/server/server';
 
 const TABLES = [
   'buy_list_items',
   'card_data_status',
   'cards',
-  'cards_staging',
   'copy_stacks',
   'deck_slot_tags',
   'deck_slots',
@@ -23,7 +22,6 @@ const TABLES = [
   'movement_batches',
   'movements',
   'printings',
-  'printings_staging',
 ];
 
 describe('database file', () => {
@@ -86,30 +84,8 @@ describe('rules in the schema', () => {
     inboxId = db.select().from(locations).get()?.id ?? 0;
     boxId = db.insert(locations).values({ name: 'Box', type: 'box' }).returning().get().id;
     binderId = db.insert(locations).values({ name: 'Binder', type: 'binder' }).returning().get().id;
-    db.insert(cards)
-      .values({
-        oracleId: 'oracle-sol-ring',
-        name: 'Sol Ring',
-        frontFaceName: 'Sol Ring',
-        typeLine: 'Artifact',
-        manaCost: '{1}',
-        manaValue: 1,
-        commanderLegality: 'legal',
-      })
-      .run();
-    db.insert(printings)
-      .values({
-        printingId: 'printing-sol-ring',
-        oracleId: 'oracle-sol-ring',
-        setCode: 'cmm',
-        setName: 'Commander Masters',
-        collectorNumber: '395',
-        lang: 'en',
-        finishes: ['nonfoil', 'foil'],
-        rarity: 'uncommon',
-        releasedAt: '2023-08-04',
-      })
-      .run();
+    const cardId = insertCard(db, { name: 'Sun Disc', energy: 1 });
+    insertPrinting(db, { riftcodexId: 'printing-sol-ring', cardId, collectorNumber: '395' });
   });
   afterEach(() => db.$client.close());
 
@@ -119,7 +95,7 @@ describe('rules in the schema', () => {
       .values({
         printingId: 'printing-sol-ring',
         quantity: 1,
-        finish: 'nonfoil',
+        finish: 'normal',
         condition: 'near_mint',
         language: 'en',
         locationId: boxId,

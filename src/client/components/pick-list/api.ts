@@ -71,6 +71,6 @@ export function undoMovement(movementId: Id) {
   );
 }
 
-export function fetchCard(oracleId: string) {
-  return answer(api.cards[':oracleId'].$get({ param: { oracleId } }), CardDetailsResponse);
+export function fetchCard(cardId: number) {
+  return answer(api.cards[':id'].$get({ param: { id: String(cardId) } }), CardDetailsResponse);
 }

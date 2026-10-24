@@ -10,7 +10,7 @@ The stack is Library of Gathering's, unchanged (D-2): TypeScript end to end on N
 
 | Part | Change from Library of Gathering |
 | --- | --- |
-| Icons and symbols | The Mana font and Keyrune are removed. Domain icons are six small SVGs in `src/client/components/domains/`. Lucide and the Instrument fonts stay. |
+| Icons and symbols | The Mana font and Keyrune are removed. Domains show through `DomainIcon` in `src/client/components/DomainIcon.tsx`, a colored dot with the domain's name until the six small SVGs are drawn, and sets show as their code. Lucide and the Instrument fonts stay. |
 | File reading | stream-json and the Scryfall bulk reader are removed. Riftcodex and TCGCSV answer plain JSON, read with `fetch`. Papa Parse stays for the collection CSV export and a later CSV import. |
 | Speed tests | `tests/speed`, `npm run seed:big`, `npm run test:speed` and `npm run test:speed:e2e` are removed (D-6). |
 

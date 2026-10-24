@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { moveResultSample } from '../../src/shared/api/samples/copies';
 import {
-  blackGreenNode,
+  chaosCalmNode,
   locationRef,
   locationTreeSample,
 } from '../../src/shared/api/samples/locations';
@@ -13,16 +13,16 @@ import {
 import type { CardCopies } from '../../src/shared/api/stacks';
 
 // The card page's Copies section with GET /api/cards/:oracleId/copies mocked from the samples:
-// Arcane Signet in the Hearthhull deck box, the Staples binder and (a proxy) the Atraxa deck box.
+// Ember Signet in the Jinx Burn deck box, the Staples binder and (a proxy) the Lux Control deck box.
 
-const arcaneSignet = '/cards/0bc7f093-bef0-4f1a-852c-4b75ebf54838';
+const emberSignet = '/cards/13';
 const s = sampleStacks;
 
 /** The samples plus a stack two levels down, to show a full path. */
 const withNested: CardCopies = {
   rows: [
     ...cardCopiesSample.rows,
-    { ...s.arcaneSignetInStaples, stackId: 199, location: locationRef(blackGreenNode) },
+    { ...s.emberSignetInStaples, stackId: 199, location: locationRef(chaosCalmNode) },
   ],
   counts: { owned: 4, proxies: 1, inDecks: 2, free: 2 },
 };
@@ -49,32 +49,32 @@ const row = (page: Page, stackId: number) =>
 
 test('lists every copy stack with its full location path and tags', async ({ page }) => {
   await mockApi(page, withNested);
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
   await expect(section(page).locator('tbody tr[data-stack-id]')).toHaveCount(4);
 
-  const inHearthhull = row(page, s.arcaneSignetInHearthhull.stackId);
-  await expect(inHearthhull).toContainText('Hearthhull deck box');
-  await expect(inHearthhull.getByRole('link', { name: 'In deck · Hearthhull' })).toBeVisible();
-  await expect(inHearthhull).toContainText('EOC');
-  await expect(inHearthhull).toContainText('Nonfoil');
-  await expect(inHearthhull).toContainText('NM');
+  const inJinxBurn = row(page, s.emberSignetInJinxBurn.stackId);
+  await expect(inJinxBurn).toContainText('Jinx Burn deck box');
+  await expect(inJinxBurn.getByRole('link', { name: 'In deck · Jinx Burn' })).toBeVisible();
+  await expect(inJinxBurn).toContainText('OGN');
+  await expect(inJinxBurn).toContainText('Normal');
+  await expect(inJinxBurn).toContainText('NM');
 
-  const proxy = row(page, s.arcaneSignetProxyInAtraxa.stackId);
+  const proxy = row(page, s.emberSignetProxyInLuxControl.stackId);
   await expect(proxy).toContainText('Proxy');
-  await expect(proxy.getByRole('link', { name: /In deck · Atraxa/ })).toBeVisible();
+  await expect(proxy.getByRole('link', { name: /In deck · Lux Control/ })).toBeVisible();
 
-  const inStaples = row(page, s.arcaneSignetInStaples.stackId);
+  const inStaples = row(page, s.emberSignetInStaples.stackId);
   await expect(inStaples).toContainText('Staples binder');
   await expect(inStaples).not.toContainText('In deck');
   await expect(inStaples).not.toContainText('Proxy');
 
-  await expect(row(page, 199)).toContainText('Long box › Black & Green');
+  await expect(row(page, 199)).toContainText('Long box › Chaos & Calm');
 });
 
 test('shows the counts in the heading', async ({ page }) => {
   await mockApi(page, cardCopiesSample);
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
   await expect(section(page).getByTestId('card-copies-counts')).toHaveText(
     '3 owned (1 proxy) · 2 in decks · 1 free',
@@ -83,7 +83,7 @@ test('shows the counts in the heading', async ({ page }) => {
 
 test('leaves the proxies out of the counts when there are none', async ({ page }) => {
   await mockApi(page, { ...cardCopiesSample, counts: { ...cardCopiesSample.counts, proxies: 0 } });
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
   await expect(section(page).getByTestId('card-copies-counts')).toHaveText(
     '3 owned · 2 in decks · 1 free',
@@ -92,19 +92,19 @@ test('leaves the proxies out of the counts when there are none', async ({ page }
 
 test('clicking a location opens it on the Locations screen', async ({ page }) => {
   await mockApi(page, withNested);
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
-  await row(page, 199).getByRole('link', { name: 'Long box › Black & Green' }).click();
-  await expect(page).toHaveURL(`/locations?selected=${blackGreenNode.id}`);
+  await row(page, 199).getByRole('link', { name: 'Long box › Chaos & Calm' }).click();
+  await expect(page).toHaveURL(`/locations?selected=${chaosCalmNode.id}`);
 });
 
 test('Move to opens with the selected stack and moves part of it', async ({ page }) => {
-  const twoInStaples = { ...s.arcaneSignetInStaples, quantity: 2 };
+  const twoInStaples = { ...s.emberSignetInStaples, quantity: 2 };
   const { moves } = await mockApi(page, {
-    rows: [s.arcaneSignetInHearthhull, twoInStaples],
+    rows: [s.emberSignetInJinxBurn, twoInStaples],
     counts: { owned: 3, proxies: 0, inDecks: 1, free: 2 },
   });
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
   await row(page, twoInStaples.stackId).getByRole('checkbox').check();
   await section(page)
@@ -113,7 +113,7 @@ test('Move to opens with the selected stack and moves part of it', async ({ page
     .click();
 
   const dialog = page.getByRole('dialog', { name: 'Move to' });
-  await expect(dialog).toContainText('2 copies of Arcane Signet in Staples binder');
+  await expect(dialog).toContainText('2 copies of Ember Signet in Staples binder');
   await expect(dialog.getByLabel('Quantity')).toHaveValue('2');
 
   await dialog.getByLabel('Quantity').fill('1');
@@ -129,7 +129,7 @@ test('Move to opens with the selected stack and moves part of it', async ({ page
 
 test('says so when Jeff owns no copies and offers to add some', async ({ page }) => {
   await mockApi(page, cardCopiesEmptySample);
-  await page.goto(arcaneSignet);
+  await page.goto(emberSignet);
 
   await expect(section(page)).toContainText('No copies yet');
   await expect(section(page).locator('table')).toHaveCount(0);

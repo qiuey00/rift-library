@@ -21,8 +21,8 @@ import { Link } from 'react-router';
 import type { Finish, StackRow } from '../../shared/api/common';
 import { formatCents } from '../lib/money';
 import { cn } from '../lib/utils';
+import { DomainIcons } from './DomainIcon';
 import { LocationTile } from './LocationTile';
-import { ManaCost } from './ManaCost';
 import { Panel } from './Panel';
 import { ProxyTag } from './ProxyTag';
 import { TradeTag } from './TradeTag';
@@ -46,7 +46,7 @@ const IMAGE_CAPTION = 60;
 /** How close to the end (in rows) the list asks for the next page. */
 const END_REACHED_ROWS = 10;
 
-const finishWords: Record<Finish, string> = { nonfoil: 'Nonfoil', foil: 'Foil', etched: 'Etched' };
+const finishWords: Record<Finish, string> = { normal: 'Normal', foil: 'Foil' };
 
 const conditionWords: Record<string, [short: string, long: string]> = {
   mint: ['M', 'Mint'],
@@ -101,7 +101,7 @@ function InDeckTag({ inDeck }: { inDeck: NonNullable<StackRow['inDeck']> }) {
 function CardName({ row }: { row: StackRow }) {
   return (
     <Link
-      to={`/cards/${row.card.oracleId}`}
+      to={`/cards/${row.card.id}`}
       className="truncate font-semibold text-foreground hover:text-primary"
     >
       {row.card.name}
@@ -111,19 +111,8 @@ function CardName({ row }: { row: StackRow }) {
 
 function SetSymbol({ row }: { row: StackRow }) {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 whitespace-nowrap"
-      title={row.printing.setName}
-    >
-      <i
-        aria-hidden="true"
-        className={cn(
-          'ss ss-fw text-base',
-          `ss-${row.printing.setCode}`,
-          `ss-${row.printing.rarity}`,
-        )}
-      />
-      {row.printing.setCode.toUpperCase()}
+    <span className="whitespace-nowrap" title={row.printing.setName}>
+      {row.printing.setCode}
     </span>
   );
 }
@@ -163,10 +152,7 @@ function buildColumns(
         return (
           <span className="flex min-w-0 items-center gap-2">
             <CardName row={stack} />
-            <ManaCost
-              cost={stack.card.manaCost}
-              className="min-w-0 shrink-[4] overflow-hidden text-[13px]"
-            />
+            <DomainIcons domains={stack.card.domains} className="text-[13px]" />
             {stack.isProxy && <ProxyTag className="shrink-0" />}
             {showTrade && stack.location.forTrade && <TradeTag className="shrink-0" />}
             {stack.inDeck && <InDeckTag inDeck={stack.inDeck} />}
@@ -275,7 +261,7 @@ const PREVIEW_HEIGHT = Math.round(PREVIEW_WIDTH * IMAGE_RATIO);
 
 /** The card image that follows the hovered text row. Sighted-only: the name is in the row. */
 function CardPreview({ preview }: { preview: Preview | null }) {
-  if (!preview?.row.printing.imageNormal) return null;
+  if (!preview?.row.printing.imageUrl) return null;
   return (
     <div
       data-slot="card-preview"
@@ -283,7 +269,7 @@ function CardPreview({ preview }: { preview: Preview | null }) {
       className="pointer-events-none fixed z-50 overflow-hidden rounded-[12px] shadow-[0_8px_24px_rgba(23,26,33,0.25)]"
       style={{ left: preview.left, top: preview.top, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}
     >
-      <img src={preview.row.printing.imageNormal} alt="" className="size-full object-contain" />
+      <img src={preview.row.printing.imageUrl} alt="" className="size-full object-contain" />
     </div>
   );
 }
@@ -468,9 +454,9 @@ function ImageTile({ row, showTrade }: { row: StackTableRow; showTrade: boolean 
       )}
     >
       <div className="relative">
-        {stack.printing.imageNormal ? (
+        {stack.printing.imageUrl ? (
           <img
-            src={stack.printing.imageNormal}
+            src={stack.printing.imageUrl}
             alt={stack.card.name}
             loading="lazy"
             className="block aspect-[488/680] w-full rounded-[4.75%/3.5%] bg-muted object-contain"
@@ -491,7 +477,7 @@ function ImageTile({ row, showTrade }: { row: StackTableRow; showTrade: boolean 
       </div>
       <span className="flex min-w-0 items-center gap-1.5 text-[13px]">
         <CardName row={stack} />
-        {stack.finish !== 'nonfoil' && (
+        {stack.finish !== 'normal' && (
           <span className="shrink-0 text-muted-foreground text-xs">
             {finishWords[stack.finish]}
           </span>
