@@ -35,6 +35,7 @@ Quick add replaces Library of Gathering's ManaBox import as the main way cards c
 - Typing shows matching printings as small images with set, number and public code; arrow keys move between them and Enter picks one.
 - After a card is added, its line appears in an Added list under the search, the search clears and keeps focus, and every field keeps its value. Each line in the Added list has Undo.
 - Close returns to the screen underneath, which shows the new copies.
+- **Add cards** in the top bar, the Collection's Add card button and the Locations screen's Add card button open it; the undo bar stays away while it is open, since each Added line has its own Undo. The card page's Add copies keeps the one-card Add a card dialog, which starts on that card.
 
 ## Deck view
 

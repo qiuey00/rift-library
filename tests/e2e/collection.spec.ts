@@ -223,11 +223,12 @@ test('Add to buy list opens the dialog for the selected card', async ({ page }) 
   await expect(page.getByRole('dialog', { name: /buy list/i })).toBeVisible();
 });
 
-test('Add card opens the Add a card dialog', async ({ page }) => {
+test('Add card opens the Add cards dialog on the "to sort" inbox', async ({ page }) => {
   await mockApi(page);
   await page.goto('/collection');
-  await page.getByRole('button', { name: 'Add card' }).click();
-  await expect(page.getByRole('dialog', { name: 'Add a card' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add card', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add cards' });
+  await expect(dialog.getByRole('combobox', { name: 'Add to' })).toHaveText('To sort');
 });
 
 test('scrolling to the end loads the next page', async ({ page }) => {
@@ -262,8 +263,8 @@ test('an empty collection offers Create a location and Add cards', async ({ page
     'href',
     '/locations',
   );
-  await page.getByRole('button', { name: 'Add cards' }).click();
-  await expect(page.getByRole('dialog', { name: 'Add a card' })).toBeVisible();
+  await page.getByRole('main').getByRole('button', { name: 'Add cards' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add cards' })).toBeVisible();
 });
 
 test('the header shows the collection value with proxies left out', async ({ page }) => {
